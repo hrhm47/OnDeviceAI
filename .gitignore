@@ -41,3 +41,13 @@ app-example
 # generated native folders
 /ios
 /android
+
+# ASR Benchmarking Screenshots
+asr_benchmark_screens/*
+
+# package-lock.json
+package-lock.json
+
+
+# ai models
+assets/whisper/*.bin
