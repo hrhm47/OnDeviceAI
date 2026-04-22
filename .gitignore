@@ -50,4 +50,4 @@ package-lock.json
 
 
 # ai models
-assets/whisper/*.bin
+assets/whisper/*
