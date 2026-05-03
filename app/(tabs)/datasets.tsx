@@ -1,201 +1,211 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { ASREngine, ASRResult } from "@/src/engine/types";
+import { FieldColors as C } from "@/constants/theme";
 import { useSpeechStore } from "@/src/store/useSpeechStore";
-import * as DocumentPicker from "expo-document-picker";
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
-  Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function DatasetsScreen() {
-  const {
-    history,
-    activeModel,
-    whisperModel,
-    groundTruthText,
-    setGroundTruthText,
-    startBenchmarkingTimer,
-    registerFirstSymbol,
-    setLiveTranscript,
-    setFinalTranscript,
-    finalizeMetrics,
-  } = useSpeechStore();
+const savedItems = [
+  {
+    id: "D-104",
+    title: "Water leak near stairwell B",
+    type: "Draft report",
+    status: "Draft",
+    updated: "Today 14:20",
+    model: "Whisper",
+  },
+  {
+    id: "T-087",
+    title: "Temporary guardrail missing",
+    type: "ASR result",
+    status: "Tested",
+    updated: "Yesterday 16:05",
+    model: "Native ASR",
+  },
+  {
+    id: "R-041",
+    title: "Concrete delivery delay",
+    type: "Report",
+    status: "Reviewed",
+    updated: "Friday 09:10",
+    model: "Whisper",
+  },
+  {
+    id: "R-033",
+    title: "Blocked access route at gate 3",
+    type: "Report",
+    status: "Confirmed",
+    updated: "Thursday 12:42",
+    model: "Native ASR",
+  },
+];
 
-  const handleUpload = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "audio/*",
-        copyToCacheDirectory: true,
-      });
+export default function DraftsScreen() {
+  const { history } = useSpeechStore();
+  const [report, setReport] = useState({
+    type: "Safety observation",
+    title: "Water leak near stairwell B",
+    description:
+      "Water has collected near stairwell B on level 2. The walking surface is slippery beside the temporary partition. Area should be marked and dried before work continues.",
+    location: "Helsinki site 04 / Level 2 / Stairwell B",
+    category: "Safety / housekeeping",
+    urgency: "High",
+    responsible: "Site maintenance team",
+  });
 
-      if (result.canceled || !result.assets || result.assets.length === 0) {
-        return;
-      }
+  const items = useMemo(() => {
+    const transcriptItems = history.slice(0, 2).map((item, index) => ({
+      id: `T-${String(index + 1).padStart(3, "0")}`,
+      title: item.aiOutput || "Saved transcript",
+      type: "ASR result",
+      status: "Tested",
+      updated: new Date(item.timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      model: item.model.toUpperCase(),
+    }));
 
-      const fileUri = result.assets[0].uri;
+    return transcriptItems.length > 0 ? [...transcriptItems, ...savedItems] : savedItems;
+  }, [history]);
 
-      let engine: ASREngine;
-      if (activeModel === "native") {
-        const { NativeEngine } = await import("@/src/engine/NativeEngine");
-        engine = new NativeEngine();
-      } else if (activeModel === "whisper") {
-        const { WhisperEngine } = await import("@/src/engine/WhisperEngine");
-        engine = new WhisperEngine(whisperModel);
-      } else {
-        Alert.alert(
-          "Model Not Supported",
-          `Offline processing is not hooked up for ${activeModel} engine currently.`,
-        );
-        return;
-      }
-
-      Alert.alert(
-        "Processing",
-        `Benchmarking audio file with ${activeModel.toUpperCase()}...`,
-      );
-
-      await engine.init();
-
-      startBenchmarkingTimer();
-
-      await engine.start(
-        (res: ASRResult) => {
-          registerFirstSymbol();
-          setLiveTranscript(res.text);
-          if (res.isFinal) {
-            setFinalTranscript(res.text);
-            finalizeMetrics(res.text);
-            engine.destroy();
-            Alert.alert(
-              "Success",
-              "Benchmark complete! View results in History tab.",
-            );
-          }
-        },
-        (err: Error) => {
-          Alert.alert("ASR Error", err.message);
-          engine.destroy();
-        },
-        fileUri,
-      );
-    } catch (err) {
-      Alert.alert("Error", (err as Error).message);
-    }
-  };
-
-  const handleExport = async () => {
-    try {
-      const RNFS = await import("react-native-fs");
-      const path = RNFS.DocumentDirectoryPath + "/asr_benchmark_results.csv";
-      let csv =
-        "timestamp,model,wer,substitutions,deletions,insertions,ttfsMs,processingTimeMs\n";
-      history.forEach((item) => {
-        csv += `${item.timestamp},${item.model},${item.werDetails.wer.toFixed(2)},${item.werDetails.substitutions},${item.werDetails.deletions},${item.werDetails.insertions},${item.ttfsMs || ""},${item.processingTimeMs || ""}\n`;
-      });
-      await RNFS.writeFile(path, csv, "utf8");
-      Alert.alert("Exported", `Results saved to ${path}`);
-    } catch (err) {
-      Alert.alert("Error", (err as Error).message);
-    }
+  const updateField = (key: keyof typeof report, value: string) => {
+    setReport((current) => ({ ...current, [key]: value }));
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerEyebrow}>MANAGER V2.4</Text>
-          <Text style={styles.title}>Acoustic Datasets</Text>
-        </View>
-        <Pressable style={styles.settingsBtn}>
-          <IconSymbol size={20} name="gearshape.fill" color="#fff" />
-        </Pressable>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.main}>
-        {/* Action Buttons Grid */}
-        <View style={styles.actionGrid}>
-          <Pressable style={styles.btnGreen} onPress={handleUpload}>
-            <View style={styles.iconBoxWhite}>
-              <IconSymbol size={28} name="arrow.up.doc" color="#fff" />
-            </View>
-            <View>
-              <Text style={styles.btnGreenText}>Upload{"\n"}Audio</Text>
-              <Text style={styles.btnGreenSub}>.WAV / 44.1KHZ</Text>
-            </View>
-          </Pressable>
-
-          <Pressable style={styles.btnWhite} onPress={handleExport}>
-            <View style={styles.iconBoxDark}>
-              <IconSymbol size={28} name="arrow.down.doc" color="#000" />
-            </View>
-            <View>
-              <Text style={styles.btnWhiteText}>Download{"\n"}Results</Text>
-              <Text style={styles.btnWhiteSub}>.CSV / METRICS</Text>
-            </View>
-          </Pressable>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.eyebrow}>Saved drafts and report preview</Text>
+          <Text style={styles.title}>Resume field work</Text>
+          <Text style={styles.subtitle}>
+            Saved transcripts and report drafts stay easy to scan, edit, and
+            confirm.
+          </Text>
         </View>
 
-        {/* Ground Truth Config */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionHeaderLeft}>
-              <View style={[styles.dot, { backgroundColor: "#13ec80" }]} />
-              <Text style={styles.sectionTitle}>GROUND TRUTH STRING</Text>
+        <View style={styles.savedHeader}>
+          <Text style={styles.sectionTitle}>Saved drafts / results</Text>
+          <Text style={styles.sectionMeta}>{items.length} items</Text>
+        </View>
+
+        <View style={styles.savedList}>
+          {items.map((item) => (
+            <Pressable key={item.id} style={styles.savedCard}>
+              <View style={styles.savedTop}>
+                <View style={styles.savedIcon}>
+                  <IconSymbol
+                    size={22}
+                    name={item.type === "ASR result" ? "doc.text.fill" : "folder.fill"}
+                    color={C.primary}
+                  />
+                </View>
+                <View style={styles.savedTextBlock}>
+                  <Text style={styles.savedTitle} numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.savedMeta}>
+                    {item.id} / {item.type} / {item.model}
+                  </Text>
+                </View>
+                <StatusTag status={item.status} />
+              </View>
+              <Text style={styles.savedUpdated}>Updated {item.updated}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.previewCard}>
+          <View style={styles.previewHeader}>
+            <View>
+              <Text style={styles.cardTitle}>Autofill preview</Text>
+              <Text style={styles.previewSub}>
+                Worker reviews and edits before confirmation.
+              </Text>
+            </View>
+            <View style={styles.warningPill}>
+              <IconSymbol
+                size={16}
+                name="exclamationmark.triangle.fill"
+                color={C.warning}
+              />
+              <Text style={styles.warningText}>2 uncertain</Text>
             </View>
           </View>
-          <TextInput
-            style={styles.gtInput}
-            value={groundTruthText}
-            onChangeText={setGroundTruthText}
-            multiline
-            placeholder="Enter the expected transcription here..."
-            placeholderTextColor="rgba(0,0,0,0.3)"
+
+          <EditableField
+            icon="doc.text.fill"
+            label="Report type"
+            value={report.type}
+            onChangeText={(value) => updateField("type", value)}
           />
-        </View>
+          <EditableField
+            icon="square.and.pencil"
+            label="Title"
+            value={report.title}
+            onChangeText={(value) => updateField("title", value)}
+          />
+          <EditableField
+            icon="list.bullet.rectangle"
+            label="Description"
+            value={report.description}
+            onChangeText={(value) => updateField("description", value)}
+            multiline
+          />
+          <EditableField
+            icon="location.fill"
+            label="Location"
+            value={report.location}
+            onChangeText={(value) => updateField("location", value)}
+          />
+          <EditableField
+            icon="tag.fill"
+            label="Category"
+            value={report.category}
+            onChangeText={(value) => updateField("category", value)}
+            warning="Confirm category"
+          />
+          <EditableField
+            icon="flag.fill"
+            label="Urgency"
+            value={report.urgency}
+            onChangeText={(value) => updateField("urgency", value)}
+          />
+          <EditableField
+            icon="person.2.fill"
+            label="Responsible party"
+            value={report.responsible}
+            onChangeText={(value) => updateField("responsible", value)}
+            warning="Low confidence"
+          />
 
-        {/* Dataset List */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionHeaderLeft}>
-              <View style={[styles.dot, { backgroundColor: "#13ec80" }]} />
-              <Text style={styles.sectionTitle}>ACTIVE SITES</Text>
+          <View style={styles.photoPlaceholder}>
+            <IconSymbol size={24} name="camera.fill" color={C.textSubtle} />
+            <View style={styles.photoTextBlock}>
+              <Text style={styles.photoTitle}>Attachment / photo</Text>
+              <Text style={styles.photoSub}>No photo attached yet</Text>
             </View>
-            <Text style={styles.itemCount}>02 ITEMS</Text>
+            <Text style={styles.addPhoto}>Add</Text>
           </View>
 
-          <View style={styles.fileCard}>
-            <View style={styles.fileIconBox}>
-              <IconSymbol size={24} name="hammer.fill" color="#000" />
-            </View>
-            <View style={styles.fileDetails}>
-              <View style={styles.fileNameRow}>
-                <Text style={styles.fileName}>Construction Noise</Text>
-                <Text style={styles.fileId}>#001</Text>
-              </View>
-              <View style={styles.fileStats}>
-                <IconSymbol size={12} name="timer" color="rgba(0,0,0,0.4)" />
-                <Text style={styles.statTextLight}>12:45</Text>
-                <Text
-                  style={[
-                    styles.tag,
-                    {
-                      color: "#13ec80",
-                      backgroundColor: "rgba(19, 236, 128, 0.1)",
-                    },
-                  ]}
-                >
-                  85dB
-                </Text>
-              </View>
-            </View>
+          <View style={styles.previewButtons}>
+            <Pressable style={styles.outlineButton}>
+              <Text style={styles.outlineButtonText}>Edit</Text>
+            </Pressable>
+            <Pressable style={styles.draftButton}>
+              <Text style={styles.draftButtonText}>Save draft</Text>
+            </Pressable>
+            <Pressable style={styles.confirmButton}>
+              <Text style={styles.confirmButtonText}>Confirm</Text>
+            </Pressable>
           </View>
         </View>
       </ScrollView>
@@ -203,213 +213,354 @@ export default function DatasetsScreen() {
   );
 }
 
+function StatusTag({ status }: { status: string }) {
+  const isConfirmed = status === "Confirmed";
+  const isReviewed = status === "Reviewed";
+  const isTested = status === "Tested";
+  return (
+    <View
+      style={[
+        styles.statusTag,
+        isConfirmed && styles.statusTagConfirmed,
+        isReviewed && styles.statusTagReviewed,
+        isTested && styles.statusTagTested,
+      ]}
+    >
+      <Text
+        style={[
+          styles.statusTagText,
+          isConfirmed && styles.statusTagTextConfirmed,
+          isReviewed && styles.statusTagTextReviewed,
+          isTested && styles.statusTagTextTested,
+        ]}
+      >
+        {status}
+      </Text>
+    </View>
+  );
+}
+
+function EditableField({
+  icon,
+  label,
+  value,
+  onChangeText,
+  multiline,
+  warning,
+}: {
+  icon: React.ComponentProps<typeof IconSymbol>["name"];
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  multiline?: boolean;
+  warning?: string;
+}) {
+  return (
+    <View style={styles.fieldRow}>
+      <View style={styles.fieldIcon}>
+        <IconSymbol size={20} name={icon} color={C.primary} />
+      </View>
+      <View style={styles.fieldBody}>
+        <View style={styles.fieldLabelRow}>
+          <Text style={styles.fieldLabel}>{label}</Text>
+          {warning ? <Text style={styles.fieldWarning}>{warning}</Text> : null}
+        </View>
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          multiline={multiline}
+          style={[styles.fieldInput, multiline && styles.fieldInputMultiline]}
+          placeholderTextColor={C.textSubtle}
+        />
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff", // This screen is light modeled in proto
+    backgroundColor: C.background,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 104,
+    gap: 16,
   },
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0,0,0,0.05)",
+    paddingTop: 8,
   },
-  headerEyebrow: {
-    fontSize: 10,
-    fontWeight: "bold",
-    color: "#13ec80",
+  eyebrow: {
+    color: C.teal,
+    fontSize: 12,
+    fontWeight: "900",
     textTransform: "uppercase",
-    letterSpacing: 2,
-    marginBottom: 4,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#000",
-  },
-  settingsBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#000",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  main: {
-    padding: 20,
-  },
-  actionGrid: {
-    flexDirection: "row",
-    gap: 16,
-    marginBottom: 40,
-  },
-  btnGreen: {
-    flex: 1,
-    backgroundColor: "#22c55e",
-    borderRadius: 24,
-    padding: 20,
-    aspectRatio: 1,
-    justifyContent: "space-between",
-  },
-  btnWhite: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 24,
-    padding: 20,
-    aspectRatio: 1,
-    justifyContent: "space-between",
-  },
-  iconBoxWhite: {
-    width: 48,
-    height: 48,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBoxDark: {
-    width: 48,
-    height: 48,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  btnGreenText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  btnGreenSub: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 10,
-    fontFamily: "Courier",
+    color: C.text,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "900",
     marginTop: 4,
   },
-  btnWhiteText: {
-    color: "#000",
-    fontSize: 18,
-    fontWeight: "bold",
+  subtitle: {
+    color: C.textMuted,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: "600",
+    marginTop: 8,
   },
-  btnWhiteSub: {
-    color: "rgba(0,0,0,0.4)",
-    fontSize: 10,
-    fontFamily: "Courier",
-    marginTop: 4,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionHeader: {
+  savedHeader: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  sectionHeaderLeft: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
   },
   sectionTitle: {
-    fontSize: 12,
-    fontWeight: "bold",
-    letterSpacing: 1.5,
-    color: "rgba(0,0,0,0.5)",
+    color: C.text,
+    fontSize: 19,
+    fontWeight: "900",
   },
-  itemCount: {
-    fontSize: 10,
-    fontWeight: "bold",
-    fontFamily: "Courier",
-    backgroundColor: "#f1f1f1",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    color: "rgba(0,0,0,0.6)",
+  sectionMeta: {
+    color: C.textSubtle,
+    fontSize: 13,
+    fontWeight: "800",
   },
-  fileCard: {
+  savedList: {
+    gap: 12,
+  },
+  savedCard: {
+    backgroundColor: C.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 14,
+    gap: 10,
+  },
+  savedTop: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    padding: 16,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    alignItems: "flex-start",
+    gap: 12,
   },
-  fileIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#f8f9fa",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
+  savedIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: C.primarySoft,
     alignItems: "center",
     justifyContent: "center",
   },
-  fileDetails: {
+  savedTextBlock: {
     flex: 1,
   },
-  fileNameRow: {
+  savedTitle: {
+    color: C.text,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: "900",
+  },
+  savedMeta: {
+    color: C.textSubtle,
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 4,
+  },
+  savedUpdated: {
+    color: C.textMuted,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  statusTag: {
+    backgroundColor: C.warningSoft,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  statusTagConfirmed: {
+    backgroundColor: C.successSoft,
+  },
+  statusTagReviewed: {
+    backgroundColor: C.primarySoft,
+  },
+  statusTagTested: {
+    backgroundColor: C.tealSoft,
+  },
+  statusTagText: {
+    color: C.warning,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  statusTagTextConfirmed: {
+    color: C.success,
+  },
+  statusTagTextReviewed: {
+    color: C.primary,
+  },
+  statusTagTextTested: {
+    color: C.teal,
+  },
+  previewCard: {
+    backgroundColor: C.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 16,
+    gap: 14,
+  },
+  previewHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: 12,
   },
-  fileName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#000",
+  cardTitle: {
+    color: C.text,
+    fontSize: 20,
+    fontWeight: "900",
   },
-  fileId: {
-    fontSize: 10,
-    fontFamily: "Courier",
-    color: "rgba(0,0,0,0.4)",
+  previewSub: {
+    color: C.textMuted,
+    fontSize: 14,
+    fontWeight: "700",
+    marginTop: 4,
   },
-  fileStats: {
+  warningPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    backgroundColor: C.warningSoft,
+    borderRadius: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  warningText: {
+    color: C.warning,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  fieldRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surfaceWarm,
+    padding: 12,
+  },
+  fieldIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: C.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fieldBody: {
+    flex: 1,
+  },
+  fieldLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  fieldLabel: {
+    color: C.textSubtle,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  fieldWarning: {
+    color: C.warning,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  fieldInput: {
+    color: C.text,
+    fontSize: 16,
+    lineHeight: 23,
+    fontWeight: "700",
+    padding: 0,
     marginTop: 6,
   },
-  statTextLight: {
-    fontSize: 11,
-    color: "rgba(0,0,0,0.5)",
-    fontWeight: "500",
-    marginRight: 8,
-  },
-  tag: {
-    fontSize: 10,
-    fontWeight: "bold",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  gtInput: {
-    backgroundColor: "#f8f9fa",
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 16,
-    padding: 16,
-    fontSize: 14,
-    color: "#000",
-    minHeight: 100,
+  fieldInputMultiline: {
+    minHeight: 88,
     textAlignVertical: "top",
+  },
+  photoPlaceholder: {
+    minHeight: 64,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: C.borderStrong,
+    backgroundColor: C.surfaceWarm,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  photoTextBlock: {
+    flex: 1,
+  },
+  photoTitle: {
+    color: C.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  photoSub: {
+    color: C.textSubtle,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  addPhoto: {
+    color: C.primary,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  previewButtons: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  outlineButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
+    backgroundColor: C.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  outlineButtonText: {
+    color: C.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  draftButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: 8,
+    backgroundColor: C.neutralDark,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  draftButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  confirmButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: 8,
+    backgroundColor: C.success,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "900",
   },
 });

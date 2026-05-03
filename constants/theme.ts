@@ -51,3 +51,37 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+export const FieldColors = {
+  background: '#F6F4EF',
+  surface: '#FFFFFF',
+  surfaceAlt: '#EEF2F4',
+  surfaceWarm: '#FBFAF7',
+  text: '#111827',
+  textMuted: '#374151',
+  textSubtle: '#5B6472',
+  border: '#C9D1D8',
+  borderStrong: '#9BA8B4',
+  primary: '#0F6CBD',
+  primaryPressed: '#084C8D',
+  primarySoft: '#E7F0FA',
+  teal: '#0F766E',
+  tealSoft: '#E6F3F1',
+  success: '#147D4C',
+  successSoft: '#E7F4EC',
+  warning: '#B45309',
+  warningSoft: '#FFF4DB',
+  danger: '#B42318',
+  dangerSoft: '#FDECEC',
+  neutral: '#E6E8EB',
+  neutralDark: '#2F3A45',
+};
+
+export const FieldType = {
+  eyebrow: 12,
+  body: 15,
+  bodyLarge: 17,
+  title: 28,
+  section: 18,
+  metric: 32,
+};

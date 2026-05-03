@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { TranscribeRealtimeOptions, WhisperContext } from './../node_modules/whisper.rn/src/index';
+import type { TranscribeRealtimeOptions, WhisperContext } from './../node_modules/whisper.rn/src/index';
 // import { initWhisper } from 'whisper.rn';
 
 
@@ -9,9 +9,6 @@ import { TranscribeRealtimeOptions, WhisperContext } from './../node_modules/whi
 
 import { checkRecordingPermission } from '@/hooks/recordingPermission';
 import { ASRResult } from '@/src/engine/types';
-import { initWhisper } from 'whisper.rn';
-
-
 // import { RealtimeTranscriber } from 'whisper.rn/realtime-transcription';
 // import { AudioPcmStreamAdapter } from 'whisper.rn/realtime-transcription/adapters';
 // import { RealtimeTranscriber } from 'whisper.rn/src/realtime-transcription';
@@ -33,9 +30,11 @@ const HALLUCINATION_FILTERS = [
 export const useWhisperEngine = () => {
 
   const [whisperInitialized, setWhisperInitialized] = useState<WhisperContext | null>(null);
+  const whisperContextRef = useRef<WhisperContext | null>(null);
    const stopRef = useRef<null | (() => Promise<void> | void)>(null); 
 
   const initWhisperModel = async (modelName: string): Promise<void> => {
+    const { initWhisper } = await import('whisper.rn');
     const assets: Record<string, any> = {
       'tiny.en': require('../assets/whisper/ggml-tiny.en.bin'),
       'tiny': require('../assets/whisper/ggml-tiny.bin'),
@@ -49,6 +48,7 @@ export const useWhisperEngine = () => {
       filePath: modelAsset,
     });
     console.log("Whisper initialized with model:", whisperContext);
+    whisperContextRef.current = whisperContext;
     setWhisperInitialized(whisperContext);
   }
 
@@ -60,13 +60,14 @@ export const useWhisperEngine = () => {
   ): Promise<void> => {
 
     // const whisperContext = await initWhisperModel(modelName);
-    if (!whisperInitialized) throw new Error("Whisper not initialized");
+    const context = whisperContextRef.current ?? whisperInitialized;
+    if (!context) throw new Error("Whisper not initialized");
 
     const language = 'en';
 
     if (audioUri) {
       try {
-        const { promise } = whisperInitialized.transcribe(audioUri, {
+        const { promise } = context.transcribe(audioUri, {
           language,
         });
         const res = await promise;
@@ -100,7 +101,7 @@ export const useWhisperEngine = () => {
 
         }
 
-        const { subscribe, stop } = await whisperInitialized.transcribeRealtime(transciberOptions);
+        const { subscribe, stop } = await context.transcribeRealtime(transciberOptions);
 
         stopRef.current = stop;
 

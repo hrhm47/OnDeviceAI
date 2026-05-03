@@ -1,11 +1,9 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { FieldColors as C } from "@/constants/theme";
+import { useSpeechStore } from "@/src/store/useSpeechStore";
+import { router } from "expo-router";
+import React from "react";
 import {
-  setTranscriptionDataFunc,
-  useSpeechStore,
-} from "@/src/store/useSpeechStore";
-import React, { useEffect, useRef, useState } from "react";
-import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,550 +12,500 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { whisperAvailableModels } from "@/constants/constant";
-import { useWhisperEngine } from "@/hooks/useWhisperEngine";
-import { NativeEngine } from "@/src/engine/NativeEngine";
-import { ASREngine, ASRResult } from "@/src/engine/types";
+const workflowSteps = [
+  { label: "Record voice", status: "Ready" },
+  { label: "On-device ASR", status: "Testing" },
+  { label: "Improve transcript", status: "Next" },
+  { label: "Autofill report", status: "Preview" },
+];
 
-export default function RecordScreen() {
-  const {
-    isRecording,
-    setRecording,
-    activeModel,
-    setActiveModel,
-    // whisperModel,
-    whisperActiveModel,
-    setwhisperActiveModel,
-    liveTranscript,
-    startBenchmarkingTimer,
-    registerFirstSymbol,
-    setLiveTranscript,
-    finalTranscript,
-    setFinalTranscript,
-    finalizeMetrics,
-  } = useSpeechStore();
+const recentDraft = {
+  title: "Water leak near stairwell B",
+  site: "Helsinki site 04 / Level 2",
+  updated: "Today 14:20",
+  status: "Draft",
+};
 
-  const {
-    init: whisperInitialize,
-    start: whisperStart,
-    stop: whisperStop,
-  } = useWhisperEngine();
+export default function HomeScreen() {
+  const { history, activeModel, metrics } = useSpeechStore();
+  const latest = history[0];
 
-  const activeEngine = useRef<ASREngine | null>(null);
-  const [isEngineLoading, setEngineLoading] = useState(false);
-  const [showModelOptions, setShowModelOptions] = useState(true);
-
-  useEffect(() => {
-    const destroyEngine = async () => {
-      if (activeEngine.current) {
-        await activeEngine.current.destroy();
-        activeEngine.current = null;
-      }
-    };
-
-    return () => {
-      destroyEngine().catch(console.error);
-    };
-  }, [activeModel, whisperActiveModel]);
-
-  const createEngine = async (): Promise<ASREngine | null> => {
-    if (activeModel === "native") {
-      return new NativeEngine();
-    }
-
-    if (activeModel === "whisper") {
-      whisperInitialize(whisperActiveModel); // Placeholder since whisperStart is handled separately in the recording logic
-    }
-
-    return null;
-  };
-
-  const handleRecordPress = async () => {
-    // if (isEngineLoading) {
-    //   activeEngine.current
-    //     ?.init()
-    //     .then(() => {
-    //       setEngineLoading(false);
-    //       Alert.alert(
-    //         "Engine Loaded",
-    //         `${activeModel.toUpperCase()} is ready to use.`,
-    //       );
-    //     })
-    //     .catch((err) => {
-    //       setEngineLoading(false);
-    //       Alert.alert(
-    //         "Engine Load Failed",
-    //         (err as Error).message ||
-    //           `Failed to load ${activeModel.toUpperCase()}.`,
-    //       );
-    //     });
-    //   return;
-    // }
-
-    // if (isRecording) {
-    //   if (activeEngine.current) await activeEngine.current.stop();
-    //   setRecording(false);
-    //   // Wait a tiny bit for the final engine callback to update the store's transcripts
-    //   setTimeout(() => {
-    //     finalizeMetrics();
-    //   }, 300);
-    // } else {
-    // try {
-    //   if (!activeEngine.current) {
-    //     setEngineLoading(true);
-    //     const engine = await createEngine();
-
-    // if (!engine) {
-    //   Alert.alert(
-    //     "Model Not Supported",
-    //     `${activeModel.toUpperCase()} is not hooked up yet.`,
-    //   );
-    //   return;
-    // }
-
-    // await engine.init();
-    // activeEngine.current = engine;
-    //   }
-    // } catch (err) {
-    //   Alert.alert(
-    //     "Engine Not Loaded",
-    //     (err as Error).message ||
-    //       `Failed to initialize ${activeModel.toUpperCase()}.`,
-    //   );
-    //   return;
-    // } finally {
-    //   setEngineLoading(false);
-    // }
-
-    if (isRecording) {
-      if (activeModel === "whisper") {
-        await whisperStop();
-      } else {
-        await activeEngine.current?.stop();
-      }
-      setRecording(false);
-      // Wait a tiny bit for the final engine callback to update the store's transcripts
-      setTimeout(() => {
-        // finalizeMetrics();
-      }, 300);
-      return;
-    }
-
-    startBenchmarkingTimer();
-    setRecording(true);
-
-    if (!activeEngine.current) {
-      setEngineLoading(true);
-      // iniaialize whisper model if whisper is selected, otherwise create the engine as usual
-      await createEngine()
-        .then(() => {
-          setEngineLoading(false);
-          Alert.alert(
-            "Engine Loaded",
-            `${activeModel.toUpperCase()} is ready to use.`,
-          );
-        })
-        .catch((err) => {
-          setEngineLoading(false);
-          Alert.alert(
-            "Engine Load Failed",
-            (err as Error).message ||
-              `Failed to load ${activeModel.toUpperCase()}.`,
-          );
-        });
-
-      // if (!engine) {
-      //   Alert.alert(
-      //     "Model Not Supported",
-      //     `${activeModel.toUpperCase()} is not hooked up yet.`,
-      //   );
-      //   return;
-      // }
-
-      // await engine.init();
-      // activeEngine.current = engine;
-    }
-
-    await whisperStart(
-      (result: ASRResult) => {
-        registerFirstSymbol();
-        setTranscriptionDataFunc(result.text);
-        setLiveTranscript(result?.text);
-        if (result.isFinal) {
-          setFinalTranscript((prev: string) => prev + result.text);
-        }
-      },
-      (err: Error) => {
-        Alert.alert("ASR Error", err.message);
-        setRecording(false);
-      },
-    );
-    // }
-  };
-
-  const cycleWhisperModel = (modelId: string) => {
-    console.log("Selected Whisper Model ID:", modelId);
-    const selectedModel: any = whisperAvailableModels.find(
-      (m) => m.id === modelId,
-    );
-    setwhisperActiveModel(selectedModel?.title);
-    setShowModelOptions(false);
-
-    // const models = [
-    //   "tiny.en",
-    //   "tiny",
-    //   // "base.en",
-    //   // "base",
-    // ];
-    // const currentIndex = models.indexOf(whisperModel);
-    // const nextIndex = (currentIndex + 1) % models.length;
-    // setWhisperModel(models);
+  const handleNavigate = (path: "/bench" | "/history" | "/datasets") => {
+    router.push(path);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable
-          style={styles.modelSelector}
-          onPress={() => [
-            setActiveModel(activeModel === "native" ? "whisper" : "native"),
-            setShowModelOptions(true),
-          ]}
-        >
-          <Text style={styles.modelTag}>{activeModel.toUpperCase()}</Text>
-          <IconSymbol size={18} name="chevron.down" color="#9CA3AF" />
-        </Pressable>
-
-        {activeModel === "whisper" && (
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.header}>
           <View>
-            {showModelOptions
-              ? whisperAvailableModels.map((model: any) => (
-                  <Pressable
-                    style={[
-                      styles.modelSelector,
-                      {
-                        backgroundColor: "#E0F2FE",
-                        borderColor: "rgba(56,189,248,0.3)",
-                      },
-                    ]}
-                    onPress={() => cycleWhisperModel(model.id)}
-                  >
-                    <Text style={[styles.modelTag, { color: "#0284C7" }]}>
-                      {model.title.toUpperCase()}
-                    </Text>
-                    <IconSymbol size={16} name="globe" color="#0284C7" />
-                  </Pressable>
-                ))
-              : null}
+            <Text style={styles.eyebrow}>On-device AI reporting</Text>
+            <Text style={styles.title}>Construction voice reports</Text>
           </View>
-          // <Pressable
-          //   style={[
-          //     styles.modelSelector,
-          //     {
-          //       backgroundColor: "#E0F2FE",
-          //       borderColor: "rgba(56,189,248,0.3)",
-          //     },
-          //   ]}
-          //   onPress={cycleWhisperModel}
-          // >
-          //   <Text style={[styles.modelTag, { color: "#0284C7" }]}>
-          //     {whisperModel[0].toUpperCase()}
-          //   </Text>
-          //   <IconSymbol size={16} name="globe" color="#0284C7" />
-          // </Pressable>
-          // {/* )} */}
-        )}
-      </View>
+          <View style={styles.deviceBadge}>
+            <IconSymbol size={17} name="shield.fill" color={C.success} />
+            <Text style={styles.deviceBadgeText}>Private</Text>
+          </View>
+        </View>
 
-      {/* Main Content */}
-      <ScrollView contentContainerStyle={styles.main}>
-        {/* Record Button Container */}
-        <View style={styles.recordContainer}>
-          <Pressable
-            onPress={handleRecordPress}
-            style={({ pressed }) => [
-              styles.micButton,
-              isRecording && styles.micButtonActive,
-              pressed && styles.micButtonPressed,
-            ]}
-          >
-            <IconSymbol
-              size={64}
-              name={isRecording ? "stop.fill" : "mic.fill"}
-              color={isRecording ? "#ef4444" : "#c2c2c2ff"}
-            />
-          </Pressable>
-          <Text style={styles.statusText}>
-            {isEngineLoading
-              ? "LOADING ENGINE..."
-              : isRecording
-                ? "LISTENING..."
-                : "READY TO LISTEN"}
+        <View style={styles.workflowCard}>
+          <Text style={styles.cardTitle}>Current workflow</Text>
+          <Text style={styles.cardCopy}>
+            Record a field note, transcribe it on-device, improve construction
+            terms, then review the autofilled report before confirming.
           </Text>
+          <View style={styles.stepList}>
+            {workflowSteps.map((step, index) => (
+              <View key={step.label} style={styles.stepRow}>
+                <View style={styles.stepIndex}>
+                  <Text style={styles.stepIndexText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.stepLabel}>{step.label}</Text>
+                <Text
+                  style={[
+                    styles.stepStatus,
+                    step.status === "Ready" && styles.stepStatusReady,
+                  ]}
+                >
+                  {step.status}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
 
-        {/* Live Feed Container */}
-        <View style={styles.liveFeedContainer}>
-          <View style={styles.feedHeader}>
-            <View style={styles.feedHeaderLeft}>
-              <View
-                style={[
-                  styles.statusDot,
-                  isRecording && styles.statusDotActive,
-                ]}
-              />
-              <Text style={styles.feedTitle}>LIVE FEED</Text>
+        <View style={styles.primaryActions}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.startButton,
+              pressed && styles.pressedPrimary,
+            ]}
+            onPress={() => handleNavigate("/bench")}
+          >
+            <IconSymbol size={26} name="mic.fill" color="#FFFFFF" />
+            <View style={styles.actionTextBlock}>
+              <Text style={styles.startButtonText}>Start new voice report</Text>
+              <Text style={styles.startButtonSub}>ASR setup and recording</Text>
             </View>
-            <Text style={styles.feedCodec}>UTF-8</Text>
-          </View>
+          </Pressable>
 
-          <View style={styles.transcriptBox}>
-            <Text style={styles.transcriptText}>
-              {liveTranscript || "Press record to start speaking..."}
-              {/* {finalTranscript || "Press record to start speaking..."} */}
-              {isRecording && <View style={styles.cursor} />}
+          <Pressable
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && styles.pressedSecondary,
+            ]}
+            onPress={() => handleNavigate("/datasets")}
+          >
+            <IconSymbol size={22} name="folder.fill" color={C.primary} />
+            <View style={styles.actionTextBlock}>
+              <Text style={styles.secondaryButtonText}>Continue draft</Text>
+              <Text style={styles.secondaryButtonSub}>
+                {recentDraft.title}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+
+        <View style={styles.grid}>
+          <Pressable style={styles.navCard} onPress={() => handleNavigate("/bench")}>
+            <IconSymbol size={24} name="waveform" color={C.teal} />
+            <Text style={styles.navTitle}>ASR testing</Text>
+            <Text style={styles.navCopy}>
+              Compare models, language, noise level, and recording mode.
             </Text>
+          </Pressable>
+          <Pressable style={styles.navCard} onPress={() => handleNavigate("/history")}>
+            <IconSymbol size={24} name="chart.bar.fill" color={C.warning} />
+            <Text style={styles.navTitle}>Saved results</Text>
+            <Text style={styles.navCopy}>
+              Review WER, CER, latency, transcripts, and notes.
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Latest activity</Text>
+          <Text style={styles.sectionMeta}>{history.length} test runs</Text>
+        </View>
+        <View style={styles.activityCard}>
+          <View style={styles.activityTop}>
+            <View>
+              <Text style={styles.activityLabel}>Active model</Text>
+              <Text style={styles.activityValue}>{activeModel.toUpperCase()}</Text>
+            </View>
+            <View style={styles.statusPill}>
+              <View style={styles.readyDot} />
+              <Text style={styles.statusPillText}>Ready</Text>
+            </View>
+          </View>
+          <View style={styles.metricRow}>
+            <Metric
+              label="WER"
+              value={
+                metrics.werDetails
+                  ? `${metrics.werDetails.wer.toFixed(1)}%`
+                  : latest
+                    ? `${latest.werDetails.wer.toFixed(1)}%`
+                    : "--"
+              }
+            />
+            <Metric
+              label="TTFT"
+              value={
+                metrics.ttfsMs
+                  ? `${Math.round(metrics.ttfsMs)} ms`
+                  : latest?.ttfsMs
+                    ? `${Math.round(latest.ttfsMs)} ms`
+                    : "--"
+              }
+            />
+            <Metric
+              label="Drafts"
+              value="3"
+            />
           </View>
         </View>
 
-        {/* KPI Mini Dashboard */}
-        {/* <View style={styles.kpiContainer}>
-          <View style={styles.kpiRow}>
-            <View style={styles.kpiCol}>
-              <View style={styles.kpiHeader}>
-                <IconSymbol size={14} name="checkmark.circle" color="#13ec80" />
-                <Text style={styles.kpiLabel}>ACCURACY</Text>
-              </View>
-              <Text style={styles.kpiValue}>
-                {metrics.werDetails
-                  ? Math.max(0, 100 - metrics.werDetails.wer).toFixed(1)
-                  : "--"}
-                <Text style={styles.kpiUnit}>%</Text>
-              </Text>
-              <Text style={styles.kpiDescription}>
-                Levenshtein Word Accuracy vs GT
-              </Text>
-            </View>
-
-            <View style={styles.kpiDivider} />
-
-            <View style={styles.kpiCol}>
-              <View style={styles.kpiHeader}>
-                <IconSymbol size={14} name="stopwatch" color="#9CA3AF" />
-                <Text style={styles.kpiLabel}>TTFS</Text>
-              </View>
-              <Text style={styles.kpiValue}>
-                {metrics.ttfsMs ? Math.round(metrics.ttfsMs) : "--"}
-                <Text style={styles.kpiUnit}>ms</Text>
-              </Text>
-              <Text style={styles.kpiDescription}>
-                Time To First Symbol recognized
-              </Text>
-            </View>
-
-            <View style={styles.kpiDivider} />
-
-            <View style={styles.kpiCol}>
-              <View style={styles.kpiHeader}>
-                <IconSymbol size={14} name="cpu" color="#9CA3AF" />
-                <Text style={styles.kpiLabel}>PROCESSING</Text>
-              </View>
-              <Text style={styles.kpiValue}>
-                {metrics.processingTimeMs
-                  ? (metrics.processingTimeMs / 1000).toFixed(2)
-                  : "--"}
-                <Text style={styles.kpiUnit}>s</Text>
-              </Text>
-              <Text style={styles.kpiDescription}>Total execution time</Text>
-            </View>
+        <View style={styles.projectCard}>
+          <View style={styles.projectHeader}>
+            <IconSymbol size={22} name="info.circle.fill" color={C.primary} />
+            <Text style={styles.cardTitle}>Project status</Text>
           </View>
-        </View> */}
+          <View style={styles.projectRow}>
+            <Text style={styles.projectLabel}>Worker-facing flow</Text>
+            <Text style={styles.projectValue}>Prototype UI ready</Text>
+          </View>
+          <View style={styles.projectRow}>
+            <Text style={styles.projectLabel}>Research/testing flow</Text>
+            <Text style={styles.projectValue}>Baseline collection</Text>
+          </View>
+          <View style={styles.projectRow}>
+            <Text style={styles.projectLabel}>Languages</Text>
+            <Text style={styles.projectValue}>English / Finnish</Text>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.metricBox}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: C.background,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 104,
+    gap: 16,
   },
   header: {
-    paddingTop: 20,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+    paddingTop: 8,
+  },
+  eyebrow: {
+    color: C.teal,
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  title: {
+    color: C.text,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+  deviceBadge: {
+    minHeight: 40,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: C.successSoft,
+    borderWidth: 1,
+    borderColor: "#B8DDC7",
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
   },
-  modelSelector: {
+  deviceBadgeText: {
+    color: C.success,
+    fontWeight: "800",
+    fontSize: 13,
+  },
+  workflowCard: {
+    backgroundColor: C.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 16,
+  },
+  cardTitle: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  cardCopy: {
+    color: C.textMuted,
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 8,
+  },
+  stepList: {
+    marginTop: 14,
+    gap: 10,
+  },
+  stepRow: {
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "#F3F4F6",
-    borderColor: "rgba(0,0,0,0.05)",
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    gap: 10,
   },
-  modelTag: {
-    fontSize: 10,
-    fontWeight: "bold",
-    letterSpacing: 1.5,
-    color: "#374151",
-  },
-  main: {
-    flexGrow: 1,
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-  },
-  recordContainer: {
-    alignItems: "center",
-    marginBottom: 40,
-    marginTop: 20,
-  },
-  micButton: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "#6a6a6aff",
+  stepIndex: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.primarySoft,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    shadowColor: "#13ec80",
-    shadowOpacity: 0.1,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 5,
+    borderColor: "#BDD4EE",
   },
-  micButtonActive: {
-    shadowOpacity: 0.3,
-    borderColor: "rgba(19,236,128,0.3)",
-    backgroundColor: "#FFFFFF",
+  stepIndexText: {
+    color: C.primary,
+    fontSize: 13,
+    fontWeight: "900",
   },
-  micButtonPressed: {
-    transform: [{ scale: 0.96 }],
+  stepLabel: {
+    flex: 1,
+    color: C.text,
+    fontSize: 15,
+    fontWeight: "700",
   },
-  statusText: {
-    marginTop: 24,
-    fontSize: 11,
-    fontWeight: "bold",
-    letterSpacing: 3,
-    color: "#000000ff",
+  stepStatus: {
+    color: C.textSubtle,
+    backgroundColor: C.surfaceAlt,
+    overflow: "hidden",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 12,
+    fontWeight: "800",
   },
-  liveFeedContainer: {
-    width: "100%",
-    minHeight: 200,
-    marginBottom: 24,
+  stepStatusReady: {
+    color: C.success,
+    backgroundColor: C.successSoft,
   },
-  feedHeader: {
+  primaryActions: {
+    gap: 12,
+  },
+  startButton: {
+    minHeight: 64,
+    borderRadius: 8,
+    backgroundColor: C.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  startButtonText: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "900",
+  },
+  startButtonSub: {
+    color: "#DCEBFA",
+    fontSize: 13,
+    marginTop: 2,
+    fontWeight: "700",
+  },
+  secondaryButton: {
+    minHeight: 60,
+    borderRadius: 8,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  secondaryButtonText: {
+    color: C.text,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  secondaryButtonSub: {
+    color: C.textSubtle,
+    fontSize: 13,
+    marginTop: 2,
+    fontWeight: "600",
+  },
+  actionTextBlock: {
+    flex: 1,
+  },
+  pressedPrimary: {
+    backgroundColor: C.primaryPressed,
+  },
+  pressedSecondary: {
+    backgroundColor: C.surfaceAlt,
+  },
+  grid: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  navCard: {
+    flex: 1,
+    minHeight: 150,
+    backgroundColor: C.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 14,
+    justifyContent: "space-between",
+  },
+  navTitle: {
+    color: C.text,
+    fontSize: 16,
+    fontWeight: "900",
+    marginTop: 12,
+  },
+  navCopy: {
+    color: C.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+    marginTop: 6,
+  },
+  sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
-    paddingHorizontal: 4,
+    marginTop: 2,
   },
-  feedHeaderLeft: {
+  sectionTitle: {
+    color: C.text,
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  sectionMeta: {
+    color: C.textSubtle,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  activityCard: {
+    backgroundColor: C.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 16,
+    gap: 14,
+  },
+  activityTop: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#D1D5DB",
+  activityLabel: {
+    color: C.textSubtle,
+    fontSize: 13,
+    fontWeight: "700",
   },
-  statusDotActive: {
-    backgroundColor: "#13ec80",
-  },
-  feedTitle: {
-    fontSize: 10,
-    fontWeight: "bold",
-    letterSpacing: 1.5,
-    color: "#9CA3AF",
-  },
-  feedCodec: {
-    fontSize: 10,
-    fontFamily: "Courier",
-    color: "#D1D5DB",
-  },
-  transcriptBox: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-  },
-  transcriptText: {
+  activityValue: {
+    color: C.text,
     fontSize: 20,
-    lineHeight: 32,
-    color: "#111827",
-    fontFamily: "System",
-    fontWeight: "500",
+    fontWeight: "900",
+    marginTop: 2,
   },
-  cursor: {
-    width: 6,
-    height: 24,
-    backgroundColor: "#13ec80",
-    marginLeft: 4,
-  },
-  kpiContainer: {
-    width: "100%",
-    backgroundColor: "#F3F4F6",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  kpiRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  kpiCol: {
-    flex: 1,
-    gap: 4,
-  },
-  kpiDivider: {
-    width: 1,
-    height: "100%",
-    backgroundColor: "rgba(0,0,0,0.1)",
-    marginHorizontal: 16,
-  },
-  kpiHeader: {
+  statusPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    backgroundColor: C.successSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
-  kpiLabel: {
-    fontSize: 9,
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
-    color: "#6B7280",
+  readyDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: C.success,
   },
-  kpiValue: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#111827",
-    letterSpacing: -0.5,
+  statusPillText: {
+    color: C.success,
+    fontSize: 12,
+    fontWeight: "900",
   },
-  kpiUnit: {
-    color: "#13ec80",
-    fontSize: 16,
+  metricRow: {
+    flexDirection: "row",
+    gap: 10,
   },
-  kpiDescription: {
-    fontSize: 9,
-    color: "#9CA3AF",
+  metricBox: {
+    flex: 1,
+    backgroundColor: C.surfaceWarm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 12,
+  },
+  metricLabel: {
+    color: C.textSubtle,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  metricValue: {
+    color: C.text,
+    fontSize: 17,
+    fontWeight: "900",
     marginTop: 4,
-    lineHeight: 12,
+  },
+  projectCard: {
+    backgroundColor: C.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 16,
+    gap: 12,
+  },
+  projectHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  projectRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+    borderTopWidth: 1,
+    borderTopColor: C.neutral,
+    paddingTop: 12,
+  },
+  projectLabel: {
+    flex: 1,
+    color: C.textMuted,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  projectValue: {
+    flex: 1,
+    color: C.text,
+    textAlign: "right",
+    fontSize: 14,
+    fontWeight: "900",
   },
 });

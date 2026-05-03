@@ -2,53 +2,69 @@ import { Tabs } from "expo-router";
 import React from "react";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { FieldColors } from "@/constants/theme";
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#13ec80",
-        tabBarInactiveTintColor: "rgba(255,255,255,0.3)",
+        tabBarActiveTintColor: FieldColors.primary,
+        tabBarInactiveTintColor: FieldColors.textSubtle,
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#1c1c1f",
-          borderTopColor: "rgba(255,255,255,0.05)",
+          backgroundColor: FieldColors.surface,
+          borderTopColor: FieldColors.border,
+          minHeight: 68,
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "700",
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Record",
+          title: "Home",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="mic.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: "Logs",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="book.fill" color={color} />
+            <IconSymbol size={25} name="house.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="bench"
         options={{
-          title: "Bench",
+          title: "ASR Test",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="chart.bar.fill" color={color} />
+            <IconSymbol size={25} name="mic.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: "Results",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={25} name="chart.bar.fill" color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="datasets"
         options={{
-          title: "Engine",
+          title: "Drafts",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="gearshape.fill" color={color} />
+            <IconSymbol size={25} name="folder.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={25} name="gearshape.fill" color={color} />
           ),
         }}
       />
