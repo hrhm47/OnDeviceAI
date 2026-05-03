@@ -10,7 +10,12 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.haseeb26.OnDeviceAI"
+      "bundleIdentifier": "com.haseeb26.OnDeviceAI",
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition.",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone."
+      },
+      "appleTeamId": "F3PQS58K74"
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +25,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.haseeb26.OnDeviceAI"
+      "package": "com.haseeb26.OnDeviceAI",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "output": "static",

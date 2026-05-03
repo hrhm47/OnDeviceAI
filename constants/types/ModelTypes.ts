@@ -5,6 +5,15 @@ type whisperSupportedModels = {'id': string, title: 'tiny.en' | 'tiny' | 'base.e
 type SupportedModel = 'native' | 'whisper' | 'vosk' | 'sherpa';
 
 
+enum OnnxModelCategory {
+  Stt = 'stt',
+  Vad = 'vad',
+  Diarization = 'diarization',
+  Enhancement = 'enhancement',
+  Separation = 'separation',
+}
+
+
 
 export type { SupportedModel, whisperModels, whisperSupportedModels };
 
