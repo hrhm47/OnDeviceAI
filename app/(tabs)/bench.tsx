@@ -5,11 +5,13 @@ import type { whisperModels } from "@/constants/types/ModelTypes";
 import { useAsrController } from "@/src/features/asr/hooks/useAsrController";
 import {
   downloadQwen3AsrModel,
-  downloadVoskSmallEnModel,
   QWEN3_ASR_DOWNLOAD_URL,
-  VOSK_SMALL_EN_DOWNLOAD_URL,
 } from "@/src/features/asr/services/asrModelDownloadService";
-import type { ASRLanguage, ASREngineType } from "@/src/features/asr/types/asr.types";
+import type {
+  ASRLanguage,
+  ASREngineType,
+  ASRStreamingMode,
+} from "@/src/features/asr/types/asr.types";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
@@ -21,10 +23,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const fallbackModels = [
-  { id: "native", label: "Native ASR", status: "Ready", detail: "Device speech recognition service" },
-  { id: "whisper", label: "Whisper", status: "Ready", detail: "Bundled local whisper.rn model" },
-  { id: "qwen", label: "Qwen3-ASR", status: "Model files missing", detail: "Sherpa-ONNX adapter, requires model files" },
-  { id: "vosk", label: "Vosk", status: "Model files missing", detail: "English-only offline baseline" },
+  { id: "native", label: "Native ASR", status: "Ready", detail: "Device speech recognition service", streamingMode: "true-streaming" },
+  { id: "whisper", label: "Whisper", status: "Ready", detail: "Bundled local whisper.rn model", streamingMode: "offline-batch" },
+  { id: "qwen", label: "Qwen3-ASR", status: "Model files missing", detail: "Sherpa-ONNX adapter, requires model files", streamingMode: "vad-segmented" },
+  { id: "parakeet", label: "Parakeet TDT", status: "Model files missing", detail: "Optional experimental Sherpa-ONNX candidate", streamingMode: "vad-segmented" },
 ] as const;
 
 const languages = [
@@ -54,6 +56,10 @@ export default function BenchScreen() {
     recordingDurationMs,
     latestResult,
     error,
+    vadStatus,
+    partialTranscript,
+    liveTranscript,
+    timeToFirstTextMs,
     refreshEngines,
     startRecording,
     stopRecordingAndTranscribe,
@@ -76,6 +82,7 @@ export default function BenchScreen() {
         ? toStatusLabel(engine.status)
         : "Unsupported language",
       detail: engine.detail,
+      streamingMode: engine.streamingMode,
     }));
   }, [engines, selectedLanguage]);
 
@@ -93,6 +100,14 @@ export default function BenchScreen() {
   const selectedModelNeedsDownload =
     selectedEngineMetadata?.status === "model-files-missing" ||
     selectedModelInfo.status === "Model files missing";
+  const selectedStreamingMode =
+    latestResult?.streamingMode ??
+    selectedEngineMetadata?.streamingMode ??
+    selectedModelInfo.streamingMode;
+  const limitationMessage = getModelLimitationMessage(
+    selectedModel,
+    selectedStreamingMode,
+  );
 
   useEffect(() => {
     setModelSetupMessage(null);
@@ -101,8 +116,12 @@ export default function BenchScreen() {
 
   const transcript =
     latestResult?.transcript ||
+    liveTranscript ||
+    partialTranscript ||
     (isRecording
-      ? "Recording audio. Transcript appears after you stop."
+      ? selectedStreamingMode === "true-streaming"
+        ? "Listening for live speech."
+        : "Recording audio. Transcript appears after each speech segment or when you stop."
       : "Transcript will appear here after transcription.");
 
   const statusLabel = isRecording
@@ -147,29 +166,6 @@ export default function BenchScreen() {
         `Qwen3-ASR download failed. Manual URL: ${QWEN3_ASR_DOWNLOAD_URL}. ${
           downloadError instanceof Error ? downloadError.message : String(downloadError)
         }`,
-      );
-    } finally {
-      setDownloadingModel(false);
-    }
-  };
-
-  const handleVoskDownload = async () => {
-    setDownloadingModel(true);
-    setModelSetupMessage("Starting Vosk English model download.");
-    setModelDownloadProgress(0);
-
-    try {
-      const localPath = await downloadVoskSmallEnModel({
-        onProgress: (progress) => {
-          setModelDownloadProgress(progress.percent);
-          setModelSetupMessage(progress.message);
-        },
-      });
-      setModelSetupMessage(`Vosk English model ready at ${localPath}`);
-      await refreshEngines();
-    } catch (downloadError) {
-      setModelSetupMessage(
-        `Vosk download failed. ${downloadError instanceof Error ? downloadError.message : String(downloadError)}`,
       );
     } finally {
       setDownloadingModel(false);
@@ -286,34 +282,13 @@ export default function BenchScreen() {
           </Section>
         )}
 
-        {selectedModel === "vosk" && selectedModelNeedsDownload && (
-          <Section title="Vosk model setup" meta={selectedModelInfo.status}>
+        {selectedModel === "parakeet" && selectedModelNeedsDownload && (
+          <Section title="Parakeet model setup" meta={selectedModelInfo.status}>
             <Text style={styles.setupText}>
-              Vosk is configured as an English-only lightweight baseline using
-              vosk-model-small-en-us-0.15. The app downloads the ZIP and extracts
-              it into the expected local model folder.
+              Parakeet is optional in Phase 1. The app will use it only when the
+              Sherpa-ONNX model files are already available; missing files are
+              saved as a clean failed run.
             </Text>
-            <Pressable
-              disabled={isDownloadingModel}
-              onPress={handleVoskDownload}
-              style={[
-                styles.setupButton,
-                isDownloadingModel && styles.setupButtonDisabled,
-              ]}
-            >
-              <Text style={styles.setupButtonText}>
-                {isDownloadingModel ? "Downloading model" : "Download Vosk model"}
-              </Text>
-            </Pressable>
-            <Text style={styles.setupLinkText}>{VOSK_SMALL_EN_DOWNLOAD_URL}</Text>
-            {modelDownloadProgress !== null ? (
-              <Text style={styles.setupProgressText}>
-                {Math.round(modelDownloadProgress)}%
-              </Text>
-            ) : null}
-            {modelSetupMessage ? (
-              <Text style={styles.setupStatusText}>{modelSetupMessage}</Text>
-            ) : null}
           </Section>
         )}
 
@@ -419,6 +394,16 @@ export default function BenchScreen() {
             </View>
           </View>
 
+          <View style={styles.runtimeGrid}>
+            <RuntimePill label="Mode" value={selectedStreamingMode} />
+            <RuntimePill label="Mic/VAD" value={formatVadStatus(vadStatus)} />
+            <RuntimePill
+              label="First text"
+              value={timeToFirstTextMs === null ? "--" : formatMs(timeToFirstTextMs)}
+            />
+          </View>
+          <Text style={styles.limitationText}>{limitationMessage}</Text>
+
           <Text style={styles.timerText}>{formatDuration(recordingDurationMs)}</Text>
 
           <View style={styles.waveform}>
@@ -476,12 +461,16 @@ export default function BenchScreen() {
             {latestResult ? <Text style={styles.savedText}>Saved locally</Text> : null}
           </View>
           <Text style={styles.previewText}>{transcript}</Text>
+          {partialTranscript && !latestResult ? (
+            <Text style={styles.partialText}>Partial: {partialTranscript}</Text>
+          ) : null}
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           {latestResult ? (
             <View style={styles.metricsGrid}>
               <Metric label="Model" value={latestResult.modelName} />
               <Metric label="Language" value={latestResult.language.toUpperCase()} />
+              <Metric label="Mode" value={latestResult.streamingMode} />
               <Metric
                 label="Duration"
                 value={formatDuration(latestResult.recordingDurationMs)}
@@ -497,6 +486,19 @@ export default function BenchScreen() {
                   latestResult.timeToFirstTextMs === undefined
                     ? "--"
                     : formatMs(latestResult.timeToFirstTextMs)
+                }
+              />
+              <Metric
+                label="Segments"
+                value={String(latestResult.speechSegmentCount ?? 0)}
+              />
+              <Metric
+                label="Avg segment"
+                value={
+                  latestResult.averageSegmentProcessingTimeMs === null ||
+                  latestResult.averageSegmentProcessingTimeMs === undefined
+                    ? "--"
+                    : formatMs(latestResult.averageSegmentProcessingTimeMs)
                 }
               />
               <Metric label="Result ID" value={latestResult.id} />
@@ -537,6 +539,15 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function RuntimePill({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.runtimePill}>
+      <Text style={styles.runtimeLabel}>{label}</Text>
+      <Text style={styles.runtimeValue}>{value}</Text>
+    </View>
+  );
+}
+
 function toStatusLabel(status: string) {
   if (status === "ready") {
     return "Ready";
@@ -555,6 +566,39 @@ function toStatusLabel(status: string) {
   }
 
   return "Not ready";
+}
+
+function getModelLimitationMessage(
+  model: ASREngineType,
+  streamingMode: ASRStreamingMode,
+) {
+  if (model === "native") {
+    return streamingMode === "true-streaming"
+      ? "Live transcription active"
+      : "Native partial results are platform-limited in this run.";
+  }
+
+  if (model === "whisper") {
+    return "Whisper will return text after recording or after speech segment.";
+  }
+
+  if (model === "qwen") {
+    return `Qwen streaming mode: ${streamingMode}`;
+  }
+
+  return "Experimental model. Streaming support depends on runtime.";
+}
+
+function formatVadStatus(status: string) {
+  if (status === "speech-detected") {
+    return "speech detected";
+  }
+
+  if (status === "processing-segment") {
+    return "processing segment";
+  }
+
+  return status;
 }
 
 function formatDuration(durationMs: number) {
@@ -873,6 +917,42 @@ const styles = StyleSheet.create({
   liveBadgeTextError: {
     color: C.danger,
   },
+  runtimeGrid: {
+    width: "100%",
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
+  },
+  runtimePill: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
+    paddingHorizontal: 10,
+    justifyContent: "center",
+  },
+  runtimeLabel: {
+    color: C.textSubtle,
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  runtimeValue: {
+    color: C.text,
+    fontSize: 13,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+  limitationText: {
+    width: "100%",
+    color: C.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "700",
+    marginTop: 10,
+  },
   timerText: {
     color: C.text,
     fontSize: 52,
@@ -982,6 +1062,13 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontWeight: "600",
     marginTop: 10,
+  },
+  partialText: {
+    color: C.primaryPressed,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "800",
+    marginTop: 8,
   },
   errorText: {
     color: C.danger,

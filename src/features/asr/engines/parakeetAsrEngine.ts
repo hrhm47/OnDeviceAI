@@ -21,45 +21,37 @@ import {
   nowMs,
 } from "../utils/metricsHelpers";
 
-export const QWEN3_ASR_MODEL_ID =
-  "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25";
-export const QWEN3_ASR_ASSET_MODEL_DIR =
-  "models/qwen/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25";
-export const QWEN3_ASR_DOCUMENT_MODEL_DIR =
-  "models/qwen/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25";
-export const QWEN3_ASR_EXPECTED_PROJECT_PATH =
-  "assets/models/qwen/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25";
-export const QWEN3_ASR_MISSING_MODEL_ERROR =
-  "Qwen3-ASR model files are missing or not configured.";
+export const PARAKEET_MODEL_ID =
+  "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8";
+export const PARAKEET_ASSET_MODEL_DIR =
+  "models/parakeet/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8";
+export const PARAKEET_DOCUMENT_MODEL_DIR =
+  "models/parakeet/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8";
+export const PARAKEET_EXPECTED_PROJECT_PATH =
+  "assets/models/parakeet/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8";
+export const PARAKEET_MISSING_MODEL_ERROR =
+  "Parakeet model files are missing or not configured.";
 
-type QwenModelLocation = {
+type ParakeetModelLocation = {
   modelPath: ModelPathConfig;
   displayPath: string;
   source: "downloaded" | "document" | "asset";
 };
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "");
-
-const getPathBasename = (path: string) =>
-  normalizePath(path).split("/").filter(Boolean).pop() ?? "";
-
-const getParentPath = (path: string) =>
-  normalizePath(path).split("/").slice(0, -1).join("/");
-
 const uniquePaths = (paths: string[]) =>
   paths.filter((path, index, allPaths) => path && allPaths.indexOf(path) === index);
 
-export class QwenAsrEngine implements ASREngine {
-  id = "qwen";
-  name = "Qwen3-ASR Sherpa-ONNX";
-  engineType = "qwen" as const;
+export class ParakeetAsrEngine implements ASREngine {
+  id = "parakeet";
+  name = "Parakeet TDT Sherpa-ONNX";
+  engineType = "parakeet" as const;
   mode = "local-model" as const;
   languageSupport: ASRLanguage[] = ["en", "fi"];
   supportsStreaming = false;
   streamingMode = "vad-segmented" as const;
 
   private stt: Awaited<ReturnType<typeof createSTT>> | null = null;
-  private modelLocation: QwenModelLocation | null = null;
 
   async isAvailable(): Promise<boolean> {
     return Boolean(await this.resolveModelLocation());
@@ -74,7 +66,7 @@ export class QwenAsrEngine implements ASREngine {
         }
       : {
           status: "model-files-missing" as const,
-          message: QWEN3_ASR_MISSING_MODEL_ERROR,
+          message: PARAKEET_MISSING_MODEL_ERROR,
         };
   }
 
@@ -85,24 +77,15 @@ export class QwenAsrEngine implements ASREngine {
 
     const modelLocation = await this.resolveModelLocation();
     if (!modelLocation) {
-      throw new Error(QWEN3_ASR_MISSING_MODEL_ERROR);
+      throw new Error(PARAKEET_MISSING_MODEL_ERROR);
     }
 
-    this.modelLocation = modelLocation;
     this.stt = await createSTT({
       modelPath: modelLocation.modelPath,
-      modelType: "qwen3_asr",
+      modelType: "auto",
       preferInt8: true,
       numThreads: 2,
       provider: "cpu",
-      modelOptions: {
-        qwen3Asr: {
-          maxTotalLen: 512,
-          maxNewTokens: 128,
-          temperature: 0.000001,
-          topP: 0.8,
-        },
-      },
     });
   }
 
@@ -111,13 +94,13 @@ export class QwenAsrEngine implements ASREngine {
 
     try {
       if (!input.uri && !input.samples) {
-        throw new Error("Qwen3-ASR requires recorded audio or PCM samples.");
+        throw new Error("Parakeet requires recorded audio or PCM samples.");
       }
 
       await this.initialize();
 
       if (!this.stt) {
-        throw new Error("Qwen3-ASR recognizer is not initialized.");
+        throw new Error("Parakeet recognizer is not initialized.");
       }
 
       const audioPath = input.uri
@@ -129,7 +112,6 @@ export class QwenAsrEngine implements ASREngine {
             input.sampleRate ?? 16000,
           )
         : await this.stt.transcribeFile(audioPath!);
-
       const transcript = response.text ?? "";
       const transcriptionTimeMs = nowMs() - startedAt;
 
@@ -155,10 +137,9 @@ export class QwenAsrEngine implements ASREngine {
   async dispose(): Promise<void> {
     await this.stt?.destroy();
     this.stt = null;
-    this.modelLocation = null;
   }
 
-  private async resolveModelLocation(): Promise<QwenModelLocation | null> {
+  private async resolveModelLocation(): Promise<ParakeetModelLocation | null> {
     const downloadedLocation = await this.resolveDownloadedModel();
     if (downloadedLocation) {
       return downloadedLocation;
@@ -172,13 +153,11 @@ export class QwenAsrEngine implements ASREngine {
     return this.resolveBundledAssetModel();
   }
 
-  private async resolveDownloadedModel(): Promise<QwenModelLocation | null> {
+  private async resolveDownloadedModel(): Promise<ParakeetModelLocation | null> {
     try {
-      const downloaded = await listDownloadedModelsByCategory(
-        ModelCategory.Stt,
-      );
+      const downloaded = await listDownloadedModelsByCategory(ModelCategory.Stt);
       const targetModel = downloaded.find(
-        (model) => model.id === QWEN3_ASR_MODEL_ID,
+        (model) => model.id === PARAKEET_MODEL_ID,
       );
 
       if (!targetModel) {
@@ -194,9 +173,9 @@ export class QwenAsrEngine implements ASREngine {
         return null;
       }
 
-      for (const candidatePath of this.getDownloadedModelPathCandidates(localPath)) {
+      for (const candidatePath of this.getModelPathCandidates(localPath)) {
         const modelPath = { type: "file", path: candidatePath } satisfies ModelPathConfig;
-        if (await this.isValidQwenModel(modelPath)) {
+        if (await this.isValidParakeetModel(modelPath)) {
           return {
             modelPath,
             displayPath: candidatePath,
@@ -207,23 +186,19 @@ export class QwenAsrEngine implements ASREngine {
 
       return null;
     } catch (error) {
-      console.warn("Failed to resolve downloaded Qwen3-ASR model", error);
+      console.warn("Failed to resolve downloaded Parakeet model", error);
       return null;
     }
   }
 
-  private async resolveDocumentModel(): Promise<QwenModelLocation | null> {
+  private async resolveDocumentModel(): Promise<ParakeetModelLocation | null> {
     try {
-      const modelDir = new Directory(Paths.document, QWEN3_ASR_DOCUMENT_MODEL_DIR);
+      const modelDir = new Directory(Paths.document, PARAKEET_DOCUMENT_MODEL_DIR);
       const basePath = stripFileProtocol(modelDir.uri);
 
       for (const candidatePath of this.getModelPathCandidates(basePath)) {
-        const modelPath = {
-          type: "file",
-          path: candidatePath,
-        } satisfies ModelPathConfig;
-
-        if (await this.isValidQwenModel(modelPath)) {
+        const modelPath = { type: "file", path: candidatePath } satisfies ModelPathConfig;
+        if (await this.isValidParakeetModel(modelPath)) {
           return {
             modelPath,
             displayPath: candidatePath,
@@ -238,56 +213,44 @@ export class QwenAsrEngine implements ASREngine {
     }
   }
 
-  private async resolveBundledAssetModel(): Promise<QwenModelLocation | null> {
+  private async resolveBundledAssetModel(): Promise<ParakeetModelLocation | null> {
     const modelPath = {
       type: "asset",
-      path: QWEN3_ASR_ASSET_MODEL_DIR,
+      path: PARAKEET_ASSET_MODEL_DIR,
     } satisfies ModelPathConfig;
 
-    return (await this.isValidQwenModel(modelPath))
+    return (await this.isValidParakeetModel(modelPath))
       ? {
           modelPath,
-          displayPath: QWEN3_ASR_EXPECTED_PROJECT_PATH,
+          displayPath: PARAKEET_EXPECTED_PROJECT_PATH,
           source: "asset",
         }
       : null;
   }
 
-  private async isValidQwenModel(modelPath: ModelPathConfig) {
+  private async isValidParakeetModel(modelPath: ModelPathConfig) {
     try {
       const detected = await detectSttModel(modelPath, {
-        modelType: "qwen3_asr",
+        modelType: "auto",
         preferInt8: true,
       });
 
       return (
         detected.success &&
-        detected.detectedModels.some((model) => model.type === "qwen3_asr")
+        detected.detectedModels.some((model) =>
+          model.type.includes("nemo") || model.type.includes("transducer"),
+        )
       );
     } catch {
       return false;
     }
   }
 
-  private getDownloadedModelPathCandidates(localPath: string) {
-    const normalizedPath = normalizePath(localPath);
-    const parentPath = getParentPath(normalizedPath);
-    const pathName = getPathBasename(normalizedPath);
-    const parentName = getPathBasename(parentPath);
-
-    return uniquePaths([
-      pathName === QWEN3_ASR_MODEL_ID && parentName === QWEN3_ASR_MODEL_ID
-        ? parentPath
-        : "",
-      ...this.getModelPathCandidates(normalizedPath),
-    ]);
-  }
-
   private getModelPathCandidates(basePath: string) {
     const normalizedPath = normalizePath(basePath);
     return uniquePaths([
       normalizedPath,
-      `${normalizedPath}/${QWEN3_ASR_MODEL_ID}`,
+      `${normalizedPath}/${PARAKEET_MODEL_ID}`,
     ]);
   }
 
@@ -299,7 +262,7 @@ export class QwenAsrEngine implements ASREngine {
 
     const outputFile = new File(
       Paths.cache,
-      `qwen-asr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.wav`,
+      `parakeet-asr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.wav`,
     );
     const outputPath = stripFileProtocol(outputFile.uri);
 
@@ -308,7 +271,7 @@ export class QwenAsrEngine implements ASREngine {
       return outputPath;
     } catch (error) {
       throw new Error(
-        `Qwen3-ASR audio conversion failed. Sherpa-ONNX needs WAV/PCM-compatible audio. ${error instanceof Error ? error.message : String(error)}`,
+        `Parakeet audio conversion failed. Sherpa-ONNX needs WAV/PCM-compatible audio. ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

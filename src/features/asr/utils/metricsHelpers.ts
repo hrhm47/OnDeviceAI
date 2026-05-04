@@ -31,7 +31,7 @@ export const getDeviceInfo = (): TranscriptionResult["deviceInfo"] => {
 };
 
 export const createBaseTranscriptionResult = (
-  engine: Pick<ASREngine, "id" | "name" | "engineType">,
+  engine: Pick<ASREngine, "id" | "name" | "engineType" | "streamingMode">,
   input: AudioInput,
   overrides?: Partial<TranscriptionResult>,
 ): TranscriptionResult => ({
@@ -46,14 +46,21 @@ export const createBaseTranscriptionResult = (
   recordingDurationMs: input.recordingDurationMs ?? 0,
   transcriptionTimeMs: overrides?.transcriptionTimeMs ?? 0,
   timeToFirstTextMs: overrides?.timeToFirstTextMs ?? null,
+  streamingMode: overrides?.streamingMode ?? engine.streamingMode,
   audioUri: input.uri,
   sampleRate: input.sampleRate,
+  speechSegmentCount:
+    overrides?.speechSegmentCount ?? input.speechSegmentCount,
+  averageSegmentProcessingTimeMs:
+    overrides?.averageSegmentProcessingTimeMs ??
+    input.averageSegmentProcessingTimeMs,
+  vadMetrics: overrides?.vadMetrics ?? input.vadMetrics,
   deviceInfo: getDeviceInfo(),
   error: overrides?.error ?? null,
 });
 
 export const createErrorTranscriptionResult = (
-  engine: Pick<ASREngine, "id" | "name" | "engineType">,
+  engine: Pick<ASREngine, "id" | "name" | "engineType" | "streamingMode">,
   input: AudioInput,
   error: unknown,
   transcriptionTimeMs: number,

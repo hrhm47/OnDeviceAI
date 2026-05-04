@@ -7,9 +7,13 @@ export const logAsrResult = (result: TranscriptionResult) => {
     modelName: result.modelName,
     engineType: result.engineType,
     language: result.language,
+    streamingMode: result.streamingMode,
     recordingDurationMs: result.recordingDurationMs,
     transcriptionTimeMs: result.transcriptionTimeMs,
     timeToFirstTextMs: result.timeToFirstTextMs,
+    speechSegmentCount: result.speechSegmentCount,
+    averageSegmentProcessingTimeMs: result.averageSegmentProcessingTimeMs,
+    vadMetrics: result.vadMetrics,
     transcriptLength: result.transcript.length,
     error: result.error,
   });

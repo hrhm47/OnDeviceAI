@@ -183,7 +183,7 @@ export default function HistoryScreen() {
         </View>
 
         <View style={styles.filterRow}>
-          {["All", "Native", "Whisper", "Qwen", "Vosk", "English", "Finnish"].map((item) => (
+          {["All", "Native", "Whisper", "Qwen", "Parakeet", "English", "Finnish"].map((item) => (
             <Pressable
               key={item}
               onPress={() => setFilter(item)}

@@ -4,6 +4,7 @@ import {
   ASREngine,
   ASRLanguage,
   AudioInput,
+  StreamingASROptions,
   TranscriptionResult,
 } from "../types/asr.types";
 import { getNativeLocaleForLanguage } from "../utils/audioHelpers";
@@ -22,8 +23,17 @@ export class NativeAsrEngine implements ASREngine {
   mode = "native" as const;
   languageSupport: ASRLanguage[] = ["en", "fi"];
   supportsStreaming = true;
+  streamingMode = "true-streaming" as const;
 
   private listeners: { remove: () => void }[] = [];
+  private streamingOptions: StreamingASROptions | null = null;
+  private streamingStartedAt: number | null = null;
+  private streamingFirstTextAt: number | null = null;
+  private streamingFinalTranscript = "";
+  private streamingPartialTranscripts: string[] = [];
+  private streamingAudioUri: string | undefined;
+  private stopStreamingResolver: ((result: TranscriptionResult) => void) | null =
+    null;
 
   async isAvailable(): Promise<boolean> {
     try {
@@ -77,6 +87,8 @@ export class NativeAsrEngine implements ASREngine {
               transcriptionTimeMs,
               timeToFirstTextMs:
                 firstTextAt === null ? null : firstTextAt - startedAt,
+              streamingMode:
+                partialTranscripts.length > 0 ? "true-streaming" : "offline-batch",
               error: error ?? null,
             }),
           );
@@ -148,6 +160,98 @@ export class NativeAsrEngine implements ASREngine {
     }
   }
 
+  async startStreaming(options: StreamingASROptions): Promise<void> {
+    await this.initialize();
+
+    if (!this.languageSupport.includes(options.language)) {
+      throw new Error(`Native ASR does not support ${options.language}.`);
+    }
+
+    this.removeListeners();
+    this.streamingOptions = options;
+    this.streamingStartedAt = nowMs();
+    this.streamingFirstTextAt = null;
+    this.streamingFinalTranscript = "";
+    this.streamingPartialTranscripts = [];
+    this.streamingAudioUri = undefined;
+
+    this.listeners = [
+      ExpoSpeechRecognitionModule.addListener("audiostart", (event: any) => {
+        this.streamingAudioUri = event?.uri ?? undefined;
+      }),
+      ExpoSpeechRecognitionModule.addListener("speechstart", () => {
+        options.onSpeechStart?.();
+      }),
+      ExpoSpeechRecognitionModule.addListener("speechend", () => {
+        options.onSpeechEnd?.();
+      }),
+      ExpoSpeechRecognitionModule.addListener("result", (event: any) => {
+        const text = event?.results?.[0]?.transcript ?? "";
+        if (!text) {
+          return;
+        }
+
+        if (this.streamingFirstTextAt === null) {
+          this.streamingFirstTextAt = nowMs();
+        }
+
+        if (event.isFinal) {
+          this.streamingFinalTranscript = `${this.streamingFinalTranscript} ${text}`.trim();
+          options.onFinalResult?.(this.streamingFinalTranscript);
+        } else {
+          this.streamingPartialTranscripts.push(text);
+          options.onPartialResult?.(text);
+        }
+      }),
+      ExpoSpeechRecognitionModule.addListener("end", () => {
+        this.resolveStreamingResult();
+      }),
+      ExpoSpeechRecognitionModule.addListener("error", (event: any) => {
+        const message =
+          event?.message ?? event?.error ?? "Native ASR streaming failed.";
+        options.onError?.(message);
+        this.resolveStreamingResult(message);
+      }),
+    ];
+
+    ExpoSpeechRecognitionModule.start({
+      lang: getNativeLocaleForLanguage(options.language),
+      interimResults: true,
+      continuous: true,
+      requiresOnDeviceRecognition: false,
+      recordingOptions: {
+        persist: true,
+        outputSampleRate: options.sampleRate ?? 16000,
+      },
+      androidIntentOptions: {
+        EXTRA_LANGUAGE_MODEL: "free_form",
+        EXTRA_ENABLE_FORMATTING: "latency",
+        EXTRA_PREFER_OFFLINE: true,
+        EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 10000,
+      },
+    } as any);
+  }
+
+  async stopStreaming(): Promise<TranscriptionResult> {
+    if (!this.streamingOptions || this.streamingStartedAt === null) {
+      throw new Error("Native ASR streaming has not been started.");
+    }
+
+    return new Promise<TranscriptionResult>((resolve) => {
+      this.stopStreamingResolver = resolve;
+
+      setTimeout(() => {
+        this.resolveStreamingResult();
+      }, 4500);
+
+      try {
+        ExpoSpeechRecognitionModule.stop();
+      } catch {
+        this.resolveStreamingResult();
+      }
+    });
+  }
+
   async dispose(): Promise<void> {
     try {
       ExpoSpeechRecognitionModule.stop();
@@ -155,6 +259,53 @@ export class NativeAsrEngine implements ASREngine {
       // No active session.
     }
     this.removeListeners();
+  }
+
+  private resolveStreamingResult(error?: string | null) {
+    if (
+      !this.streamingOptions ||
+      this.streamingStartedAt === null ||
+      !this.stopStreamingResolver
+    ) {
+      return;
+    }
+
+    const stoppedAt = nowMs();
+    const recordingDurationMs = stoppedAt - this.streamingStartedAt;
+    const transcript =
+      this.streamingFinalTranscript ||
+      this.streamingPartialTranscripts[this.streamingPartialTranscripts.length - 1] ||
+      "";
+    const result = createBaseTranscriptionResult(
+      this,
+      {
+        language: this.streamingOptions.language,
+        sampleRate: this.streamingOptions.sampleRate ?? 16000,
+        uri: this.streamingAudioUri,
+        recordingDurationMs,
+      },
+      {
+        transcript: transcript.trim(),
+        partialTranscripts: this.streamingPartialTranscripts,
+        transcriptionTimeMs: Math.max(0, stoppedAt - this.streamingStartedAt),
+        timeToFirstTextMs:
+          this.streamingFirstTextAt === null
+            ? null
+            : this.streamingFirstTextAt - this.streamingStartedAt,
+        streamingMode:
+          this.streamingPartialTranscripts.length > 0
+            ? "true-streaming"
+            : "offline-batch",
+        error: error ?? null,
+      },
+    );
+
+    const resolver = this.stopStreamingResolver;
+    this.stopStreamingResolver = null;
+    this.streamingOptions = null;
+    this.streamingStartedAt = null;
+    this.removeListeners();
+    resolver(result);
   }
 
   private removeListeners() {

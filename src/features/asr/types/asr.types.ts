@@ -1,6 +1,11 @@
 export type ASRLanguage = "en" | "fi";
 
-export type ASREngineType = "native" | "whisper" | "qwen" | "vosk";
+export type ASREngineType = "native" | "whisper" | "qwen" | "parakeet";
+
+export type ASRStreamingMode =
+  | "true-streaming"
+  | "vad-segmented"
+  | "offline-batch";
 
 export type AudioInput = {
   uri?: string;
@@ -8,6 +13,27 @@ export type AudioInput = {
   sampleRate?: number;
   language: ASRLanguage;
   recordingDurationMs?: number;
+  speechSegmentCount?: number;
+  averageSegmentProcessingTimeMs?: number | null;
+  vadMetrics?: VADMetrics;
+};
+
+export type StreamingASROptions = {
+  language: ASRLanguage;
+  sampleRate?: number;
+  onPartialResult?: (partialText: string) => void;
+  onFinalResult?: (finalText: string) => void;
+  onError?: (error: string) => void;
+  onSpeechStart?: () => void;
+  onSpeechEnd?: () => void;
+};
+
+export type VADMetrics = {
+  vadSpeechStartCount: number;
+  vadSpeechEndCount: number;
+  totalSpeechDurationMs: number;
+  totalSilenceDurationMs: number;
+  segmentCount: number;
 };
 
 export type TranscriptionResult = {
@@ -27,8 +53,14 @@ export type TranscriptionResult = {
   transcriptionTimeMs: number;
   timeToFirstTextMs?: number | null;
 
+  streamingMode: ASRStreamingMode;
+
   audioUri?: string;
   sampleRate?: number;
+
+  speechSegmentCount?: number;
+  averageSegmentProcessingTimeMs?: number | null;
+  vadMetrics?: VADMetrics;
 
   deviceInfo?: {
     platform: "ios" | "android";
@@ -46,9 +78,13 @@ export interface ASREngine {
   mode: "native" | "local-model";
   languageSupport: ASRLanguage[];
   supportsStreaming: boolean;
+  streamingMode: ASRStreamingMode;
   isAvailable(): Promise<boolean>;
   initialize(): Promise<void>;
   transcribe(input: AudioInput): Promise<TranscriptionResult>;
+  startStreaming?(options: StreamingASROptions): Promise<void>;
+  acceptAudioChunk?(chunk: Float32Array, sampleRate: number): Promise<void>;
+  stopStreaming?(): Promise<TranscriptionResult>;
   dispose(): Promise<void>;
 }
 
@@ -61,7 +97,13 @@ export type ASREngineAvailabilityStatus =
 
 export type ASREngineMetadata = Pick<
   ASREngine,
-  "id" | "name" | "engineType" | "mode" | "languageSupport" | "supportsStreaming"
+  | "id"
+  | "name"
+  | "engineType"
+  | "mode"
+  | "languageSupport"
+  | "supportsStreaming"
+  | "streamingMode"
 > & {
   status: ASREngineAvailabilityStatus;
   detail: string;

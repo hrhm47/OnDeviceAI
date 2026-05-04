@@ -1,11 +1,6 @@
 import { Directory, File, Paths } from "expo-file-system";
 
-import {
-  ASREngine,
-  ASRLanguage,
-  AudioInput,
-  TranscriptionResult,
-} from "../types/asr.types";
+import { ASRLanguage, AudioInput, TranscriptionResult } from "../types/asr.types";
 import { stripFileProtocol } from "../utils/audioHelpers";
 import {
   createBaseTranscriptionResult,
@@ -37,13 +32,14 @@ type VoskBinding = {
 
 type VoskConstructor = new () => VoskBinding;
 
-export class VoskAsrEngine implements ASREngine {
+export class VoskAsrEngine {
   id = "vosk";
   name = "Vosk small EN";
   engineType = "vosk" as const;
   mode = "local-model" as const;
   languageSupport: ASRLanguage[] = ["en"];
   supportsStreaming = false;
+  streamingMode = "offline-batch" as const;
 
   private recognizer: VoskBinding | null = null;
   private modelPath: string | null = null;
@@ -133,7 +129,7 @@ export class VoskAsrEngine implements ASREngine {
       const transcriptionTimeMs = nowMs() - startedAt;
 
       return {
-        ...createBaseTranscriptionResult(this, input, {
+        ...createBaseTranscriptionResult(this as never, input, {
           transcript,
           transcriptionTimeMs,
           timeToFirstTextMs: transcript ? transcriptionTimeMs : null,
@@ -145,7 +141,7 @@ export class VoskAsrEngine implements ASREngine {
       };
     } catch (error) {
       return createErrorTranscriptionResult(
-        this,
+        this as never,
         input,
         error,
         nowMs() - startedAt,

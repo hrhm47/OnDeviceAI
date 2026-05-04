@@ -33,6 +33,7 @@ export class WhisperAsrEngine implements ASREngine {
   mode = "local-model" as const;
   languageSupport: ASRLanguage[] = ["en", "fi"];
   supportsStreaming = false;
+  streamingMode = "offline-batch" as const;
 
   private context: any = null;
 

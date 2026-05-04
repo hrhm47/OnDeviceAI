@@ -27,13 +27,13 @@ const modelInfo = [
   },
   {
     name: "Qwen3-ASR",
-    state: "Planned",
-    description: "Research comparison target for later implementation.",
+    state: "Candidate",
+    description: "Sherpa-ONNX multilingual candidate with VAD-segmented fallback.",
   },
   {
-    name: "Vosk",
+    name: "Parakeet TDT",
     state: "Optional",
-    description: "Offline baseline if time allows in the thesis prototype.",
+    description: "Experimental Sherpa-ONNX candidate if model files are available.",
   },
 ];
 
@@ -114,14 +114,14 @@ export default function SettingsScreen() {
                 <View
                   style={[
                     styles.modelState,
-                    model.state === "Planned" && styles.modelStateWarning,
+                    model.state === "Candidate" && styles.modelStateWarning,
                     model.state === "Optional" && styles.modelStateOptional,
                   ]}
                 >
                   <Text
                     style={[
                       styles.modelStateText,
-                      model.state === "Planned" && styles.modelStateTextWarning,
+                      model.state === "Candidate" && styles.modelStateTextWarning,
                       model.state === "Optional" && styles.modelStateTextOptional,
                     ]}
                   >

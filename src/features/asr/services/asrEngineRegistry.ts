@@ -1,8 +1,8 @@
 import type { whisperModels } from "@/constants/types/ModelTypes";
 
 import { NativeAsrEngine } from "../engines/nativeAsrEngine";
+import { ParakeetAsrEngine } from "../engines/parakeetAsrEngine";
 import { QwenAsrEngine } from "../engines/qwenAsrEngine";
-import { VoskAsrEngine } from "../engines/voskAsrEngine";
 import { WhisperAsrEngine } from "../engines/whisperAsrEngine";
 import {
   ASREngine,
@@ -19,13 +19,13 @@ const ENGINE_DETAILS: Record<ASREngineType, string> = {
   native: "Device speech recognition service",
   whisper: "Bundled local whisper.rn model",
   qwen: "Advanced multilingual Sherpa-ONNX candidate; requires Qwen3-ASR model files",
-  vosk: "English-only lightweight offline baseline; requires Vosk native binding and model files",
+  parakeet: "Experimental Sherpa-ONNX Parakeet TDT candidate; optional in Phase 1",
 };
 
 const getUnavailableStatus = (
   engineType: ASREngineType,
 ): ASREngineAvailabilityStatus => {
-  if (engineType === "qwen" || engineType === "vosk") {
+  if (engineType === "qwen" || engineType === "parakeet") {
     return "model-files-missing";
   }
 
@@ -55,8 +55,8 @@ export const getASREngineById = (
     return new QwenAsrEngine();
   }
 
-  if (id === "vosk") {
-    return new VoskAsrEngine();
+  if (id === "parakeet") {
+    return new ParakeetAsrEngine();
   }
 
   return getDefaultASREngine();
@@ -71,7 +71,7 @@ export const getAvailableASREngines = async (
     getASREngineById("native", options),
     getASREngineById("whisper", options),
     getASREngineById("qwen", options),
-    getASREngineById("vosk", options),
+    getASREngineById("parakeet", options),
   ];
 
   const metadata = await Promise.all(
@@ -90,6 +90,7 @@ export const getAvailableASREngines = async (
         mode: engine.mode,
         languageSupport: [...engine.languageSupport],
         supportsStreaming: engine.supportsStreaming,
+        streamingMode: engine.streamingMode,
         status,
         detail: ENGINE_DETAILS[engine.engineType],
         readinessMessage:
