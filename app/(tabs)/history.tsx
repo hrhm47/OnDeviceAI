@@ -1,8 +1,10 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FieldColors as C } from "@/constants/theme";
+import { getAsrResults } from "@/src/features/asr/services/asrStorage";
+import type { TranscriptionResult } from "@/src/features/asr/types/asr.types";
 import { HistoryItem, useSpeechStore } from "@/src/store/useSpeechStore";
 import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -50,16 +52,33 @@ export default function HistoryScreen() {
   const { history, metrics } = useSpeechStore();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
+  const [storedAsrResults, setStoredAsrResults] = useState<TranscriptionResult[]>([]);
 
+  useEffect(() => {
+    getAsrResults()
+      .then(setStoredAsrResults)
+      .catch((error) => console.warn("Failed to load ASR result storage", error));
+  }, []);
+
+  const latestAsrResult = storedAsrResults[0];
   const latest = history[0];
   const rawTranscript =
+    latestAsrResult?.transcript ||
     latest?.aiOutput ||
     "There is water near stair B and the floor is slippery by the temporary wall.";
   const improvedTranscript =
     "Water leak observed near stairwell B. Floor is slippery beside the temporary partition. Mark as safety issue and assign site maintenance.";
 
   const runs = useMemo(() => {
-    const dynamicRuns = history.map((item, index) => mapHistoryToRun(item, index));
+    const storedRuns = storedAsrResults.map((item, index) =>
+      mapStoredAsrResultToRun(item, index),
+    );
+    const dynamicRuns = [
+      ...storedRuns,
+      ...history.map((item, index) =>
+        mapHistoryToRun(item, index + storedRuns.length),
+      ),
+    ];
     const combined = dynamicRuns.length > 0 ? dynamicRuns : sampleRuns;
 
     return combined.filter((run) => {
@@ -67,11 +86,15 @@ export default function HistoryScreen() {
       const text = `${run.id} ${run.model} ${run.language} ${run.noise} ${run.notes}`.toLowerCase();
       return matchesFilter && text.includes(query.toLowerCase());
     });
-  }, [filter, history, query]);
+  }, [filter, history, query, storedAsrResults]);
 
   const processingTime =
-    metrics.processingTimeMs ?? latest?.processingTimeMs ?? 2350;
-  const ttfs = metrics.ttfsMs ?? latest?.ttfsMs ?? 680;
+    latestAsrResult?.transcriptionTimeMs ??
+    metrics.processingTimeMs ??
+    latest?.processingTimeMs ??
+    2350;
+  const ttfs =
+    latestAsrResult?.timeToFirstTextMs ?? metrics.ttfsMs ?? latest?.ttfsMs ?? 680;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -98,9 +121,22 @@ export default function HistoryScreen() {
           <TranscriptBlock title="Improved transcript" body={improvedTranscript} highlighted />
 
           <View style={styles.metaGrid}>
-            <Meta label="Model" value={latest?.model?.toUpperCase() || "WHISPER"} />
-            <Meta label="Language" value="English" />
-            <Meta label="Duration" value="00:18" />
+            <Meta
+              label="Model"
+              value={latestAsrResult?.modelName || latest?.model?.toUpperCase() || "WHISPER"}
+            />
+            <Meta
+              label="Language"
+              value={latestAsrResult?.language?.toUpperCase() || "English"}
+            />
+            <Meta
+              label="Duration"
+              value={
+                latestAsrResult
+                  ? formatDuration(latestAsrResult.recordingDurationMs)
+                  : "00:18"
+              }
+            />
             <Meta label="First text" value={`${Math.round(ttfs)} ms`} />
             <Meta label="Processing" value={`${(processingTime / 1000).toFixed(1)} s`} />
             <Meta
@@ -119,11 +155,11 @@ export default function HistoryScreen() {
             <Pressable style={styles.saveButton}>
               <Text style={styles.saveButtonText}>Save result</Text>
             </Pressable>
-            <Pressable style={styles.outlineButton} onPress={() => router.push("/bench")}>
+            <Pressable style={styles.outlineButton} onPress={() => router.push("./bench")}>
               <Text style={styles.outlineButtonText}>Retry</Text>
             </Pressable>
           </View>
-          <Pressable style={styles.continueButton} onPress={() => router.push("/datasets")}>
+          <Pressable style={styles.continueButton} onPress={() => router.push("./datasets")}>
             <Text style={styles.continueButtonText}>
               Continue to context extraction later
             </Text>
@@ -147,7 +183,7 @@ export default function HistoryScreen() {
         </View>
 
         <View style={styles.filterRow}>
-          {["All", "Native", "Whisper", "English", "Finnish"].map((item) => (
+          {["All", "Native", "Whisper", "Qwen", "Vosk", "English", "Finnish"].map((item) => (
             <Pressable
               key={item}
               onPress={() => setFilter(item)}
@@ -212,6 +248,26 @@ function mapHistoryToRun(item: HistoryItem, index: number) {
     noise: "Quiet",
     notes: item.aiOutput ? item.aiOutput.slice(0, 80) : "No recognized speech.",
   };
+}
+
+function mapStoredAsrResultToRun(item: TranscriptionResult, index: number) {
+  return {
+    id: `ASR-${String(index + 1).padStart(3, "0")}`,
+    model: item.modelName,
+    language: item.language === "fi" ? "Finnish" : "English",
+    wer: 0,
+    cer: 0,
+    latency: `${Math.round(item.transcriptionTimeMs)} ms`,
+    noise: "Quiet",
+    notes: item.error || item.transcript || "No recognized speech.",
+  };
+}
+
+function formatDuration(durationMs: number) {
+  const totalSeconds = Math.floor(durationMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
 }
 
 function TranscriptBlock({

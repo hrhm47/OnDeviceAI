@@ -30,7 +30,7 @@ export default function HomeScreen() {
   const { history, activeModel, metrics } = useSpeechStore();
   const latest = history[0];
 
-  const handleNavigate = (path: "/bench" | "/history" | "/datasets") => {
+  const handleNavigate = (path: "./bench" | "./history" | "./datasets") => {
     router.push(path);
   };
 
@@ -80,7 +80,7 @@ export default function HomeScreen() {
               styles.startButton,
               pressed && styles.pressedPrimary,
             ]}
-            onPress={() => handleNavigate("/bench")}
+            onPress={() => handleNavigate("./bench")}
           >
             <IconSymbol size={26} name="mic.fill" color="#FFFFFF" />
             <View style={styles.actionTextBlock}>
@@ -94,7 +94,7 @@ export default function HomeScreen() {
               styles.secondaryButton,
               pressed && styles.pressedSecondary,
             ]}
-            onPress={() => handleNavigate("/datasets")}
+            onPress={() => handleNavigate("./datasets")}
           >
             <IconSymbol size={22} name="folder.fill" color={C.primary} />
             <View style={styles.actionTextBlock}>
@@ -107,14 +107,14 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.grid}>
-          <Pressable style={styles.navCard} onPress={() => handleNavigate("/bench")}>
+          <Pressable style={styles.navCard} onPress={() => handleNavigate("./bench")}>
             <IconSymbol size={24} name="waveform" color={C.teal} />
             <Text style={styles.navTitle}>ASR testing</Text>
             <Text style={styles.navCopy}>
               Compare models, language, noise level, and recording mode.
             </Text>
           </Pressable>
-          <Pressable style={styles.navCard} onPress={() => handleNavigate("/history")}>
+          <Pressable style={styles.navCard} onPress={() => handleNavigate("./history")}>
             <IconSymbol size={24} name="chart.bar.fill" color={C.warning} />
             <Text style={styles.navTitle}>Saved results</Text>
             <Text style={styles.navCopy}>

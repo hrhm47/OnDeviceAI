@@ -1,16 +1,17 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { FieldColors as C } from "@/constants/theme";
 import { whisperAvailableModels } from "@/constants/constant";
-import { useWhisperEngine } from "@/hooks/useWhisperEngine";
-import { NativeEngine } from "@/src/engine/NativeEngine";
-import { ASREngine, ASRResult } from "@/src/engine/types";
+import { FieldColors as C } from "@/constants/theme";
+import type { whisperModels } from "@/constants/types/ModelTypes";
+import { useAsrController } from "@/src/features/asr/hooks/useAsrController";
 import {
-  setTranscriptionDataFunc,
-  useSpeechStore,
-} from "@/src/store/useSpeechStore";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+  downloadQwen3AsrModel,
+  downloadVoskSmallEnModel,
+  QWEN3_ASR_DOWNLOAD_URL,
+  VOSK_SMALL_EN_DOWNLOAD_URL,
+} from "@/src/features/asr/services/asrModelDownloadService";
+import type { ASRLanguage, ASREngineType } from "@/src/features/asr/types/asr.types";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,11 +20,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const models = [
-  { id: "native", label: "Native ASR", status: "Ready", detail: "Device speech service" },
-  { id: "whisper", label: "Whisper", status: "Ready", detail: "Local whisper.rn model" },
-  { id: "qwen", label: "Qwen3-ASR", status: "Planned", detail: "Future thesis comparison" },
-  { id: "vosk", label: "Vosk", status: "Optional", detail: "Offline baseline" },
+const fallbackModels = [
+  { id: "native", label: "Native ASR", status: "Ready", detail: "Device speech recognition service" },
+  { id: "whisper", label: "Whisper", status: "Ready", detail: "Bundled local whisper.rn model" },
+  { id: "qwen", label: "Qwen3-ASR", status: "Model files missing", detail: "Sherpa-ONNX adapter, requires model files" },
+  { id: "vosk", label: "Vosk", status: "Model files missing", detail: "English-only offline baseline" },
 ] as const;
 
 const languages = [
@@ -35,153 +36,145 @@ const testModes = ["Manual recording", "Predefined test case"] as const;
 const noiseLevels = ["Quiet", "Moderate noise", "Hard noise"] as const;
 
 export default function BenchScreen() {
-  const {
-    activeModel,
-    setActiveModel,
-    whisperActiveModel,
-    setwhisperActiveModel,
-    isRecording,
-    setRecording,
-    liveTranscript,
-    startBenchmarkingTimer,
-    registerFirstSymbol,
-    setLiveTranscript,
-    setFinalTranscript,
-    finalizeMetrics,
-  } = useSpeechStore();
-
-  const {
-    init: whisperInitialize,
-    start: whisperStart,
-    stop: whisperStop,
-  } = useWhisperEngine();
-
-  const activeEngine = useRef<ASREngine | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string>(activeModel);
-  const [selectedLanguage, setSelectedLanguage] = useState<"en" | "fi">("en");
+  const [selectedModel, setSelectedModel] = useState<ASREngineType>("native");
+  const [selectedLanguage, setSelectedLanguage] = useState<ASRLanguage>("en");
+  const [whisperModel, setWhisperModel] = useState<whisperModels>("tiny.en");
   const [selectedMode, setSelectedMode] =
     useState<(typeof testModes)[number]>("Manual recording");
   const [noise, setNoise] = useState<(typeof noiseLevels)[number]>("Quiet");
-  const [status, setStatus] = useState("Waiting");
-  const [elapsed, setElapsed] = useState(0);
-  const [isEngineLoading, setEngineLoading] = useState(false);
+  const [modelSetupMessage, setModelSetupMessage] = useState<string | null>(null);
+  const [modelDownloadProgress, setModelDownloadProgress] = useState<number | null>(null);
+  const [isDownloadingModel, setDownloadingModel] = useState(false);
+
+  const {
+    engines,
+    status,
+    isRecording,
+    isTranscribing,
+    recordingDurationMs,
+    latestResult,
+    error,
+    refreshEngines,
+    startRecording,
+    stopRecordingAndTranscribe,
+    reset,
+  } = useAsrController({
+    engineId: selectedModel,
+    language: selectedLanguage,
+    whisperModel,
+  });
+
+  const models = useMemo(() => {
+    if (!engines.length) {
+      return fallbackModels;
+    }
+
+    return engines.map((engine) => ({
+      id: engine.engineType,
+      label: engine.name,
+      status: engine.languageSupport.includes(selectedLanguage)
+        ? toStatusLabel(engine.status)
+        : "Unsupported language",
+      detail: engine.detail,
+    }));
+  }, [engines, selectedLanguage]);
 
   const selectedModelInfo = useMemo(
     () => models.find((model) => model.id === selectedModel) ?? models[0],
-    [selectedModel],
+    [models, selectedModel],
   );
+  const selectedEngineMetadata = useMemo(
+    () =>
+      engines.find(
+        (engine) => engine.engineType === selectedModel || engine.id === selectedModel,
+      ),
+    [engines, selectedModel],
+  );
+  const selectedModelNeedsDownload =
+    selectedEngineMetadata?.status === "model-files-missing" ||
+    selectedModelInfo.status === "Model files missing";
 
   useEffect(() => {
-    if (!isRecording) {
-      setElapsed(0);
-      return;
-    }
+    setModelSetupMessage(null);
+    setModelDownloadProgress(null);
+  }, [selectedModel]);
 
-    const startedAt = Date.now();
-    const timer = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
-    }, 1000);
+  const transcript =
+    latestResult?.transcript ||
+    (isRecording
+      ? "Recording audio. Transcript appears after you stop."
+      : "Transcript will appear here after transcription.");
 
-    return () => clearInterval(timer);
-  }, [isRecording]);
-
-  useEffect(() => {
-    return () => {
-      activeEngine.current?.destroy().catch(console.error);
-    };
-  }, []);
-
-  const selectModel = (modelId: string) => {
-    setSelectedModel(modelId);
-    if (modelId === "native" || modelId === "whisper" || modelId === "vosk") {
-      setActiveModel(modelId);
-    }
-  };
-
-  const prepareEngine = async () => {
-    setEngineLoading(true);
-    setStatus("Preparing");
-
-    try {
-      if (selectedModel === "native") {
-        const engine = new NativeEngine();
-        await engine.init();
-        activeEngine.current = engine;
-        return;
-      }
-
-      if (selectedModel === "whisper") {
-        await whisperInitialize(whisperActiveModel);
-        return;
-      }
-
-      throw new Error(`${selectedModelInfo.label} is shown for planning but is not wired to recording yet.`);
-    } finally {
-      setEngineLoading(false);
-    }
-  };
-
-  const handleResult = (result: ASRResult) => {
-    registerFirstSymbol();
-    setTranscriptionDataFunc(result.text);
-    setLiveTranscript(result.text);
-    if (result.isFinal) {
-      setFinalTranscript((prev: string) => `${prev} ${result.text}`.trim());
-    }
-  };
+  const statusLabel = isRecording
+    ? "Recording"
+    : isTranscribing
+      ? status === "saving"
+        ? "Saving"
+        : "Transcribing"
+      : error
+        ? "Error"
+        : "Waiting";
 
   const handleRecordPress = async () => {
     if (isRecording) {
-      setStatus("Processing");
-      if (selectedModel === "whisper") {
-        await whisperStop();
-      } else {
-        await activeEngine.current?.stop();
-      }
-      setRecording(false);
-      setTimeout(() => {
-        finalizeMetrics();
-        setStatus("Waiting");
-      }, 250);
+      await stopRecordingAndTranscribe();
       return;
     }
 
-    if (selectedModel !== "native" && selectedModel !== "whisper") {
-      Alert.alert(
-        "Model not connected",
-        `${selectedModelInfo.label} is included in the UI plan, but recording is currently enabled for Native ASR and Whisper.`,
-      );
-      return;
-    }
+    await startRecording();
+  };
+
+  const handleCancel = () => {
+    reset();
+  };
+
+  const handleQwenDownload = async () => {
+    setDownloadingModel(true);
+    setModelSetupMessage("Starting Qwen3-ASR model download.");
+    setModelDownloadProgress(0);
 
     try {
-      startBenchmarkingTimer();
-      await prepareEngine();
-      setRecording(true);
-      setStatus("Recording");
-
-      if (selectedModel === "whisper") {
-        await whisperStart(handleResult, (err: Error) => {
-          Alert.alert("ASR Error", err.message);
-          setStatus("Waiting");
-          setRecording(false);
-        });
-      } else {
-        await activeEngine.current?.start(handleResult, (err: Error) => {
-          Alert.alert("ASR Error", err.message);
-          setStatus("Waiting");
-          setRecording(false);
-        });
-      }
-    } catch (err) {
-      Alert.alert("Engine not ready", (err as Error).message);
-      setStatus("Waiting");
-      setRecording(false);
+      const localPath = await downloadQwen3AsrModel({
+        onProgress: (progress) => {
+          setModelDownloadProgress(progress.percent);
+          setModelSetupMessage(progress.message);
+        },
+      });
+      setModelSetupMessage(`Qwen3-ASR model ready at ${localPath}`);
+      await refreshEngines();
+    } catch (downloadError) {
+      setModelSetupMessage(
+        `Qwen3-ASR download failed. Manual URL: ${QWEN3_ASR_DOWNLOAD_URL}. ${
+          downloadError instanceof Error ? downloadError.message : String(downloadError)
+        }`,
+      );
+    } finally {
+      setDownloadingModel(false);
     }
   };
 
-  const minutes = Math.floor(elapsed / 60).toString().padStart(2, "0");
-  const seconds = (elapsed % 60).toString().padStart(2, "0");
+  const handleVoskDownload = async () => {
+    setDownloadingModel(true);
+    setModelSetupMessage("Starting Vosk English model download.");
+    setModelDownloadProgress(0);
+
+    try {
+      const localPath = await downloadVoskSmallEnModel({
+        onProgress: (progress) => {
+          setModelDownloadProgress(progress.percent);
+          setModelSetupMessage(progress.message);
+        },
+      });
+      setModelSetupMessage(`Vosk English model ready at ${localPath}`);
+      await refreshEngines();
+    } catch (downloadError) {
+      setModelSetupMessage(
+        `Vosk download failed. ${downloadError instanceof Error ? downloadError.message : String(downloadError)}`,
+      );
+    } finally {
+      setDownloadingModel(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -190,8 +183,8 @@ export default function BenchScreen() {
           <Text style={styles.eyebrow}>ASR experiment setup</Text>
           <Text style={styles.title}>Configure and record</Text>
           <Text style={styles.subtitle}>
-            Designed for quick field testing while still capturing research
-            conditions.
+            Baseline ASR testing with a shared recording flow and standardized
+            transcription results.
           </Text>
         </View>
 
@@ -200,7 +193,7 @@ export default function BenchScreen() {
             {models.map((model) => (
               <Pressable
                 key={model.id}
-                onPress={() => selectModel(model.id)}
+                onPress={() => setSelectedModel(model.id)}
                 style={[
                   styles.optionCard,
                   selectedModel === model.id && styles.optionCardSelected,
@@ -238,21 +231,21 @@ export default function BenchScreen() {
         </Section>
 
         {selectedModel === "whisper" && (
-          <Section title="Whisper model file" meta={whisperActiveModel}>
+          <Section title="Whisper model file" meta={whisperModel}>
             <View style={styles.chipRow}>
               {whisperAvailableModels.map((model) => (
                 <Pressable
                   key={model.id}
-                  onPress={() => setwhisperActiveModel(model.title)}
+                  onPress={() => setWhisperModel(model.title)}
                   style={[
                     styles.chip,
-                    whisperActiveModel === model.title && styles.chipSelected,
+                    whisperModel === model.title && styles.chipSelected,
                   ]}
                 >
                   <Text
                     style={[
                       styles.chipText,
-                      whisperActiveModel === model.title && styles.chipTextSelected,
+                      whisperModel === model.title && styles.chipTextSelected,
                     ]}
                   >
                     {model.title}
@@ -260,6 +253,67 @@ export default function BenchScreen() {
                 </Pressable>
               ))}
             </View>
+          </Section>
+        )}
+
+        {selectedModel === "qwen" && selectedModelNeedsDownload && (
+          <Section title="Qwen3-ASR model setup" meta={selectedModelInfo.status}>
+            <Text style={styles.setupText}>
+              Download the Sherpa-ONNX Qwen3-ASR 0.6B int8 package for English
+              and Finnish baseline testing.
+            </Text>
+            <Pressable
+              disabled={isDownloadingModel}
+              onPress={handleQwenDownload}
+              style={[
+                styles.setupButton,
+                isDownloadingModel && styles.setupButtonDisabled,
+              ]}
+            >
+              <Text style={styles.setupButtonText}>
+                {isDownloadingModel ? "Downloading model" : "Download Qwen3-ASR"}
+              </Text>
+            </Pressable>
+            <Text style={styles.setupLinkText}>{QWEN3_ASR_DOWNLOAD_URL}</Text>
+            {modelDownloadProgress !== null ? (
+              <Text style={styles.setupProgressText}>
+                {Math.round(modelDownloadProgress)}%
+              </Text>
+            ) : null}
+            {modelSetupMessage ? (
+              <Text style={styles.setupStatusText}>{modelSetupMessage}</Text>
+            ) : null}
+          </Section>
+        )}
+
+        {selectedModel === "vosk" && selectedModelNeedsDownload && (
+          <Section title="Vosk model setup" meta={selectedModelInfo.status}>
+            <Text style={styles.setupText}>
+              Vosk is configured as an English-only lightweight baseline using
+              vosk-model-small-en-us-0.15. The app downloads the ZIP and extracts
+              it into the expected local model folder.
+            </Text>
+            <Pressable
+              disabled={isDownloadingModel}
+              onPress={handleVoskDownload}
+              style={[
+                styles.setupButton,
+                isDownloadingModel && styles.setupButtonDisabled,
+              ]}
+            >
+              <Text style={styles.setupButtonText}>
+                {isDownloadingModel ? "Downloading model" : "Download Vosk model"}
+              </Text>
+            </Pressable>
+            <Text style={styles.setupLinkText}>{VOSK_SMALL_EN_DOWNLOAD_URL}</Text>
+            {modelDownloadProgress !== null ? (
+              <Text style={styles.setupProgressText}>
+                {Math.round(modelDownloadProgress)}%
+              </Text>
+            ) : null}
+            {modelSetupMessage ? (
+              <Text style={styles.setupStatusText}>{modelSetupMessage}</Text>
+            ) : null}
           </Section>
         )}
 
@@ -339,7 +393,7 @@ export default function BenchScreen() {
 
         <View style={styles.recordPanel}>
           <View style={styles.recordTop}>
-            <View>
+            <View style={styles.recordTitleBlock}>
               <Text style={styles.recordLabel}>Recording screen</Text>
               <Text style={styles.recordModel}>
                 {selectedModelInfo.label} / {selectedLanguage.toUpperCase()}
@@ -349,21 +403,23 @@ export default function BenchScreen() {
               style={[
                 styles.liveBadge,
                 isRecording && styles.liveBadgeActive,
-                status === "Processing" && styles.liveBadgeProcessing,
+                isTranscribing && styles.liveBadgeProcessing,
+                error && styles.liveBadgeError,
               ]}
             >
               <Text
                 style={[
                   styles.liveBadgeText,
                   isRecording && styles.liveBadgeTextActive,
+                  error && styles.liveBadgeTextError,
                 ]}
               >
-                {isEngineLoading ? "Preparing" : status}
+                {statusLabel}
               </Text>
             </View>
           </View>
 
-          <Text style={styles.timerText}>{minutes}:{seconds}</Text>
+          <Text style={styles.timerText}>{formatDuration(recordingDurationMs)}</Text>
 
           <View style={styles.waveform}>
             {[18, 34, 24, 46, 30, 56, 22, 38, 28, 50, 20].map((height, index) => (
@@ -379,10 +435,12 @@ export default function BenchScreen() {
           </View>
 
           <Pressable
+            disabled={isTranscribing}
             onPress={handleRecordPress}
             style={({ pressed }) => [
               styles.micButton,
               isRecording && styles.micButtonStop,
+              isTranscribing && styles.micButtonDisabled,
               pressed && styles.micButtonPressed,
             ]}
           >
@@ -394,29 +452,56 @@ export default function BenchScreen() {
           </Pressable>
 
           <View style={styles.recordActions}>
-            <Pressable
-              style={styles.cancelButton}
-              onPress={() => {
-                setRecording(false);
-                setStatus("Waiting");
-                setLiveTranscript("");
-              }}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+            <Pressable style={styles.cancelButton} onPress={handleCancel}>
+              <Text style={styles.cancelButtonText}>Reset</Text>
             </Pressable>
-            <Pressable style={styles.startTestButton} onPress={handleRecordPress}>
+            <Pressable
+              disabled={isTranscribing}
+              style={[
+                styles.startTestButton,
+                isTranscribing && styles.startTestButtonDisabled,
+              ]}
+              onPress={handleRecordPress}
+            >
               <Text style={styles.startTestText}>
-                {isRecording ? "Stop recording" : "Start recording"}
+                {isRecording ? "Stop and transcribe" : "Start recording"}
               </Text>
             </Pressable>
           </View>
         </View>
 
         <View style={styles.transcriptPreview}>
-          <Text style={styles.previewTitle}>Live transcript</Text>
-          <Text style={styles.previewText}>
-            {liveTranscript || "Transcript will appear here during recording."}
-          </Text>
+          <View style={styles.previewHeader}>
+            <Text style={styles.previewTitle}>Transcript</Text>
+            {latestResult ? <Text style={styles.savedText}>Saved locally</Text> : null}
+          </View>
+          <Text style={styles.previewText}>{transcript}</Text>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          {latestResult ? (
+            <View style={styles.metricsGrid}>
+              <Metric label="Model" value={latestResult.modelName} />
+              <Metric label="Language" value={latestResult.language.toUpperCase()} />
+              <Metric
+                label="Duration"
+                value={formatDuration(latestResult.recordingDurationMs)}
+              />
+              <Metric
+                label="Transcription"
+                value={formatMs(latestResult.transcriptionTimeMs)}
+              />
+              <Metric
+                label="First text"
+                value={
+                  latestResult.timeToFirstTextMs === null ||
+                  latestResult.timeToFirstTextMs === undefined
+                    ? "--"
+                    : formatMs(latestResult.timeToFirstTextMs)
+                }
+              />
+              <Metric label="Result ID" value={latestResult.id} />
+            </View>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -441,6 +526,50 @@ function Section({
       {children}
     </View>
   );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.metricBox}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={styles.metricValue}>{value}</Text>
+    </View>
+  );
+}
+
+function toStatusLabel(status: string) {
+  if (status === "ready") {
+    return "Ready";
+  }
+
+  if (status === "model-files-missing") {
+    return "Model files missing";
+  }
+
+  if (status === "unsupported-language") {
+    return "Unsupported language";
+  }
+
+  if (status === "initialization-failed") {
+    return "Initialization failed";
+  }
+
+  return "Not ready";
+}
+
+function formatDuration(durationMs: number) {
+  const totalSeconds = Math.floor(durationMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function formatMs(value: number) {
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(1)} s`;
+  }
+
+  return `${Math.round(value)} ms`;
 }
 
 const styles = StyleSheet.create({
@@ -580,6 +709,64 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     color: C.primaryPressed,
   },
+  setupText: {
+    color: C.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "700",
+  },
+  setupButtonRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  setupButton: {
+    minHeight: 48,
+    borderRadius: 8,
+    backgroundColor: C.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
+  setupButtonDisabled: {
+    opacity: 0.6,
+  },
+  setupButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  setupOutlineButton: {
+    minHeight: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
+    backgroundColor: C.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
+  setupOutlineButtonText: {
+    color: C.text,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  setupLinkText: {
+    color: C.textSubtle,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "700",
+  },
+  setupProgressText: {
+    color: C.primaryPressed,
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  setupStatusText: {
+    color: C.text,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "700",
+  },
   segmentRow: {
     flexDirection: "row",
     borderRadius: 8,
@@ -646,6 +833,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  recordTitleBlock: {
+    flex: 1,
+  },
   recordLabel: {
     color: C.textSubtle,
     fontSize: 13,
@@ -669,12 +859,18 @@ const styles = StyleSheet.create({
   liveBadgeProcessing: {
     backgroundColor: C.warningSoft,
   },
+  liveBadgeError: {
+    backgroundColor: C.dangerSoft,
+  },
   liveBadgeText: {
     color: C.textMuted,
     fontSize: 12,
     fontWeight: "900",
   },
   liveBadgeTextActive: {
+    color: C.danger,
+  },
+  liveBadgeTextError: {
     color: C.danger,
   },
   timerText: {
@@ -714,6 +910,9 @@ const styles = StyleSheet.create({
     backgroundColor: C.danger,
     borderColor: "#F2BCB8",
   },
+  micButtonDisabled: {
+    opacity: 0.55,
+  },
   micButtonPressed: {
     transform: [{ scale: 0.97 }],
   },
@@ -746,6 +945,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: C.neutralDark,
   },
+  startTestButtonDisabled: {
+    opacity: 0.6,
+  },
   startTestText: {
     color: "#FFFFFF",
     fontSize: 15,
@@ -758,9 +960,20 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     padding: 16,
   },
+  previewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   previewTitle: {
     color: C.text,
     fontSize: 18,
+    fontWeight: "900",
+  },
+  savedText: {
+    color: C.success,
+    fontSize: 13,
     fontWeight: "900",
   },
   previewText: {
@@ -769,5 +982,41 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontWeight: "600",
     marginTop: 10,
+  },
+  errorText: {
+    color: C.danger,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "800",
+    marginTop: 10,
+  },
+  metricsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 16,
+  },
+  metricBox: {
+    width: "48%",
+    minHeight: 70,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surfaceWarm,
+    padding: 10,
+    justifyContent: "center",
+  },
+  metricLabel: {
+    color: C.textSubtle,
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  metricValue: {
+    color: C.text,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: "900",
+    marginTop: 4,
   },
 });
