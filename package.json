@@ -44,6 +44,7 @@
     "react-native-sherpa-onnx": "^0.4.2",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
+    "react-native-zip-archive": "^7.1.0",
     "sherpa-onnx": "^1.12.28",
     "whisper.rn": "^0.5.5",
     "zustand": "^5.0.11"
