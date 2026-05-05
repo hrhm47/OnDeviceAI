@@ -2,10 +2,11 @@ export type ASRLanguage = "en" | "fi";
 
 export type ASREngineType = "native" | "whisper" | "qwen" | "parakeet";
 
-export type ASRStreamingMode =
+export type ASRRuntimeMode =
   | "true-streaming"
-  | "vad-segmented"
-  | "offline-batch";
+  | "vad-segmented-offline"
+  | "offline-full-recording"
+  | "unsupported";
 
 export type AudioInput = {
   uri?: string;
@@ -13,26 +14,24 @@ export type AudioInput = {
   sampleRate?: number;
   language: ASRLanguage;
   recordingDurationMs?: number;
-  speechSegmentCount?: number;
-  averageSegmentProcessingTimeMs?: number | null;
-  vadMetrics?: VADMetrics;
+  segmentId?: string;
 };
 
-export type StreamingASROptions = {
-  language: ASRLanguage;
-  sampleRate?: number;
-  onPartialResult?: (partialText: string) => void;
-  onFinalResult?: (finalText: string) => void;
-  onError?: (error: string) => void;
-  onSpeechStart?: () => void;
-  onSpeechEnd?: () => void;
+export type SegmentTranscript = {
+  segmentId: string;
+  transcript: string;
+  startMs: number;
+  endMs: number;
+  durationMs: number;
+  processingTimeMs: number;
+  error?: string | null;
 };
 
 export type VADMetrics = {
-  vadSpeechStartCount: number;
-  vadSpeechEndCount: number;
-  totalSpeechDurationMs: number;
-  totalSilenceDurationMs: number;
+  speechStartCount: number;
+  speechEndCount: number;
+  speechDurationMs: number;
+  silenceDurationMs: number;
   segmentCount: number;
 };
 
@@ -48,27 +47,32 @@ export type TranscriptionResult = {
 
   transcript: string;
   partialTranscripts?: string[];
+  segmentTranscripts?: SegmentTranscript[];
 
   recordingDurationMs: number;
+  speechDurationMs?: number;
+  silenceDurationMs?: number;
+
   transcriptionTimeMs: number;
   timeToFirstTextMs?: number | null;
 
-  streamingMode: ASRStreamingMode;
+  runtimeMode: ASRRuntimeMode;
 
-  audioUri?: string;
+  segmentCount?: number;
   sampleRate?: number;
-
-  speechSegmentCount?: number;
-  averageSegmentProcessingTimeMs?: number | null;
-  vadMetrics?: VADMetrics;
-
-  deviceInfo?: {
-    platform: "ios" | "android";
-    osVersion?: string;
-    deviceModel?: string;
-  };
+  audioUri?: string;
 
   error?: string | null;
+};
+
+export type StreamingASROptions = {
+  language: ASRLanguage;
+  sampleRate?: number;
+  onPartialResult?: (partialText: string) => void;
+  onFinalResult?: (finalText: string) => void;
+  onError?: (error: string) => void;
+  onSpeechStart?: () => void;
+  onSpeechEnd?: () => void;
 };
 
 export interface ASREngine {
@@ -78,7 +82,7 @@ export interface ASREngine {
   mode: "native" | "local-model";
   languageSupport: ASRLanguage[];
   supportsStreaming: boolean;
-  streamingMode: ASRStreamingMode;
+  runtimeMode: ASRRuntimeMode;
   isAvailable(): Promise<boolean>;
   initialize(): Promise<void>;
   transcribe(input: AudioInput): Promise<TranscriptionResult>;
@@ -103,7 +107,7 @@ export type ASREngineMetadata = Pick<
   | "mode"
   | "languageSupport"
   | "supportsStreaming"
-  | "streamingMode"
+  | "runtimeMode"
 > & {
   status: ASREngineAvailabilityStatus;
   detail: string;

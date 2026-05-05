@@ -1,8 +1,6 @@
-import Constants from "expo-constants";
-import { Platform } from "react-native";
-
 import {
   ASREngine,
+  ASRRuntimeMode,
   AudioInput,
   TranscriptionResult,
 } from "../types/asr.types";
@@ -18,20 +16,8 @@ export const nowMs = () => {
 export const createAsrResultId = () =>
   `asr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-export const getDeviceInfo = (): TranscriptionResult["deviceInfo"] => {
-  if (Platform.OS !== "ios" && Platform.OS !== "android") {
-    return undefined;
-  }
-
-  return {
-    platform: Platform.OS,
-    osVersion: String(Platform.Version),
-    deviceModel: Constants.deviceName ?? undefined,
-  };
-};
-
 export const createBaseTranscriptionResult = (
-  engine: Pick<ASREngine, "id" | "name" | "engineType" | "streamingMode">,
+  engine: Pick<ASREngine, "id" | "name" | "engineType" | "runtimeMode">,
   input: AudioInput,
   overrides?: Partial<TranscriptionResult>,
 ): TranscriptionResult => ({
@@ -43,29 +29,28 @@ export const createBaseTranscriptionResult = (
   language: input.language,
   transcript: overrides?.transcript ?? "",
   partialTranscripts: overrides?.partialTranscripts,
+  segmentTranscripts: overrides?.segmentTranscripts,
   recordingDurationMs: input.recordingDurationMs ?? 0,
+  speechDurationMs: overrides?.speechDurationMs,
+  silenceDurationMs: overrides?.silenceDurationMs,
   transcriptionTimeMs: overrides?.transcriptionTimeMs ?? 0,
   timeToFirstTextMs: overrides?.timeToFirstTextMs ?? null,
-  streamingMode: overrides?.streamingMode ?? engine.streamingMode,
+  runtimeMode: overrides?.runtimeMode ?? engine.runtimeMode,
   audioUri: input.uri,
   sampleRate: input.sampleRate,
-  speechSegmentCount:
-    overrides?.speechSegmentCount ?? input.speechSegmentCount,
-  averageSegmentProcessingTimeMs:
-    overrides?.averageSegmentProcessingTimeMs ??
-    input.averageSegmentProcessingTimeMs,
-  vadMetrics: overrides?.vadMetrics ?? input.vadMetrics,
-  deviceInfo: getDeviceInfo(),
+  segmentCount: overrides?.segmentCount,
   error: overrides?.error ?? null,
 });
 
 export const createErrorTranscriptionResult = (
-  engine: Pick<ASREngine, "id" | "name" | "engineType" | "streamingMode">,
+  engine: Pick<ASREngine, "id" | "name" | "engineType" | "runtimeMode">,
   input: AudioInput,
   error: unknown,
   transcriptionTimeMs: number,
+  runtimeMode?: ASRRuntimeMode,
 ): TranscriptionResult =>
   createBaseTranscriptionResult(engine, input, {
     transcriptionTimeMs,
+    runtimeMode,
     error: error instanceof Error ? error.message : String(error),
   });

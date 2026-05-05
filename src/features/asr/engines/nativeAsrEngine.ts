@@ -23,7 +23,7 @@ export class NativeAsrEngine implements ASREngine {
   mode = "native" as const;
   languageSupport: ASRLanguage[] = ["en", "fi"];
   supportsStreaming = true;
-  streamingMode = "true-streaming" as const;
+  runtimeMode = "true-streaming" as const;
 
   private listeners: { remove: () => void }[] = [];
   private streamingOptions: StreamingASROptions | null = null;
@@ -87,8 +87,8 @@ export class NativeAsrEngine implements ASREngine {
               transcriptionTimeMs,
               timeToFirstTextMs:
                 firstTextAt === null ? null : firstTextAt - startedAt,
-              streamingMode:
-                partialTranscripts.length > 0 ? "true-streaming" : "offline-batch",
+              runtimeMode:
+                partialTranscripts.length > 0 ? "true-streaming" : "offline-full-recording",
               error: error ?? null,
             }),
           );
@@ -292,10 +292,10 @@ export class NativeAsrEngine implements ASREngine {
           this.streamingFirstTextAt === null
             ? null
             : this.streamingFirstTextAt - this.streamingStartedAt,
-        streamingMode:
+        runtimeMode:
           this.streamingPartialTranscripts.length > 0
             ? "true-streaming"
-            : "offline-batch",
+            : "offline-full-recording",
         error: error ?? null,
       },
     );

@@ -10,7 +10,7 @@ import {
 import type {
   ASRLanguage,
   ASREngineType,
-  ASRStreamingMode,
+  ASRRuntimeMode,
 } from "@/src/features/asr/types/asr.types";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -23,10 +23,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const fallbackModels = [
-  { id: "native", label: "Native ASR", status: "Ready", detail: "Device speech recognition service", streamingMode: "true-streaming" },
-  { id: "whisper", label: "Whisper", status: "Ready", detail: "Bundled local whisper.rn model", streamingMode: "offline-batch" },
-  { id: "qwen", label: "Qwen3-ASR", status: "Model files missing", detail: "Sherpa-ONNX adapter, requires model files", streamingMode: "vad-segmented" },
-  { id: "parakeet", label: "Parakeet TDT", status: "Model files missing", detail: "Optional experimental Sherpa-ONNX candidate", streamingMode: "vad-segmented" },
+  { id: "native", label: "Native ASR", status: "Ready", detail: "Device speech recognition service", runtimeMode: "true-streaming" },
+  { id: "whisper", label: "Whisper", status: "Ready", detail: "Bundled local whisper.rn model", runtimeMode: "offline-full-recording" },
+  { id: "qwen", label: "Qwen3-ASR", status: "Model files missing", detail: "Sherpa-ONNX adapter, requires model files", runtimeMode: "unsupported" },
+  { id: "parakeet", label: "Parakeet TDT", status: "Model files missing", detail: "Optional experimental Sherpa-ONNX candidate", runtimeMode: "unsupported" },
 ] as const;
 
 const languages = [
@@ -59,6 +59,7 @@ export default function BenchScreen() {
     vadStatus,
     partialTranscript,
     liveTranscript,
+    segmentTranscripts,
     timeToFirstTextMs,
     refreshEngines,
     startRecording,
@@ -82,7 +83,7 @@ export default function BenchScreen() {
         ? toStatusLabel(engine.status)
         : "Unsupported language",
       detail: engine.detail,
-      streamingMode: engine.streamingMode,
+      runtimeMode: engine.runtimeMode,
     }));
   }, [engines, selectedLanguage]);
 
@@ -100,13 +101,13 @@ export default function BenchScreen() {
   const selectedModelNeedsDownload =
     selectedEngineMetadata?.status === "model-files-missing" ||
     selectedModelInfo.status === "Model files missing";
-  const selectedStreamingMode =
-    latestResult?.streamingMode ??
-    selectedEngineMetadata?.streamingMode ??
-    selectedModelInfo.streamingMode;
+  const selectedRuntimeMode =
+    latestResult?.runtimeMode ??
+    selectedEngineMetadata?.runtimeMode ??
+    selectedModelInfo.runtimeMode;
   const limitationMessage = getModelLimitationMessage(
     selectedModel,
-    selectedStreamingMode,
+    selectedRuntimeMode,
   );
 
   useEffect(() => {
@@ -119,7 +120,7 @@ export default function BenchScreen() {
     liveTranscript ||
     partialTranscript ||
     (isRecording
-      ? selectedStreamingMode === "true-streaming"
+      ? selectedRuntimeMode === "true-streaming"
         ? "Listening for live speech."
         : "Recording audio. Transcript appears after each speech segment or when you stop."
       : "Transcript will appear here after transcription.");
@@ -395,7 +396,7 @@ export default function BenchScreen() {
           </View>
 
           <View style={styles.runtimeGrid}>
-            <RuntimePill label="Mode" value={selectedStreamingMode} />
+            <RuntimePill label="Mode" value={selectedRuntimeMode} />
             <RuntimePill label="Mic/VAD" value={formatVadStatus(vadStatus)} />
             <RuntimePill
               label="First text"
@@ -464,13 +465,22 @@ export default function BenchScreen() {
           {partialTranscript && !latestResult ? (
             <Text style={styles.partialText}>Partial: {partialTranscript}</Text>
           ) : null}
+          {segmentTranscripts.length > 0 && !latestResult ? (
+            <View style={styles.segmentTranscriptList}>
+              {segmentTranscripts.map((segment, index) => (
+                <Text key={segment.segmentId} style={styles.segmentTranscriptText}>
+                  {index + 1}. {segment.error || segment.transcript}
+                </Text>
+              ))}
+            </View>
+          ) : null}
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           {latestResult ? (
             <View style={styles.metricsGrid}>
               <Metric label="Model" value={latestResult.modelName} />
               <Metric label="Language" value={latestResult.language.toUpperCase()} />
-              <Metric label="Mode" value={latestResult.streamingMode} />
+              <Metric label="Mode" value={latestResult.runtimeMode} />
               <Metric
                 label="Duration"
                 value={formatDuration(latestResult.recordingDurationMs)}
@@ -490,15 +500,15 @@ export default function BenchScreen() {
               />
               <Metric
                 label="Segments"
-                value={String(latestResult.speechSegmentCount ?? 0)}
+                value={String(latestResult.segmentCount ?? 0)}
               />
               <Metric
-                label="Avg segment"
+                label="Speech"
                 value={
-                  latestResult.averageSegmentProcessingTimeMs === null ||
-                  latestResult.averageSegmentProcessingTimeMs === undefined
+                  latestResult.speechDurationMs === null ||
+                  latestResult.speechDurationMs === undefined
                     ? "--"
-                    : formatMs(latestResult.averageSegmentProcessingTimeMs)
+                    : formatMs(latestResult.speechDurationMs)
                 }
               />
               <Metric label="Result ID" value={latestResult.id} />
@@ -570,23 +580,27 @@ function toStatusLabel(status: string) {
 
 function getModelLimitationMessage(
   model: ASREngineType,
-  streamingMode: ASRStreamingMode,
+  runtimeMode: ASRRuntimeMode,
 ) {
   if (model === "native") {
-    return streamingMode === "true-streaming"
-      ? "Live transcription active"
+    return runtimeMode === "true-streaming"
+      ? "Live transcription active."
       : "Native partial results are platform-limited in this run.";
   }
 
   if (model === "whisper") {
-    return "Whisper will return text after recording or after speech segment.";
+    return "Whisper returns text after each speech segment or after recording, not word-by-word live transcription.";
   }
 
   if (model === "qwen") {
-    return `Qwen streaming mode: ${streamingMode}`;
+    return runtimeMode === "unsupported"
+      ? "Model files missing or model not ready."
+      : "Qwen runtime mode will be detected from available Sherpa-ONNX support.";
   }
 
-  return "Experimental model. Streaming support depends on runtime.";
+  return runtimeMode === "unsupported"
+    ? "Model files missing or model not ready."
+    : "Experimental model. Streaming support depends on runtime.";
 }
 
 function formatVadStatus(status: string) {
@@ -1069,6 +1083,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: "800",
     marginTop: 8,
+  },
+  segmentTranscriptList: {
+    marginTop: 10,
+    gap: 6,
+  },
+  segmentTranscriptText: {
+    color: C.text,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "700",
   },
   errorText: {
     color: C.danger,

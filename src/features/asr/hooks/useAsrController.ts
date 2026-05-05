@@ -28,6 +28,7 @@ import {
   ASRLanguage,
   ASREngine,
   ASREngineMetadata,
+  SegmentTranscript,
   TranscriptionResult,
 } from "../types/asr.types";
 import {
@@ -71,7 +72,7 @@ export const useAsrController = ({
   const pcmChunksRef = useRef<Float32Array[]>([]);
   const vadServiceRef = useRef<VADService | null>(null);
   const speechSegmentsRef = useRef<VADSpeechSegment[]>([]);
-  const segmentTranscriptsRef = useRef<string[]>([]);
+  const segmentTranscriptsRef = useRef<SegmentTranscript[]>([]);
   const partialTranscriptsRef = useRef<string[]>([]);
   const segmentProcessingTimesRef = useRef<number[]>([]);
   const segmentPromisesRef = useRef<Promise<void>[]>([]);
@@ -88,6 +89,7 @@ export const useAsrController = ({
   const [recordingDurationMs, setRecordingDurationMs] = useState(0);
   const [partialTranscript, setPartialTranscript] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
+  const [segmentTranscripts, setSegmentTranscripts] = useState<SegmentTranscript[]>([]);
   const [timeToFirstTextMs, setTimeToFirstTextMs] = useState<number | null>(
     null,
   );
@@ -129,6 +131,7 @@ export const useAsrController = ({
     firstTextAtRef.current = null;
     setPartialTranscript("");
     setLiveTranscript("");
+    setSegmentTranscripts([]);
     setTimeToFirstTextMs(null);
     setVadStatus("idle");
   }, []);
@@ -172,9 +175,7 @@ export const useAsrController = ({
             recordingStartedAtRef.current === null
               ? recordingDurationMs
               : Date.now() - recordingStartedAtRef.current,
-          speechSegmentCount: 1,
-          averageSegmentProcessingTimeMs: null,
-          vadMetrics: vadServiceRef.current?.getMetrics(),
+          segmentId: segment.id,
         });
 
         const segmentProcessingTimeMs = nowMs() - segmentStartedAt;
@@ -183,6 +184,17 @@ export const useAsrController = ({
         );
 
         if (result.error) {
+          const failedSegment: SegmentTranscript = {
+            segmentId: segment.id,
+            transcript: "",
+            startMs: segment.startedAtMs,
+            endMs: segment.endedAtMs,
+            durationMs: segment.durationMs,
+            processingTimeMs: result.transcriptionTimeMs || segmentProcessingTimeMs,
+            error: result.error,
+          };
+          segmentTranscriptsRef.current.push(failedSegment);
+          setSegmentTranscripts([...segmentTranscriptsRef.current]);
           segmentErrorRef.current = result.error;
           setError(result.error);
           return;
@@ -193,8 +205,22 @@ export const useAsrController = ({
           return;
         }
 
-        segmentTranscriptsRef.current.push(segmentText);
-        const combinedTranscript = segmentTranscriptsRef.current.join(" ").trim();
+        const completedSegment: SegmentTranscript = {
+          segmentId: segment.id,
+          transcript: segmentText,
+          startMs: segment.startedAtMs,
+          endMs: segment.endedAtMs,
+          durationMs: segment.durationMs,
+          processingTimeMs: result.transcriptionTimeMs || segmentProcessingTimeMs,
+          error: null,
+        };
+        segmentTranscriptsRef.current.push(completedSegment);
+        setSegmentTranscripts([...segmentTranscriptsRef.current]);
+        const combinedTranscript = segmentTranscriptsRef.current
+          .map((item) => item.transcript)
+          .filter(Boolean)
+          .join(" ")
+          .trim();
         partialTranscriptsRef.current.push(combinedTranscript);
         setPartialTranscript(combinedTranscript);
         setLiveTranscript(combinedTranscript);
@@ -439,17 +465,16 @@ export const useAsrController = ({
           engineRef.current ?? getASREngineById(engineId, { whisperModel });
         engineRef.current = engine;
         const vadMetrics = vadServiceRef.current?.getMetrics();
-        const averageSegmentProcessingTimeMs =
-          segmentProcessingTimes.length === 0
-            ? null
-            : segmentProcessingTimes.reduce((sum, time) => sum + time, 0) /
-              segmentProcessingTimes.length;
         samples = speechSegments.length
           ? mergeChunks(speechSegments.map((segment) => segment.samples))
           : undefined;
         pcmChunksRef.current = [];
 
-        const transcript = segmentTranscripts.join(" ").trim();
+        const transcript = segmentTranscripts
+          .map((segment) => segment.transcript)
+          .filter(Boolean)
+          .join(" ")
+          .trim();
         const failureMessage =
           segmentErrorRef.current ??
           (!speechSegments.length
@@ -457,34 +482,18 @@ export const useAsrController = ({
             : null);
 
         const result = failureMessage && !transcript
-          ? createErrorTranscriptionResult(
+          ? createBaseTranscriptionResult(
               engine,
               {
                 samples,
                 language,
                 sampleRate: ASR_SAMPLE_RATE,
                 recordingDurationMs: recordingDuration,
-                speechSegmentCount: speechSegments.length,
-                averageSegmentProcessingTimeMs,
-                vadMetrics,
-              },
-              failureMessage,
-              segmentProcessingTimes.reduce((sum, time) => sum + time, 0),
-            )
-          : createBaseTranscriptionResult(
-              engine,
-              {
-                samples,
-                language,
-                sampleRate: ASR_SAMPLE_RATE,
-                recordingDurationMs: recordingDuration,
-                speechSegmentCount: speechSegments.length,
-                averageSegmentProcessingTimeMs,
-                vadMetrics,
               },
               {
                 transcript,
                 partialTranscripts: partialTranscriptsRef.current,
+                segmentTranscripts,
                 transcriptionTimeMs: segmentProcessingTimes.reduce(
                   (sum, time) => sum + time,
                   0,
@@ -494,10 +503,40 @@ export const useAsrController = ({
                   recordingStartedAtRef.current === null
                     ? null
                     : firstTextAtRef.current - recordingStartedAtRef.current,
-                streamingMode: "vad-segmented",
-                speechSegmentCount: speechSegments.length,
-                averageSegmentProcessingTimeMs,
-                vadMetrics,
+                runtimeMode: segmentErrorRef.current?.includes("model files are missing")
+                  ? "unsupported"
+                  : "vad-segmented-offline",
+                speechDurationMs: vadMetrics?.speechDurationMs,
+                silenceDurationMs: vadMetrics?.silenceDurationMs,
+                segmentCount: speechSegments.length,
+                error: failureMessage,
+              },
+            )
+          : createBaseTranscriptionResult(
+              engine,
+              {
+                samples,
+                language,
+                sampleRate: ASR_SAMPLE_RATE,
+                recordingDurationMs: recordingDuration,
+              },
+              {
+                transcript,
+                partialTranscripts: partialTranscriptsRef.current,
+                segmentTranscripts,
+                transcriptionTimeMs: segmentProcessingTimes.reduce(
+                  (sum, time) => sum + time,
+                  0,
+                ),
+                timeToFirstTextMs:
+                  firstTextAtRef.current === null ||
+                  recordingStartedAtRef.current === null
+                    ? null
+                    : firstTextAtRef.current - recordingStartedAtRef.current,
+                runtimeMode: "vad-segmented-offline",
+                speechDurationMs: vadMetrics?.speechDurationMs,
+                silenceDurationMs: vadMetrics?.silenceDurationMs,
+                segmentCount: speechSegments.length,
                 error: failureMessage,
               },
             );
@@ -540,11 +579,10 @@ export const useAsrController = ({
           language,
           sampleRate: ASR_SAMPLE_RATE,
           recordingDurationMs: recordingDuration,
-          vadMetrics: vadServiceRef.current?.getMetrics(),
-          speechSegmentCount: speechSegmentsRef.current.length,
         },
         message,
         0,
+        message.includes("model files are missing") ? "unsupported" : undefined,
       );
       await persistResult(result).catch(() => {
         setError(message);
@@ -589,6 +627,7 @@ export const useAsrController = ({
     vadStatus,
     partialTranscript,
     liveTranscript,
+    segmentTranscripts,
     timeToFirstTextMs,
     refreshEngines,
     startRecording,

@@ -56,7 +56,7 @@ export class QwenAsrEngine implements ASREngine {
   mode = "local-model" as const;
   languageSupport: ASRLanguage[] = ["en", "fi"];
   supportsStreaming = false;
-  streamingMode = "vad-segmented" as const;
+  runtimeMode = "vad-segmented-offline" as const;
 
   private stt: Awaited<ReturnType<typeof createSTT>> | null = null;
   private modelLocation: QwenModelLocation | null = null;
@@ -137,10 +137,10 @@ export class QwenAsrEngine implements ASREngine {
         transcript,
         transcriptionTimeMs,
         timeToFirstTextMs: transcript ? transcriptionTimeMs : null,
-        streamingMode:
-          input.speechSegmentCount && input.speechSegmentCount > 0
-            ? "vad-segmented"
-            : "offline-batch",
+        runtimeMode: input.segmentId
+          ? "vad-segmented-offline"
+          : "offline-full-recording",
+        segmentCount: input.segmentId ? 1 : undefined,
       });
     } catch (error) {
       return createErrorTranscriptionResult(
@@ -148,6 +148,7 @@ export class QwenAsrEngine implements ASREngine {
         input,
         error,
         nowMs() - startedAt,
+        isMissingQwenModelError(error) ? "unsupported" : this.runtimeMode,
       );
     }
   }
@@ -255,6 +256,10 @@ export class QwenAsrEngine implements ASREngine {
 
   private async isValidQwenModel(modelPath: ModelPathConfig) {
     try {
+      if (modelPath.type === "file" && !(await hasRequiredQwenFiles(modelPath.path))) {
+        return false;
+      }
+
       const detected = await detectSttModel(modelPath, {
         modelType: "qwen3_asr",
         preferInt8: true,
@@ -313,3 +318,25 @@ export class QwenAsrEngine implements ASREngine {
     }
   }
 }
+
+const isMissingQwenModelError = (error: unknown) =>
+  error instanceof Error && error.message === QWEN3_ASR_MISSING_MODEL_ERROR;
+
+const hasRequiredQwenFiles = async (basePath: string) => {
+  const normalizedPath = normalizePath(basePath);
+  const requiredFiles = [
+    "conv_frontend.onnx",
+    "encoder.int8.onnx",
+    "decoder.int8.onnx",
+  ];
+
+  for (const fileName of requiredFiles) {
+    const file = new File(`${normalizedPath}/${fileName}`);
+    if (!file.exists) {
+      return false;
+    }
+  }
+
+  const tokenizer = new Directory(`${normalizedPath}/tokenizer`);
+  return tokenizer.exists;
+};

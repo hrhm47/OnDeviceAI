@@ -49,7 +49,7 @@ export class ParakeetAsrEngine implements ASREngine {
   mode = "local-model" as const;
   languageSupport: ASRLanguage[] = ["en", "fi"];
   supportsStreaming = false;
-  streamingMode = "vad-segmented" as const;
+  runtimeMode = "vad-segmented-offline" as const;
 
   private stt: Awaited<ReturnType<typeof createSTT>> | null = null;
 
@@ -119,10 +119,10 @@ export class ParakeetAsrEngine implements ASREngine {
         transcript,
         transcriptionTimeMs,
         timeToFirstTextMs: transcript ? transcriptionTimeMs : null,
-        streamingMode:
-          input.speechSegmentCount && input.speechSegmentCount > 0
-            ? "vad-segmented"
-            : "offline-batch",
+        runtimeMode: input.segmentId
+          ? "vad-segmented-offline"
+          : "offline-full-recording",
+        segmentCount: input.segmentId ? 1 : undefined,
       });
     } catch (error) {
       return createErrorTranscriptionResult(
@@ -130,6 +130,7 @@ export class ParakeetAsrEngine implements ASREngine {
         input,
         error,
         nowMs() - startedAt,
+        isMissingParakeetModelError(error) ? "unsupported" : this.runtimeMode,
       );
     }
   }
@@ -276,3 +277,6 @@ export class ParakeetAsrEngine implements ASREngine {
     }
   }
 }
+
+const isMissingParakeetModelError = (error: unknown) =>
+  error instanceof Error && error.message === PARAKEET_MISSING_MODEL_ERROR;

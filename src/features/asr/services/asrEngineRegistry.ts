@@ -90,7 +90,7 @@ export const getAvailableASREngines = async (
         mode: engine.mode,
         languageSupport: [...engine.languageSupport],
         supportsStreaming: engine.supportsStreaming,
-        streamingMode: engine.streamingMode,
+        runtimeMode: status === "ready" ? engine.runtimeMode : "unsupported",
         status,
         detail: ENGINE_DETAILS[engine.engineType],
         readinessMessage:
