@@ -138,37 +138,7 @@ export const downloadParakeetAsrModel = async (options?: DownloadOptions) => {
 };
 
 export const downloadSharedSileroVadModel = async (options?: DownloadOptions) => {
-  emitProgress(options, {
-    phase: "refreshing",
-    percent: 0,
-    message: "Refreshing Sherpa-ONNX VAD model registry",
-  });
-
-  try {
-    await refreshModelsByCategory(ModelCategory.Vad, { forceRefresh: true });
-    const result = await ensureModelByCategory(ModelCategory.Vad, SILERO_VAD_MODEL_ID, {
-      onProgress: (progress) => {
-        emitProgress(options, {
-          phase: "downloading",
-          percent: progress.percent,
-          message: "Downloading shared Silero VAD model",
-        });
-      },
-    });
-
-    emitProgress(options, {
-      phase: "ready",
-      percent: 100,
-      message: "Shared Silero VAD model is ready",
-    });
-    return getSileroVadModelFilePath(result.localPath);
-  } catch (registryError) {
-    console.warn(
-      "Sherpa-ONNX VAD model manager download failed; falling back to direct URL",
-      registryError,
-    );
-    return downloadSharedSileroVadModelFromDirectUrl(options);
-  }
+  return downloadSharedSileroVadModelFromDirectUrl(options);
 };
 
 export const resolveSharedSileroVadModelPath = async () => {
@@ -277,6 +247,16 @@ const downloadSharedSileroVadModelFromDirectUrl = async (options?: DownloadOptio
 
   const vadModelDir = `${documentDirectory}sherpa-onnx/models/vad/${SILERO_VAD_MODEL_ID}/`;
   const modelUri = `${vadModelDir}${SILERO_VAD_FILE_NAME}`;
+  const modelPath = stripFileProtocol(modelUri);
+
+  if (await fileExists(modelPath)) {
+    emitProgress(options, {
+      phase: "ready",
+      percent: 100,
+      message: "Shared Silero VAD model is already available",
+    });
+    return modelPath;
+  }
 
   await FileSystem.makeDirectoryAsync(vadModelDir, { intermediates: true });
 
@@ -334,7 +314,7 @@ const downloadSharedSileroVadModelFromDirectUrl = async (options?: DownloadOptio
     message: "Shared Silero VAD model is ready",
   });
 
-  return stripFileProtocol(modelUri);
+  return modelPath;
 };
 
 const downloadParakeetAsrModelFromDirectUrl = async (options?: DownloadOptions) => {
