@@ -37,7 +37,7 @@ interface SpeechState {
   setActiveModel: (model: SupportedModel) => void;
   // whisperModel: whisperSupportedModels[];
   // setWhisperModel: (model: string[]) => void;
-  //  'base.en' | 'base'
+  //  'base'
   whisperActiveModel: whisperModels;
   setwhisperActiveModel: (model: whisperModels) => void;
 
@@ -70,9 +70,9 @@ export const useSpeechStore = create<SpeechState>((set, get) => ({
   activeModel: 'native',
   setActiveModel: (model) => set({ activeModel: model }),
 
-  // whisperModel:()=> ['tiny.en', 'tiny'],
+  // whisperModel:()=> ['base'],
   // setWhisperModel: (model) => set({ whisperModel: model }),
-  whisperActiveModel: 'tiny.en',
+  whisperActiveModel: 'base',
   setwhisperActiveModel: (model) => set({ whisperActiveModel: model }),
 
   isRecording: false,

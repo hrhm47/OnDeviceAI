@@ -21,19 +21,14 @@ const modelInfo = [
     description: "Device speech recognition service for quick baseline tests.",
   },
   {
-    name: "Whisper tiny / base",
+    name: "Whisper base",
     state: "Available",
-    description: "Bundled local models for offline English/Finnish testing.",
+    description: "Bundled multilingual model for offline full-recording transcription.",
   },
   {
     name: "Qwen3-ASR",
     state: "Candidate",
     description: "Sherpa-ONNX multilingual candidate with VAD-segmented fallback.",
-  },
-  {
-    name: "NVIDIA Parakeet TDT",
-    state: "Candidate",
-    description: "25-language NeMo transducer used as VAD-segmented offline ASR.",
   },
 ];
 

@@ -4,33 +4,42 @@ import { FieldColors as C } from "@/constants/theme";
 import type { whisperModels } from "@/constants/types/ModelTypes";
 import { useAsrController } from "@/src/features/asr/hooks/useAsrController";
 import {
-  downloadParakeetAsrModel,
   downloadQwen3AsrModel,
   downloadSharedSileroVadModel,
-  PARAKEET_DOWNLOAD_URL,
   QWEN3_ASR_DOWNLOAD_URL,
   SILERO_VAD_DOWNLOAD_URL,
 } from "@/src/features/asr/services/asrModelDownloadService";
 import type {
-  ASRLanguage,
   ASREngineType,
+  ASRLanguage,
   ASRRuntimeMode,
 } from "@/src/features/asr/types/asr.types";
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const fallbackModels = [
-  { id: "native", label: "Native ASR", status: "Ready", detail: "Device speech recognition service", runtimeMode: "true-streaming" },
-  { id: "whisper", label: "Whisper", status: "Ready", detail: "Bundled local whisper.rn model", runtimeMode: "offline-full-recording" },
-  { id: "qwen", label: "Qwen3-ASR", status: "Model files missing", detail: "Sherpa-ONNX adapter, requires model files", runtimeMode: "unsupported" },
-  { id: "parakeet", label: "NVIDIA Parakeet TDT 0.6B v3 INT8", status: "Model files missing", detail: "NeMo transducer, VAD-segmented offline", runtimeMode: "unsupported" },
+  {
+    id: "native",
+    label: "Native ASR",
+    status: "Ready",
+    detail: "Device speech recognition service",
+    runtimeMode: "true-streaming",
+  },
+  {
+    id: "whisper",
+    label: "Whisper base multilingual",
+    status: "Ready",
+    detail: "Bundled local whisper.rn model for full recordings",
+    runtimeMode: "offline-full-recording",
+  },
+  {
+    id: "qwen",
+    label: "Qwen3-ASR",
+    status: "Model files missing",
+    detail: "Sherpa-ONNX adapter, requires model files",
+    runtimeMode: "unsupported",
+  },
 ] as const;
 
 const languages = [
@@ -44,12 +53,16 @@ const noiseLevels = ["Quiet", "Moderate noise", "Hard noise"] as const;
 export default function BenchScreen() {
   const [selectedModel, setSelectedModel] = useState<ASREngineType>("native");
   const [selectedLanguage, setSelectedLanguage] = useState<ASRLanguage>("en");
-  const [whisperModel, setWhisperModel] = useState<whisperModels>("tiny.en");
+  const [whisperModel, setWhisperModel] = useState<whisperModels>("base");
   const [selectedMode, setSelectedMode] =
     useState<(typeof testModes)[number]>("Manual recording");
   const [noise, setNoise] = useState<(typeof noiseLevels)[number]>("Quiet");
-  const [modelSetupMessage, setModelSetupMessage] = useState<string | null>(null);
-  const [modelDownloadProgress, setModelDownloadProgress] = useState<number | null>(null);
+  const [modelSetupMessage, setModelSetupMessage] = useState<string | null>(
+    null,
+  );
+  const [modelDownloadProgress, setModelDownloadProgress] = useState<
+    number | null
+  >(null);
   const [isDownloadingModel, setDownloadingModel] = useState(false);
 
   const {
@@ -98,7 +111,8 @@ export default function BenchScreen() {
   const selectedEngineMetadata = useMemo(
     () =>
       engines.find(
-        (engine) => engine.engineType === selectedModel || engine.id === selectedModel,
+        (engine) =>
+          engine.engineType === selectedModel || engine.id === selectedModel,
       ),
     [engines, selectedModel],
   );
@@ -169,32 +183,9 @@ export default function BenchScreen() {
     } catch (downloadError) {
       setModelSetupMessage(
         `Qwen3-ASR download failed. Manual URL: ${QWEN3_ASR_DOWNLOAD_URL}. ${
-          downloadError instanceof Error ? downloadError.message : String(downloadError)
-        }`,
-      );
-    } finally {
-      setDownloadingModel(false);
-    }
-  };
-
-  const handleParakeetDownload = async () => {
-    setDownloadingModel(true);
-    setModelSetupMessage("Starting Parakeet model download.");
-    setModelDownloadProgress(0);
-
-    try {
-      const localPath = await downloadParakeetAsrModel({
-        onProgress: (progress) => {
-          setModelDownloadProgress(progress.percent);
-          setModelSetupMessage(progress.message);
-        },
-      });
-      setModelSetupMessage(`Parakeet model ready at ${localPath}`);
-      await refreshEngines();
-    } catch (downloadError) {
-      setModelSetupMessage(
-        `Parakeet download failed. Manual URL: ${PARAKEET_DOWNLOAD_URL}. ${
-          downloadError instanceof Error ? downloadError.message : String(downloadError)
+          downloadError instanceof Error
+            ? downloadError.message
+            : String(downloadError)
         }`,
       );
     } finally {
@@ -218,7 +209,9 @@ export default function BenchScreen() {
     } catch (downloadError) {
       setModelSetupMessage(
         `Silero VAD download failed. Manual URL: ${SILERO_VAD_DOWNLOAD_URL}. ${
-          downloadError instanceof Error ? downloadError.message : String(downloadError)
+          downloadError instanceof Error
+            ? downloadError.message
+            : String(downloadError)
         }`,
       );
     } finally {
@@ -307,7 +300,10 @@ export default function BenchScreen() {
         )}
 
         {selectedModel === "qwen" && selectedModelNeedsDownload && (
-          <Section title="Qwen3-ASR model setup" meta={selectedModelInfo.status}>
+          <Section
+            title="Qwen3-ASR model setup"
+            meta={selectedModelInfo.status}
+          >
             <Text style={styles.setupText}>
               Download the Sherpa-ONNX Qwen3-ASR 0.6B int8 package for English
               and Finnish baseline testing.
@@ -321,7 +317,9 @@ export default function BenchScreen() {
               ]}
             >
               <Text style={styles.setupButtonText}>
-                {isDownloadingModel ? "Downloading model" : "Download Qwen3-ASR"}
+                {isDownloadingModel
+                  ? "Downloading model"
+                  : "Download Qwen3-ASR"}
               </Text>
             </Pressable>
             <Text style={styles.setupLinkText}>{QWEN3_ASR_DOWNLOAD_URL}</Text>
@@ -336,47 +334,11 @@ export default function BenchScreen() {
           </Section>
         )}
 
-        {selectedModel === "parakeet" && (
-          <Section title="Parakeet model setup" meta={selectedModelInfo.status}>
-            <Text style={styles.setupText}>
-              Download the Sherpa-ONNX NVIDIA Parakeet TDT 0.6B v3 INT8 package.
-              It is loaded as a NeMo transducer and used with VAD-segmented
-              offline recognition for English and Finnish.
-            </Text>
-            {selectedModelNeedsDownload ? (
-              <>
-                <Pressable
-                  disabled={isDownloadingModel}
-                  onPress={handleParakeetDownload}
-                  style={[
-                    styles.setupButton,
-                    isDownloadingModel && styles.setupButtonDisabled,
-                  ]}
-                >
-                  <Text style={styles.setupButtonText}>
-                    {isDownloadingModel ? "Downloading model" : "Download Parakeet"}
-                  </Text>
-                </Pressable>
-                <Text style={styles.setupLinkText}>{PARAKEET_DOWNLOAD_URL}</Text>
-                {modelDownloadProgress !== null ? (
-                  <Text style={styles.setupProgressText}>
-                    {Math.round(modelDownloadProgress)}%
-                  </Text>
-                ) : null}
-                {modelSetupMessage ? (
-                  <Text style={styles.setupStatusText}>{modelSetupMessage}</Text>
-                ) : null}
-              </>
-            ) : null}
-          </Section>
-        )}
-
-        {(selectedModel === "qwen" || selectedModel === "parakeet") && (
+        {selectedModel === "qwen" && (
           <Section title="Shared VAD model" meta="Silero">
             <Text style={styles.setupText}>
-              Sherpa simulated streaming uses Silero VAD to close speech segments
-              before sending them to offline ASR. The same VAD model is shared by
-              Qwen3-ASR and Parakeet when native VAD support is available.
+              Sherpa simulated streaming uses Silero VAD to close speech
+              segments before sending them to offline ASR.
             </Text>
             <Pressable
               disabled={isDownloadingModel}
@@ -387,14 +349,19 @@ export default function BenchScreen() {
               ]}
             >
               <Text style={styles.setupButtonText}>
-                {isDownloadingModel ? "Downloading model" : "Download Silero VAD"}
+                {isDownloadingModel
+                  ? "Downloading model"
+                  : "Download Silero VAD"}
               </Text>
             </Pressable>
             <Text style={styles.setupLinkText}>{SILERO_VAD_DOWNLOAD_URL}</Text>
           </Section>
         )}
 
-        <Section title="Language" meta={selectedLanguage === "en" ? "English" : "Finnish"}>
+        <Section
+          title="Language"
+          meta={selectedLanguage === "en" ? "English" : "Finnish"}
+        >
           <View style={styles.segmentRow}>
             {languages.map((language) => (
               <Pressable
@@ -408,7 +375,8 @@ export default function BenchScreen() {
                 <Text
                   style={[
                     styles.segmentText,
-                    selectedLanguage === language.id && styles.segmentTextSelected,
+                    selectedLanguage === language.id &&
+                      styles.segmentTextSelected,
                   ]}
                 >
                   {language.label}
@@ -431,7 +399,9 @@ export default function BenchScreen() {
               >
                 <IconSymbol
                   size={21}
-                  name={mode === "Manual recording" ? "mic.fill" : "doc.text.fill"}
+                  name={
+                    mode === "Manual recording" ? "mic.fill" : "doc.text.fill"
+                  }
                   color={selectedMode === mode ? C.primary : C.textSubtle}
                 />
                 <Text
@@ -501,24 +471,30 @@ export default function BenchScreen() {
             <RuntimePill label="Mic/VAD" value={formatVadStatus(vadStatus)} />
             <RuntimePill
               label="First text"
-              value={timeToFirstTextMs === null ? "--" : formatMs(timeToFirstTextMs)}
+              value={
+                timeToFirstTextMs === null ? "--" : formatMs(timeToFirstTextMs)
+              }
             />
           </View>
           <Text style={styles.limitationText}>{limitationMessage}</Text>
 
-          <Text style={styles.timerText}>{formatDuration(recordingDurationMs)}</Text>
+          <Text style={styles.timerText}>
+            {formatDuration(recordingDurationMs)}
+          </Text>
 
           <View style={styles.waveform}>
-            {[18, 34, 24, 46, 30, 56, 22, 38, 28, 50, 20].map((height, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.waveBar,
-                  { height },
-                  isRecording && styles.waveBarActive,
-                ]}
-              />
-            ))}
+            {[18, 34, 24, 46, 30, 56, 22, 38, 28, 50, 20].map(
+              (height, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.waveBar,
+                    { height },
+                    isRecording && styles.waveBarActive,
+                  ]}
+                />
+              ),
+            )}
           </View>
 
           <Pressable
@@ -560,16 +536,23 @@ export default function BenchScreen() {
         <View style={styles.transcriptPreview}>
           <View style={styles.previewHeader}>
             <Text style={styles.previewTitle}>Transcript</Text>
-            {latestResult ? <Text style={styles.savedText}>Saved locally</Text> : null}
+            {latestResult ? (
+              <Text style={styles.savedText}>Saved locally</Text>
+            ) : null}
           </View>
           <Text style={styles.previewText}>{transcript}</Text>
-          {partialTranscript && !latestResult && selectedRuntimeMode === "true-streaming" ? (
+          {partialTranscript &&
+          !latestResult &&
+          selectedRuntimeMode === "true-streaming" ? (
             <Text style={styles.partialText}>Partial: {partialTranscript}</Text>
           ) : null}
           {segmentTranscripts.length > 0 && !latestResult ? (
             <View style={styles.segmentTranscriptList}>
               {segmentTranscripts.map((segment, index) => (
-                <Text key={segment.segmentId} style={styles.segmentTranscriptText}>
+                <Text
+                  key={segment.segmentId}
+                  style={styles.segmentTranscriptText}
+                >
                   {index + 1}. {segment.error || segment.transcript}
                 </Text>
               ))}
@@ -580,7 +563,10 @@ export default function BenchScreen() {
           {latestResult ? (
             <View style={styles.metricsGrid}>
               <Metric label="Model" value={latestResult.modelName} />
-              <Metric label="Language" value={latestResult.language.toUpperCase()} />
+              <Metric
+                label="Language"
+                value={latestResult.language.toUpperCase()}
+              />
               <Metric label="Mode" value={latestResult.runtimeMode} />
               <Metric
                 label="Duration"
@@ -690,7 +676,7 @@ function getModelLimitationMessage(
   }
 
   if (model === "whisper") {
-    return "Whisper returns text after each speech segment or after recording, not word-by-word live transcription.";
+    return "Whisper transcribes after the recording stops; no live partial words are shown.";
   }
 
   if (model === "qwen") {
@@ -700,8 +686,8 @@ function getModelLimitationMessage(
   }
 
   return runtimeMode === "unsupported"
-    ? "Model files missing or model not ready."
-    : "Parakeet uses VAD segments with offline NeMo transducer recognition; no live partial words are shown.";
+    ? "Model disabled or not ready."
+    : "This model is not active in the current benchmark selector.";
 }
 
 function formatVadStatus(status: string) {
@@ -718,7 +704,9 @@ function formatVadStatus(status: string) {
 
 function formatDuration(durationMs: number) {
   const totalSeconds = Math.floor(durationMs / 1000);
-  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, "0");
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, "0");
   const seconds = (totalSeconds % 60).toString().padStart(2, "0");
   return `${minutes}:${seconds}`;
 }

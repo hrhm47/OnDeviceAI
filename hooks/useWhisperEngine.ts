@@ -36,13 +36,11 @@ export const useWhisperEngine = () => {
   const initWhisperModel = async (modelName: string): Promise<void> => {
     const { initWhisper } = await import('whisper.rn');
     const assets: Record<string, any> = {
-      'tiny.en': require('../assets/whisper/ggml-tiny.en.bin'),
-      'tiny': require('../assets/whisper/ggml-tiny.bin'),
-      'base.en': require('../assets/whisper/ggml-base.en.bin'),
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       'base': require('../assets/whisper/ggml-base.bin'),
     };
     console.log("Initializing Whisper model:", modelName);
-    const modelAsset = assets[modelName];
+    const modelAsset = assets[modelName] ?? assets.base;
 
     const whisperContext = await initWhisper({
       filePath: modelAsset,

@@ -8,7 +8,7 @@ import {
   AudioInput,
   TranscriptionResult,
 } from "../types/asr.types";
-import { getWhisperLanguage } from "../utils/audioHelpers";
+import { getWhisperLanguage, stripFileProtocol } from "../utils/audioHelpers";
 import {
   createBaseTranscriptionResult,
   createErrorTranscriptionResult,
@@ -16,12 +16,6 @@ import {
 } from "../utils/metricsHelpers";
 
 const WHISPER_MODEL_ASSETS: Record<whisperModels, number> = {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  "tiny.en": require("../../../../assets/whisper/ggml-tiny.en.bin"),
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  tiny: require("../../../../assets/whisper/ggml-tiny.bin"),
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  "base.en": require("../../../../assets/whisper/ggml-base.en.bin"),
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   base: require("../../../../assets/whisper/ggml-base.bin"),
 };
@@ -37,9 +31,9 @@ export class WhisperAsrEngine implements ASREngine {
 
   private context: any = null;
 
-  constructor(private readonly modelName: whisperModels = "tiny.en") {
+  constructor(private readonly modelName: whisperModels = "base") {
     this.id = `whisper-${modelName}`;
-    this.name = `Whisper ${modelName}`;
+    this.name = "Whisper base multilingual";
   }
 
   async isAvailable(): Promise<boolean> {
@@ -69,25 +63,23 @@ export class WhisperAsrEngine implements ASREngine {
         throw new Error("Whisper requires a recorded audio URI.");
       }
 
-      if (this.modelName.endsWith(".en") && input.language !== "en") {
-        throw new Error(
-          `${this.name} is English-only. Select Whisper tiny/base for Finnish.`,
-        );
-      }
-
       await this.initialize();
 
-      const { promise } = this.context.transcribe(input.uri, {
-        language: getWhisperLanguage(input.language),
-      });
+      const { promise } = this.context.transcribe(
+        stripFileProtocol(input.uri),
+        {
+          language: getWhisperLanguage(input.language),
+        },
+      );
       const response = await promise;
-      const transcript = response?.result ?? "";
+      const transcript = response?.result?.trim() ?? "";
       const transcriptionTimeMs = nowMs() - startedAt;
 
       return createBaseTranscriptionResult(this, input, {
         transcript,
         transcriptionTimeMs,
         timeToFirstTextMs: transcript ? transcriptionTimeMs : null,
+        runtimeMode: "offline-full-recording",
       });
     } catch (error) {
       return createErrorTranscriptionResult(

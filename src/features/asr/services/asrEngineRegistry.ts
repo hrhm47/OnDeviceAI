@@ -48,7 +48,7 @@ export const getASREngineById = (
   }
 
   if (id === "whisper") {
-    return new WhisperAsrEngine(options?.whisperModel ?? "tiny.en");
+    return new WhisperAsrEngine(options?.whisperModel ?? "base");
   }
 
   if (id === "qwen") {
@@ -71,7 +71,6 @@ export const getAvailableASREngines = async (
     getASREngineById("native", options),
     getASREngineById("whisper", options),
     getASREngineById("qwen", options),
-    getASREngineById("parakeet", options),
   ];
 
   const metadata = await Promise.all(

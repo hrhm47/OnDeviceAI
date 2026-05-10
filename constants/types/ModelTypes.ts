@@ -1,8 +1,8 @@
 
 
-type whisperModels = 'tiny.en' | 'tiny' | 'base.en' | 'base';
-type whisperSupportedModels = {'id': string, title: 'tiny.en' | 'tiny' | 'base.en' | 'base'};
-type SupportedModel = 'native' | 'whisper' | 'qwen' | 'parakeet';
+type whisperModels = 'base';
+type whisperSupportedModels = {'id': string, title: 'base'};
+type SupportedModel = 'native' | 'whisper' | 'qwen';
 
 
 enum OnnxModelCategory {

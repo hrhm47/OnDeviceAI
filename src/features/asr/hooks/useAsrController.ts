@@ -12,7 +12,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { whisperModels } from "@/constants/types/ModelTypes";
 
-import { PARAKEET_MISSING_MODEL_ERROR } from "../engines/parakeetAsrEngine";
 import {
   getASREngineById,
   getAvailableASREngines,
@@ -59,10 +58,13 @@ export type UseAsrControllerOptions = {
 const wait = (durationMs: number) =>
   new Promise((resolve) => setTimeout(resolve, durationMs));
 
+const usesVadSegmentedOfflineEngine = (engineId: string) =>
+  engineId === "qwen";
+
 export const useAsrController = ({
   engineId,
   language,
-  whisperModel = "tiny.en",
+  whisperModel = "base",
 }: UseAsrControllerOptions) => {
   const recorder = useAudioRecorder(ASR_RECORDING_OPTIONS);
   const engineRef = useRef<ASREngine | null>(null);
@@ -366,7 +368,7 @@ export const useAsrController = ({
         return;
       }
 
-      if (engineId === "qwen" || engineId === "parakeet") {
+      if (usesVadSegmentedOfflineEngine(engineId)) {
         await engineRef.current?.dispose();
         const engine = getASREngineById(engineId, { whisperModel });
         engineRef.current = engine;
@@ -374,10 +376,8 @@ export const useAsrController = ({
         const isAvailable = await engine.isAvailable();
         if (!isAvailable) {
           const message =
-            engine.engineType === "parakeet"
-              ? PARAKEET_MISSING_MODEL_ERROR
-              : selectedEngine?.readinessMessage ??
-                `${engine.name} is not ready on this device.`;
+            selectedEngine?.readinessMessage ??
+            `${engine.name} is not ready on this device.`;
           await persistUnavailableEngineResult(engine, message);
           setVadStatus("unsupported");
           return;
@@ -450,7 +450,7 @@ export const useAsrController = ({
         return;
       }
 
-      if (engineId === "qwen" || engineId === "parakeet") {
+      if (usesVadSegmentedOfflineEngine(engineId)) {
         await cleanupPcmRecording().catch(() => undefined);
         const message =
           startError instanceof Error
@@ -524,7 +524,7 @@ export const useAsrController = ({
       let audioUri: string | undefined;
       let samples: Float32Array | undefined;
 
-      if (engineId === "qwen" || engineId === "parakeet") {
+      if (usesVadSegmentedOfflineEngine(engineId)) {
         await pcmStreamRef.current?.stop();
         pcmUnsubscribeRef.current?.();
         pcmErrorUnsubscribeRef.current?.();
@@ -545,12 +545,9 @@ export const useAsrController = ({
 
         const segmentTranscripts = [...segmentTranscriptsRef.current];
         const segmentProcessingTimes = [...segmentProcessingTimesRef.current];
-        samples =
-          engine.engineType === "parakeet"
-            ? undefined
-            : speechSegments.length
-              ? mergeChunks(speechSegments.map((segment) => segment.samples))
-              : undefined;
+        samples = speechSegments.length
+          ? mergeChunks(speechSegments.map((segment) => segment.samples))
+          : undefined;
         const transcript = segmentTranscripts
           .map((segment) => segment.transcript)
           .filter(Boolean)
@@ -672,7 +669,7 @@ export const useAsrController = ({
       return null;
     } finally {
       recordingStartedAtRef.current = null;
-      if (engineId === "qwen" || engineId === "parakeet") {
+      if (usesVadSegmentedOfflineEngine(engineId)) {
         await cleanupPcmRecording().catch(() => undefined);
       }
       await setAudioModeAsync({ allowsRecording: false }).catch(() => undefined);

@@ -35,13 +35,11 @@ export const useWhisperEngine = () => {
 
   const initWhisperModel = async (modelName: string): Promise<void> => {
     const assets: Record<string, any> = {
-      'tiny.en': require('../../assets/whisper/ggml-tiny.en.bin'),
-      'tiny': require('../../assets/whisper/ggml-tiny.bin'),
-      'base.en': require('../../assets/whisper/ggml-base.en.bin'),
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       'base': require('../../assets/whisper/ggml-base.bin'),
     };
 
-    const modelAsset = assets[modelName];
+    const modelAsset = assets[modelName] ?? assets.base;
 
     const whisperContext = await initWhisper({
       filePath: modelAsset,
@@ -54,14 +52,14 @@ export const useWhisperEngine = () => {
     onResult: (result: ASRResult) => void,
     onError: (err: Error) => void,
     audioUri?: string,
-    modelName: string = 'tiny.en',
+    modelName: string = 'base',
 
   ): Promise<void> => {
 
     // const whisperContext = await initWhisperModel(modelName);
     if (!whisperInitialized) throw new Error("Whisper not initialized");
 
-    const language = modelName.includes('en') ? 'en' : 'auto';
+    const language = 'auto';
 
     if (audioUri) {
       try {
