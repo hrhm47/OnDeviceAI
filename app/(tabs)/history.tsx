@@ -3,8 +3,8 @@ import { FieldColors as C } from "@/constants/theme";
 import { getAsrResults } from "@/src/features/asr/services/asrStorage";
 import type { TranscriptionResult } from "@/src/features/asr/types/asr.types";
 import { HistoryItem, useSpeechStore } from "@/src/store/useSpeechStore";
-import { router } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -54,11 +54,23 @@ export default function HistoryScreen() {
   const [filter, setFilter] = useState("All");
   const [storedAsrResults, setStoredAsrResults] = useState<TranscriptionResult[]>([]);
 
-  useEffect(() => {
-    getAsrResults()
-      .then(setStoredAsrResults)
-      .catch((error) => console.warn("Failed to load ASR result storage", error));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      getAsrResults()
+        .then((results) => {
+          if (isActive) {
+            setStoredAsrResults(results);
+          }
+        })
+        .catch((error) => console.warn("Failed to load ASR result storage", error));
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
 
   const latestAsrResult = storedAsrResults[0];
   const latest = history[0];

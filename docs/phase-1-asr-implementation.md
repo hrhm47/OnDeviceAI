@@ -51,7 +51,7 @@ VAD does not make an offline ASR model true streaming. A model is only true stre
 | Native ASR | Working/platform-limited | `true-streaming` when interim callbacks produce partials | Uses `expo-speech-recognition` as the live baseline. |
 | Whisper | Working | `offline-full-recording` | Uses bundled `whisper.rn`; `.en` models are English-only. |
 | Qwen3-ASR | Ready when model files exist | `vad-segmented-offline`; `unsupported` when missing | Uses `react-native-sherpa-onnx` offline STT over VAD speech segments. |
-| Parakeet TDT | Optional scaffold | `vad-segmented-offline`; `unsupported` when missing | Uses Sherpa-ONNX if local model files are present. |
+| Parakeet TDT | Optional scaffold | `unsupported` | Disabled in Phase 1 until the Sherpa-ONNX Parakeet path is stable. |
 
 ## Vosk removal
 
@@ -114,6 +114,8 @@ Required files:
 
 The Qwen adapter checks model paths safely and returns a saved `unsupported` result when files are missing. In this implementation Qwen is not marked true streaming, because the selected Qwen path uses Sherpa-ONNX offline STT rather than an online recognizer with partial callbacks.
 
+Qwen PCM recording feeds only the VAD layer while the user is recording. Completed speech segments are transcribed sequentially after recording stops. This avoids running heavy offline Sherpa transcription at the same time as native microphone capture, which was unstable on-device during Phase 1 testing.
+
 ## Parakeet notes
 
 Optional model id:
@@ -128,7 +130,7 @@ Runtime document-directory fallback:
 
 `models/parakeet/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8`
 
-Parakeet is optional for Phase 1. Missing model files are reported as `unsupported` and saved as clean failed runs.
+Parakeet is optional for Phase 1. It is currently disabled and reported as `unsupported` because the Sherpa-ONNX Parakeet path was unstable during recording/stop testing. Attempts are saved as clean failed runs instead of entering the crash-prone runtime.
 
 ## VAD metrics
 
@@ -195,6 +197,6 @@ Results are stored locally under the app document directory in `asr-results/resu
 - Native ASR partial behavior depends on the OS speech service and locale support.
 - Whisper is not true streaming in this prototype.
 - Qwen3-ASR currently runs through Sherpa-ONNX offline recognition over VAD segments.
-- Parakeet is optional and depends on local model files.
+- Parakeet is optional and disabled until its Sherpa-ONNX path is stable.
 - WER/CER evaluation comes in Phase 2.
 - Context extraction and form autofill come later.

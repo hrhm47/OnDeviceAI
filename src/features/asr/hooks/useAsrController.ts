@@ -69,13 +69,11 @@ export const useAsrController = ({
   const pcmStreamRef = useRef<PcmLiveStreamHandle | null>(null);
   const pcmUnsubscribeRef = useRef<(() => void) | null>(null);
   const pcmErrorUnsubscribeRef = useRef<(() => void) | null>(null);
-  const pcmChunksRef = useRef<Float32Array[]>([]);
   const vadServiceRef = useRef<VADService | null>(null);
   const speechSegmentsRef = useRef<VADSpeechSegment[]>([]);
   const segmentTranscriptsRef = useRef<SegmentTranscript[]>([]);
   const partialTranscriptsRef = useRef<string[]>([]);
   const segmentProcessingTimesRef = useRef<number[]>([]);
-  const segmentPromisesRef = useRef<Promise<void>[]>([]);
   const segmentErrorRef = useRef<string | null>(null);
   const firstTextAtRef = useRef<number | null>(null);
 
@@ -121,12 +119,10 @@ export const useAsrController = ({
   }, []);
 
   const resetRuntimeState = useCallback(() => {
-    pcmChunksRef.current = [];
     speechSegmentsRef.current = [];
     segmentTranscriptsRef.current = [];
     partialTranscriptsRef.current = [];
     segmentProcessingTimesRef.current = [];
-    segmentPromisesRef.current = [];
     segmentErrorRef.current = null;
     firstTextAtRef.current = null;
     setPartialTranscript("");
@@ -239,6 +235,25 @@ export const useAsrController = ({
     [engineId, language, markFirstText, recordingDurationMs, whisperModel],
   );
 
+  const persistUnavailableEngineResult = useCallback(
+    async (engine: ASREngine, message: string, recordingDurationMs = 0) => {
+      const result = createErrorTranscriptionResult(
+        engine,
+        {
+          language,
+          sampleRate: ASR_SAMPLE_RATE,
+          recordingDurationMs,
+        },
+        message,
+        0,
+        "unsupported",
+      );
+
+      return persistResult(result);
+    },
+    [language, persistResult],
+  );
+
   useEffect(() => {
     refreshEngines().catch(() => undefined);
   }, [refreshEngines]);
@@ -322,15 +337,24 @@ export const useAsrController = ({
 
       if (engineId === "qwen" || engineId === "parakeet") {
         await engineRef.current?.dispose();
-        engineRef.current = getASREngineById(engineId, { whisperModel });
+        const engine = getASREngineById(engineId, { whisperModel });
+        engineRef.current = engine;
+
+        const isAvailable = await engine.isAvailable();
+        if (!isAvailable) {
+          const message =
+            selectedEngine?.readinessMessage ??
+            `${engine.name} is not ready on this device.`;
+          await persistUnavailableEngineResult(engine, message);
+          setVadStatus("unsupported");
+          return;
+        }
 
         const vadService = new VADService(
           {
             onSpeechStart: () => setVadStatus("speech-detected"),
             onSpeechEnd: (segment) => {
               speechSegmentsRef.current.push(segment);
-              const promise = processVadSegment(segment);
-              segmentPromisesRef.current.push(promise);
             },
             onSilence: () => {
               setVadStatus((current) =>
@@ -355,7 +379,6 @@ export const useAsrController = ({
 
         pcmStreamRef.current = pcmStream;
         pcmUnsubscribeRef.current = pcmStream.onData((samples) => {
-          pcmChunksRef.current.push(samples);
           vadService.acceptAudioChunk(samples, ASR_SAMPLE_RATE);
         });
         pcmErrorUnsubscribeRef.current = pcmStream.onError((streamError) => {
@@ -388,8 +411,17 @@ export const useAsrController = ({
 
       if (engineId === "qwen" || engineId === "parakeet") {
         await cleanupPcmRecording().catch(() => undefined);
-        setError(`${selectedEngine?.name ?? engineId} PCM recording could not be started.`);
-        setStatus("error");
+        const message =
+          startError instanceof Error
+            ? startError.message
+            : `${selectedEngine?.name ?? engineId} PCM recording could not be started.`;
+        const engine =
+          engineRef.current ?? getASREngineById(engineId, { whisperModel });
+        await persistUnavailableEngineResult(engine, message).catch(() => {
+          setError(message);
+          setStatus("error");
+        });
+        setVadStatus("error");
         return;
       }
 
@@ -411,10 +443,11 @@ export const useAsrController = ({
     ensureRecorderPermission,
     language,
     markFirstText,
-    processVadSegment,
+    persistUnavailableEngineResult,
     recorder,
     resetRuntimeState,
     selectedEngine?.name,
+    selectedEngine?.readinessMessage,
     whisperModel,
   ]);
 
@@ -457,19 +490,21 @@ export const useAsrController = ({
         pcmErrorUnsubscribeRef.current = null;
         pcmStreamRef.current = null;
         vadServiceRef.current?.stopListening();
-        await Promise.all(segmentPromisesRef.current);
         const speechSegments = [...speechSegmentsRef.current];
-        const segmentTranscripts = [...segmentTranscriptsRef.current];
-        const segmentProcessingTimes = [...segmentProcessingTimesRef.current];
         const engine =
           engineRef.current ?? getASREngineById(engineId, { whisperModel });
         engineRef.current = engine;
         const vadMetrics = vadServiceRef.current?.getMetrics();
+
+        for (const segment of speechSegments) {
+          await processVadSegment(segment);
+        }
+
+        const segmentTranscripts = [...segmentTranscriptsRef.current];
+        const segmentProcessingTimes = [...segmentProcessingTimesRef.current];
         samples = speechSegments.length
           ? mergeChunks(speechSegments.map((segment) => segment.samples))
           : undefined;
-        pcmChunksRef.current = [];
-
         const transcript = segmentTranscripts
           .map((segment) => segment.transcript)
           .filter(Boolean)
@@ -601,6 +636,7 @@ export const useAsrController = ({
     engineId,
     language,
     persistResult,
+    processVadSegment,
     recorder,
     recordingDurationMs,
     status,

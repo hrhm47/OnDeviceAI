@@ -283,12 +283,12 @@ export default function BenchScreen() {
           </Section>
         )}
 
-        {selectedModel === "parakeet" && selectedModelNeedsDownload && (
+        {selectedModel === "parakeet" && (
           <Section title="Parakeet model setup" meta={selectedModelInfo.status}>
             <Text style={styles.setupText}>
-              Parakeet is optional in Phase 1. The app will use it only when the
-              Sherpa-ONNX model files are already available; missing files are
-              saved as a clean failed run.
+              Parakeet is optional in Phase 1 and is disabled until the
+              Sherpa-ONNX Parakeet path is stable. Attempts are saved as clean
+              unsupported runs instead of starting the crash-prone runtime.
             </Text>
           </Section>
         )}
