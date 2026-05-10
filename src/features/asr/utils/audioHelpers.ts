@@ -1,0 +1,49 @@
+import { AudioQuality, IOSOutputFormat, RecordingPresets } from "expo-audio";
+import type { AudioMode, RecordingOptions } from "expo-audio";
+
+import { ASRLanguage } from "../types/asr.types";
+
+export const ASR_SAMPLE_RATE = 16000;
+
+export const ASR_RECORDING_OPTIONS: RecordingOptions = {
+  ...RecordingPresets.HIGH_QUALITY,
+  extension: ".wav",
+  sampleRate: ASR_SAMPLE_RATE,
+  numberOfChannels: 1,
+  bitRate: ASR_SAMPLE_RATE * 16,
+  isMeteringEnabled: true,
+  android: {
+    ...RecordingPresets.HIGH_QUALITY.android,
+    extension: ".m4a",
+    sampleRate: ASR_SAMPLE_RATE,
+  },
+  ios: {
+    ...RecordingPresets.HIGH_QUALITY.ios,
+    extension: ".wav",
+    sampleRate: ASR_SAMPLE_RATE,
+    outputFormat: IOSOutputFormat.LINEARPCM,
+    audioQuality: AudioQuality.HIGH,
+    linearPCMBitDepth: 16,
+    linearPCMIsBigEndian: false,
+    linearPCMIsFloat: false,
+  },
+};
+
+export const ASR_AUDIO_MODE: Partial<AudioMode> = {
+  allowsRecording: true,
+  playsInSilentMode: true,
+};
+
+export const getNativeLocaleForLanguage = (language: ASRLanguage) => {
+  switch (language) {
+    case "fi":
+      return "fi-FI";
+    case "en":
+    default:
+      return "en-US";
+  }
+};
+
+export const getWhisperLanguage = (language: ASRLanguage) => language;
+
+export const stripFileProtocol = (uri: string) => uri.replace(/^file:\/\//, "");
