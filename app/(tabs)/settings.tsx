@@ -31,9 +31,9 @@ const modelInfo = [
     description: "Sherpa-ONNX multilingual candidate with VAD-segmented fallback.",
   },
   {
-    name: "Parakeet TDT",
-    state: "Optional",
-    description: "Experimental Sherpa-ONNX candidate if model files are available.",
+    name: "NVIDIA Parakeet TDT",
+    state: "Candidate",
+    description: "25-language NeMo transducer used as VAD-segmented offline ASR.",
   },
 ];
 

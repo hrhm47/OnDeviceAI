@@ -31,7 +31,7 @@ VAD does not make an offline ASR model true streaming. A model is only true stre
 ## Runtime modes
 
 - `true-streaming`: the ASR engine receives microphone chunks continuously and returns partial text while the user is still speaking.
-- `vad-segmented-offline`: VAD detects speech start/end, buffers short speech segments, and sends each segment to an offline ASR model after a pause.
+- `vad-segmented-offline`: VAD detects speech start/end, buffers short speech segments, and sends each segment to an offline ASR model after a pause. This matches Sherpa-ONNX simulated streaming for non-streaming ASR models.
 - `offline-full-recording`: the ASR engine waits until the full recording is stopped, then transcribes the whole audio.
 - `unsupported`: the model is missing, not configured, unavailable, or unsupported on the current platform.
 
@@ -41,8 +41,8 @@ VAD does not make an offline ASR model true streaming. A model is only true stre
 |---|---|---|---|
 | Native ASR | EN/FI | true-streaming if partial callbacks work | real-time baseline |
 | Whisper | EN/FI | vad-segmented-offline or offline-full-recording | multilingual offline baseline |
-| Qwen3-ASR | EN/FI | true-streaming if Sherpa binding supports partials; otherwise VAD/offline | advanced on-device candidate |
-| Parakeet | EN/FI | optional, detect actual mode | optional multilingual candidate |
+| Qwen3-ASR | EN/FI | vad-segmented-offline | advanced on-device candidate |
+| Parakeet | EN/FI | vad-segmented-offline | NVIDIA Parakeet NeMo transducer candidate |
 
 ## Implemented engines
 
@@ -51,7 +51,7 @@ VAD does not make an offline ASR model true streaming. A model is only true stre
 | Native ASR | Working/platform-limited | `true-streaming` when interim callbacks produce partials | Uses `expo-speech-recognition` as the live baseline. |
 | Whisper | Working | `offline-full-recording` | Uses bundled `whisper.rn`; `.en` models are English-only. |
 | Qwen3-ASR | Ready when model files exist | `vad-segmented-offline`; `unsupported` when missing | Uses `react-native-sherpa-onnx` offline STT over VAD speech segments. |
-| Parakeet TDT | Optional scaffold | `unsupported` | Disabled in Phase 1 until the Sherpa-ONNX Parakeet path is stable. |
+| Parakeet TDT | Ready when model files exist | `vad-segmented-offline`; `unsupported` when missing | Uses the Sherpa-ONNX NVIDIA Parakeet TDT 0.6B v3 INT8 NeMo transducer model over VAD speech segments. |
 
 ## Vosk removal
 
@@ -61,7 +61,7 @@ Vosk is not part of the active model selector, active ASR engine registry, or ac
 
 ## VAD implementation
 
-The installed `react-native-sherpa-onnx/vad` module is currently a placeholder, so Phase 1 uses a lightweight energy-based VAD fallback.
+The installed `react-native-sherpa-onnx/vad` module is currently a placeholder, so Phase 1 uses a lightweight energy-based VAD fallback at runtime. The app can download the shared Sherpa-ONNX `silero_vad.onnx` file for parity with the official simulated-streaming examples, but using it from JavaScript requires a React Native VAD bridge or a package version that exposes native VAD.
 
 The VAD service lives at `src/features/asr/services/vadService.ts` and supports:
 
@@ -86,6 +86,13 @@ Default config:
 - `maxSegmentDurationMs`: 12000
 
 Silero VAD can be added later through Sherpa-ONNX native support if needed. The expected local path can be `models/vad/silero_vad.onnx`.
+
+Shared VAD model:
+
+- model id: `silero_vad`
+- file: `silero_vad.onnx`
+- download URL: `https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx`
+- used by Sherpa's simulated-streaming examples for both Parakeet and other non-streaming ASR models
 
 ## Qwen3-ASR notes
 
@@ -114,13 +121,25 @@ Required files:
 
 The Qwen adapter checks model paths safely and returns a saved `unsupported` result when files are missing. In this implementation Qwen is not marked true streaming, because the selected Qwen path uses Sherpa-ONNX offline STT rather than an online recognizer with partial callbacks.
 
-Qwen PCM recording feeds only the VAD layer while the user is recording. Completed speech segments are transcribed sequentially after recording stops. This avoids running heavy offline Sherpa transcription at the same time as native microphone capture, which was unstable on-device during Phase 1 testing.
+Qwen PCM recording feeds the VAD layer while the user is recording. Completed speech segments are queued and transcribed sequentially as soon as VAD closes each segment, then appended to the transcript. This is simulated streaming: text appears after utterance boundaries, not as partial words during the utterance.
 
 ## Parakeet notes
 
-Optional model id:
+Engine id:
+
+`parakeet-tdt-0.6b-v3-int8`
+
+Sherpa-ONNX model id:
 
 `sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8`
+
+Direct model URL used by the in-app download action:
+
+`https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2`
+
+Archive type:
+
+`tar.bz2`
 
 Expected project asset directory:
 
@@ -130,7 +149,18 @@ Runtime document-directory fallback:
 
 `models/parakeet/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8`
 
-Parakeet is optional for Phase 1. It is currently disabled and reported as `unsupported` because the Sherpa-ONNX Parakeet path was unstable during recording/stop testing. Attempts are saved as clean failed runs instead of entering the crash-prone runtime.
+Required files after extraction:
+
+- `encoder.int8.onnx`
+- `decoder.int8.onnx`
+- `joiner.int8.onnx`
+- `tokens.txt`
+
+The model is the 25-European-language Parakeet TDT package. The thesis app exposes only English and Finnish, matching the current experiment language scope.
+
+The Sherpa-ONNX model type is `nemo_transducer`, with `preferInt8: true`, two CPU threads, and CPU provider. The adapter calls `detectSttModel()` with `modelType: "nemo_transducer"` before creating the recognizer.
+
+Parakeet is not marked true online streaming. Sherpa's simulated-streaming APKs use VAD to send completed speech segments into non-streaming/offline ASR, so this implementation uses `runtimeMode: "vad-segmented-offline"` and does not show live partial words. Missing files return a saved `unsupported` result with `Parakeet model files are missing or not configured.` rather than crashing the app.
 
 ## VAD metrics
 
@@ -179,10 +209,14 @@ Results are stored locally under the app document directory in `asr-results/resu
 - [ ] Qwen model file check works
 - [ ] Qwen fails safely if model files missing
 - [ ] Qwen runtime mode is detected honestly
-- [ ] Parakeet optional and does not block Phase 1
+- [ ] Parakeet selectable when registered
+- [ ] Parakeet model file check works
+- [ ] Parakeet fails safely if model files are missing
+- [ ] Parakeet is shown as VAD-segmented offline, not true streaming
 - [ ] VAD service exists
 - [ ] VAD detects speech start
 - [ ] VAD detects speech end
+- [ ] VAD segments are queued for ASR while recording
 - [ ] VAD status appears in UI
 - [ ] VAD segment count is logged
 - [ ] timeToFirstTextMs is logged
@@ -197,6 +231,6 @@ Results are stored locally under the app document directory in `asr-results/resu
 - Native ASR partial behavior depends on the OS speech service and locale support.
 - Whisper is not true streaming in this prototype.
 - Qwen3-ASR currently runs through Sherpa-ONNX offline recognition over VAD segments.
-- Parakeet is optional and disabled until its Sherpa-ONNX path is stable.
+- Parakeet currently runs through Sherpa-ONNX offline NeMo transducer recognition over VAD segments.
 - WER/CER evaluation comes in Phase 2.
 - Context extraction and form autofill come later.

@@ -19,7 +19,7 @@ const ENGINE_DETAILS: Record<ASREngineType, string> = {
   native: "Device speech recognition service",
   whisper: "Bundled local whisper.rn model",
   qwen: "Advanced multilingual Sherpa-ONNX candidate; requires Qwen3-ASR model files",
-  parakeet: "Experimental Sherpa-ONNX Parakeet TDT candidate; optional in Phase 1",
+  parakeet: "NVIDIA Parakeet TDT NeMo transducer; requires Parakeet model files",
 };
 
 const getUnavailableStatus = (
@@ -55,7 +55,7 @@ export const getASREngineById = (
     return new QwenAsrEngine();
   }
 
-  if (id === "parakeet") {
+  if (id === "parakeet" || id === "parakeet-tdt-0.6b-v3-int8") {
     return new ParakeetAsrEngine();
   }
 

@@ -4,8 +4,12 @@ import { FieldColors as C } from "@/constants/theme";
 import type { whisperModels } from "@/constants/types/ModelTypes";
 import { useAsrController } from "@/src/features/asr/hooks/useAsrController";
 import {
+  downloadParakeetAsrModel,
   downloadQwen3AsrModel,
+  downloadSharedSileroVadModel,
+  PARAKEET_DOWNLOAD_URL,
   QWEN3_ASR_DOWNLOAD_URL,
+  SILERO_VAD_DOWNLOAD_URL,
 } from "@/src/features/asr/services/asrModelDownloadService";
 import type {
   ASRLanguage,
@@ -26,7 +30,7 @@ const fallbackModels = [
   { id: "native", label: "Native ASR", status: "Ready", detail: "Device speech recognition service", runtimeMode: "true-streaming" },
   { id: "whisper", label: "Whisper", status: "Ready", detail: "Bundled local whisper.rn model", runtimeMode: "offline-full-recording" },
   { id: "qwen", label: "Qwen3-ASR", status: "Model files missing", detail: "Sherpa-ONNX adapter, requires model files", runtimeMode: "unsupported" },
-  { id: "parakeet", label: "Parakeet TDT", status: "Model files missing", detail: "Optional experimental Sherpa-ONNX candidate", runtimeMode: "unsupported" },
+  { id: "parakeet", label: "NVIDIA Parakeet TDT 0.6B v3 INT8", status: "Model files missing", detail: "NeMo transducer, VAD-segmented offline", runtimeMode: "unsupported" },
 ] as const;
 
 const languages = [
@@ -173,6 +177,55 @@ export default function BenchScreen() {
     }
   };
 
+  const handleParakeetDownload = async () => {
+    setDownloadingModel(true);
+    setModelSetupMessage("Starting Parakeet model download.");
+    setModelDownloadProgress(0);
+
+    try {
+      const localPath = await downloadParakeetAsrModel({
+        onProgress: (progress) => {
+          setModelDownloadProgress(progress.percent);
+          setModelSetupMessage(progress.message);
+        },
+      });
+      setModelSetupMessage(`Parakeet model ready at ${localPath}`);
+      await refreshEngines();
+    } catch (downloadError) {
+      setModelSetupMessage(
+        `Parakeet download failed. Manual URL: ${PARAKEET_DOWNLOAD_URL}. ${
+          downloadError instanceof Error ? downloadError.message : String(downloadError)
+        }`,
+      );
+    } finally {
+      setDownloadingModel(false);
+    }
+  };
+
+  const handleSharedVadDownload = async () => {
+    setDownloadingModel(true);
+    setModelSetupMessage("Starting shared Silero VAD download.");
+    setModelDownloadProgress(0);
+
+    try {
+      const localPath = await downloadSharedSileroVadModel({
+        onProgress: (progress) => {
+          setModelDownloadProgress(progress.percent);
+          setModelSetupMessage(progress.message);
+        },
+      });
+      setModelSetupMessage(`Shared Silero VAD model ready at ${localPath}`);
+    } catch (downloadError) {
+      setModelSetupMessage(
+        `Silero VAD download failed. Manual URL: ${SILERO_VAD_DOWNLOAD_URL}. ${
+          downloadError instanceof Error ? downloadError.message : String(downloadError)
+        }`,
+      );
+    } finally {
+      setDownloadingModel(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -286,10 +339,58 @@ export default function BenchScreen() {
         {selectedModel === "parakeet" && (
           <Section title="Parakeet model setup" meta={selectedModelInfo.status}>
             <Text style={styles.setupText}>
-              Parakeet is optional in Phase 1 and is disabled until the
-              Sherpa-ONNX Parakeet path is stable. Attempts are saved as clean
-              unsupported runs instead of starting the crash-prone runtime.
+              Download the Sherpa-ONNX NVIDIA Parakeet TDT 0.6B v3 INT8 package.
+              It is loaded as a NeMo transducer and used with VAD-segmented
+              offline recognition for English and Finnish.
             </Text>
+            {selectedModelNeedsDownload ? (
+              <>
+                <Pressable
+                  disabled={isDownloadingModel}
+                  onPress={handleParakeetDownload}
+                  style={[
+                    styles.setupButton,
+                    isDownloadingModel && styles.setupButtonDisabled,
+                  ]}
+                >
+                  <Text style={styles.setupButtonText}>
+                    {isDownloadingModel ? "Downloading model" : "Download Parakeet"}
+                  </Text>
+                </Pressable>
+                <Text style={styles.setupLinkText}>{PARAKEET_DOWNLOAD_URL}</Text>
+                {modelDownloadProgress !== null ? (
+                  <Text style={styles.setupProgressText}>
+                    {Math.round(modelDownloadProgress)}%
+                  </Text>
+                ) : null}
+                {modelSetupMessage ? (
+                  <Text style={styles.setupStatusText}>{modelSetupMessage}</Text>
+                ) : null}
+              </>
+            ) : null}
+          </Section>
+        )}
+
+        {(selectedModel === "qwen" || selectedModel === "parakeet") && (
+          <Section title="Shared VAD model" meta="Silero">
+            <Text style={styles.setupText}>
+              Sherpa simulated streaming uses Silero VAD to close speech segments
+              before sending them to offline ASR. The same VAD model is shared by
+              Qwen3-ASR and Parakeet when native VAD support is available.
+            </Text>
+            <Pressable
+              disabled={isDownloadingModel}
+              onPress={handleSharedVadDownload}
+              style={[
+                styles.setupButton,
+                isDownloadingModel && styles.setupButtonDisabled,
+              ]}
+            >
+              <Text style={styles.setupButtonText}>
+                {isDownloadingModel ? "Downloading model" : "Download Silero VAD"}
+              </Text>
+            </Pressable>
+            <Text style={styles.setupLinkText}>{SILERO_VAD_DOWNLOAD_URL}</Text>
           </Section>
         )}
 
@@ -462,7 +563,7 @@ export default function BenchScreen() {
             {latestResult ? <Text style={styles.savedText}>Saved locally</Text> : null}
           </View>
           <Text style={styles.previewText}>{transcript}</Text>
-          {partialTranscript && !latestResult ? (
+          {partialTranscript && !latestResult && selectedRuntimeMode === "true-streaming" ? (
             <Text style={styles.partialText}>Partial: {partialTranscript}</Text>
           ) : null}
           {segmentTranscripts.length > 0 && !latestResult ? (
@@ -595,12 +696,12 @@ function getModelLimitationMessage(
   if (model === "qwen") {
     return runtimeMode === "unsupported"
       ? "Model files missing or model not ready."
-      : "Qwen runtime mode will be detected from available Sherpa-ONNX support.";
+      : "Qwen uses VAD segments with offline Sherpa-ONNX recognition.";
   }
 
   return runtimeMode === "unsupported"
     ? "Model files missing or model not ready."
-    : "Experimental model. Streaming support depends on runtime.";
+    : "Parakeet uses VAD segments with offline NeMo transducer recognition; no live partial words are shown.";
 }
 
 function formatVadStatus(status: string) {

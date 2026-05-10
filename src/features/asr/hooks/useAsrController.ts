@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { whisperModels } from "@/constants/types/ModelTypes";
 
+import { PARAKEET_MISSING_MODEL_ERROR } from "../engines/parakeetAsrEngine";
 import {
   getASREngineById,
   getAvailableASREngines,
@@ -76,6 +77,9 @@ export const useAsrController = ({
   const segmentProcessingTimesRef = useRef<number[]>([]);
   const segmentErrorRef = useRef<string | null>(null);
   const firstTextAtRef = useRef<number | null>(null);
+  const queuedSegmentIdsRef = useRef<Set<string>>(new Set());
+  const processedSegmentIdsRef = useRef<Set<string>>(new Set());
+  const vadProcessingQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const [engines, setEngines] = useState<ASREngineMetadata[]>([]);
   const [status, setStatus] = useState<AsrControllerStatus>("idle");
@@ -125,6 +129,9 @@ export const useAsrController = ({
     segmentProcessingTimesRef.current = [];
     segmentErrorRef.current = null;
     firstTextAtRef.current = null;
+    queuedSegmentIdsRef.current = new Set();
+    processedSegmentIdsRef.current = new Set();
+    vadProcessingQueueRef.current = Promise.resolve();
     setPartialTranscript("");
     setLiveTranscript("");
     setSegmentTranscripts([]);
@@ -189,6 +196,7 @@ export const useAsrController = ({
             processingTimeMs: result.transcriptionTimeMs || segmentProcessingTimeMs,
             error: result.error,
           };
+          processedSegmentIdsRef.current.add(segment.id);
           segmentTranscriptsRef.current.push(failedSegment);
           setSegmentTranscripts([...segmentTranscriptsRef.current]);
           segmentErrorRef.current = result.error;
@@ -210,6 +218,7 @@ export const useAsrController = ({
           processingTimeMs: result.transcriptionTimeMs || segmentProcessingTimeMs,
           error: null,
         };
+        processedSegmentIdsRef.current.add(segment.id);
         segmentTranscriptsRef.current.push(completedSegment);
         setSegmentTranscripts([...segmentTranscriptsRef.current]);
         const combinedTranscript = segmentTranscriptsRef.current
@@ -217,8 +226,6 @@ export const useAsrController = ({
           .filter(Boolean)
           .join(" ")
           .trim();
-        partialTranscriptsRef.current.push(combinedTranscript);
-        setPartialTranscript(combinedTranscript);
         setLiveTranscript(combinedTranscript);
         markFirstText();
       } catch (segmentError) {
@@ -226,6 +233,7 @@ export const useAsrController = ({
           segmentError instanceof Error
             ? segmentError.message
             : String(segmentError);
+        processedSegmentIdsRef.current.add(segment.id);
         segmentErrorRef.current = message;
         setError(message);
       } finally {
@@ -233,6 +241,29 @@ export const useAsrController = ({
       }
     },
     [engineId, language, markFirstText, recordingDurationMs, whisperModel],
+  );
+
+  const enqueueVadSegment = useCallback(
+    (segment: VADSpeechSegment) => {
+      if (queuedSegmentIdsRef.current.has(segment.id)) {
+        return vadProcessingQueueRef.current;
+      }
+
+      queuedSegmentIdsRef.current.add(segment.id);
+      const task = vadProcessingQueueRef.current
+        .catch(() => undefined)
+        .then(async () => {
+          if (processedSegmentIdsRef.current.has(segment.id)) {
+            return;
+          }
+
+          await processVadSegment(segment);
+        });
+
+      vadProcessingQueueRef.current = task.catch(() => undefined);
+      return task;
+    },
+    [processVadSegment],
   );
 
   const persistUnavailableEngineResult = useCallback(
@@ -343,8 +374,10 @@ export const useAsrController = ({
         const isAvailable = await engine.isAvailable();
         if (!isAvailable) {
           const message =
-            selectedEngine?.readinessMessage ??
-            `${engine.name} is not ready on this device.`;
+            engine.engineType === "parakeet"
+              ? PARAKEET_MISSING_MODEL_ERROR
+              : selectedEngine?.readinessMessage ??
+                `${engine.name} is not ready on this device.`;
           await persistUnavailableEngineResult(engine, message);
           setVadStatus("unsupported");
           return;
@@ -353,8 +386,16 @@ export const useAsrController = ({
         const vadService = new VADService(
           {
             onSpeechStart: () => setVadStatus("speech-detected"),
-            onSpeechEnd: (segment) => {
+            onSegmentReady: (segment) => {
               speechSegmentsRef.current.push(segment);
+              enqueueVadSegment(segment).catch((segmentError) => {
+                const message =
+                  segmentError instanceof Error
+                    ? segmentError.message
+                    : String(segmentError);
+                segmentErrorRef.current = message;
+                setError(message);
+              });
             },
             onSilence: () => {
               setVadStatus((current) =>
@@ -440,6 +481,7 @@ export const useAsrController = ({
   }, [
     cleanupPcmRecording,
     engineId,
+    enqueueVadSegment,
     ensureRecorderPermission,
     language,
     markFirstText,
@@ -497,14 +539,18 @@ export const useAsrController = ({
         const vadMetrics = vadServiceRef.current?.getMetrics();
 
         for (const segment of speechSegments) {
-          await processVadSegment(segment);
+          enqueueVadSegment(segment);
         }
+        await vadProcessingQueueRef.current;
 
         const segmentTranscripts = [...segmentTranscriptsRef.current];
         const segmentProcessingTimes = [...segmentProcessingTimesRef.current];
-        samples = speechSegments.length
-          ? mergeChunks(speechSegments.map((segment) => segment.samples))
-          : undefined;
+        samples =
+          engine.engineType === "parakeet"
+            ? undefined
+            : speechSegments.length
+              ? mergeChunks(speechSegments.map((segment) => segment.samples))
+              : undefined;
         const transcript = segmentTranscripts
           .map((segment) => segment.transcript)
           .filter(Boolean)
@@ -634,9 +680,9 @@ export const useAsrController = ({
   }, [
     cleanupPcmRecording,
     engineId,
+    enqueueVadSegment,
     language,
     persistResult,
-    processVadSegment,
     recorder,
     recordingDurationMs,
     status,
