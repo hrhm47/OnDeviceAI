@@ -71,6 +71,7 @@ export const getAvailableASREngines = async (
     getASREngineById("native", options),
     getASREngineById("whisper", options),
     getASREngineById("qwen", options),
+    getASREngineById("parakeet", options),
   ];
 
   const metadata = await Promise.all(

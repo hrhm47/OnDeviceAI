@@ -2,6 +2,20 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { whisperAvailableModels } from "@/constants/constant";
 import { FieldColors as C } from "@/constants/theme";
 import type { whisperModels } from "@/constants/types/ModelTypes";
+import {
+  exportManualASRResultsCsv,
+  getManualASRTestResults,
+  getManualTestCases,
+  getTestSessions,
+  saveManualASRTestResult,
+  saveTestSession,
+} from "@/src/features/asr/asrTesting/services/manualAsrTestingStorage";
+import type {
+  ManualASRTestCase,
+  ManualASRTestResult,
+  TestSession,
+} from "@/src/features/asr/asrTesting/types/manualAsrTesting.types";
+import { createManualASRTestResult } from "@/src/features/asr/asrTesting/utils/manualAsrResultBuilder";
 import { useAsrController } from "@/src/features/asr/hooks/useAsrController";
 import {
   downloadQwen3AsrModel,
@@ -14,8 +28,17 @@ import type {
   ASRLanguage,
   ASRRuntimeMode,
 } from "@/src/features/asr/types/asr.types";
+import * as Sharing from "expo-sharing";
 import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const fallbackModels = [
@@ -40,6 +63,13 @@ const fallbackModels = [
     detail: "Sherpa-ONNX adapter, requires model files",
     runtimeMode: "unsupported",
   },
+  {
+    id: "parakeet",
+    label: "Parakeet",
+    status: "Model files missing",
+    detail: "NVIDIA Parakeet via Sherpa-ONNX, if installed",
+    runtimeMode: "unsupported",
+  },
 ] as const;
 
 const languages = [
@@ -47,16 +77,33 @@ const languages = [
   { id: "fi", label: "Finnish" },
 ] as const;
 
-const testModes = ["Manual recording", "Predefined test case"] as const;
-const noiseLevels = ["Quiet", "Moderate noise", "Hard noise"] as const;
+const testModes = ["Manual mobile test"] as const;
 
 export default function BenchScreen() {
   const [selectedModel, setSelectedModel] = useState<ASREngineType>("native");
   const [selectedLanguage, setSelectedLanguage] = useState<ASRLanguage>("en");
   const [whisperModel, setWhisperModel] = useState<whisperModels>("base");
   const [selectedMode, setSelectedMode] =
-    useState<(typeof testModes)[number]>("Manual recording");
-  const [noise, setNoise] = useState<(typeof noiseLevels)[number]>("Quiet");
+    useState<(typeof testModes)[number]>("Manual mobile test");
+  const [testSessions, setTestSessions] = useState<TestSession[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState(
+    "S00_QUIET_UNDER_50DBA",
+  );
+  const [testCases] = useState<ManualASRTestCase[]>(() => getManualTestCases());
+  const [selectedTestCaseId, setSelectedTestCaseId] = useState("");
+  const [sessionSaveMessage, setSessionSaveMessage] = useState<string | null>(
+    null,
+  );
+  const [manualResult, setManualResult] = useState<ManualASRTestResult | null>(
+    null,
+  );
+  const [manualResultSaved, setManualResultSaved] = useState(false);
+  const [manualResultNotes, setManualResultNotes] = useState("");
+  const [manualResultsCount, setManualResultsCount] = useState(0);
+  const [csvExportPath, setCsvExportPath] = useState<string | null>(null);
+  const [phase2ActionMessage, setPhase2ActionMessage] = useState<string | null>(
+    null,
+  );
   const [modelSetupMessage, setModelSetupMessage] = useState<string | null>(
     null,
   );
@@ -87,6 +134,27 @@ export default function BenchScreen() {
     language: selectedLanguage,
     whisperModel,
   });
+
+  const visibleTestCases = useMemo(
+    () =>
+      testCases.filter((testCase) => testCase.language === selectedLanguage),
+    [selectedLanguage, testCases],
+  );
+
+  const selectedTestCase = useMemo(
+    () =>
+      visibleTestCases.find(
+        (testCase) => testCase.testCaseId === selectedTestCaseId,
+      ) ?? visibleTestCases[0],
+    [selectedTestCaseId, visibleTestCases],
+  );
+
+  const selectedSession = useMemo(
+    () =>
+      testSessions.find((session) => session.sessionId === selectedSessionId) ??
+      testSessions[0],
+    [selectedSessionId, testSessions],
+  );
 
   const models = useMemo(() => {
     if (!engines.length) {
@@ -132,6 +200,82 @@ export default function BenchScreen() {
     setModelSetupMessage(null);
     setModelDownloadProgress(null);
   }, [selectedModel]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    getTestSessions()
+      .then((sessions) => {
+        if (!isActive) {
+          return;
+        }
+        setTestSessions(sessions);
+        setSelectedSessionId((current) =>
+          sessions.some((session) => session.sessionId === current)
+            ? current
+            : (sessions[0]?.sessionId ?? current),
+        );
+      })
+      .catch((loadError) => {
+        setPhase2ActionMessage(
+          `Could not load Phase 2 sessions: ${
+            loadError instanceof Error ? loadError.message : String(loadError)
+          }`,
+        );
+      });
+
+    getManualASRTestResults()
+      .then((results) => {
+        if (isActive) {
+          setManualResultsCount(results.length);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedTestCaseId && visibleTestCases[0]) {
+      setSelectedTestCaseId(visibleTestCases[0].testCaseId);
+      return;
+    }
+
+    const selectedStillVisible = visibleTestCases.some(
+      (testCase) => testCase.testCaseId === selectedTestCaseId,
+    );
+    if (!selectedStillVisible && visibleTestCases[0]) {
+      setSelectedTestCaseId(visibleTestCases[0].testCaseId);
+    }
+  }, [selectedTestCaseId, visibleTestCases]);
+
+  useEffect(() => {
+    if (!selectedTestCase || selectedTestCase.language === selectedLanguage) {
+      return;
+    }
+
+    setSelectedLanguage(selectedTestCase.language);
+  }, [selectedLanguage, selectedTestCase]);
+
+  useEffect(() => {
+    if (!latestResult || !selectedTestCase || !selectedSession) {
+      setManualResult(null);
+      setManualResultSaved(false);
+      return;
+    }
+
+    setManualResult(
+      createManualASRTestResult(
+        latestResult,
+        selectedTestCase,
+        selectedSession,
+        manualResultNotes,
+      ),
+    );
+    setManualResultSaved(false);
+  }, [latestResult, manualResultNotes, selectedSession, selectedTestCase]);
 
   const transcript =
     latestResult?.transcript ||
@@ -216,6 +360,86 @@ export default function BenchScreen() {
       );
     } finally {
       setDownloadingModel(false);
+    }
+  };
+
+  const updateSelectedSession = (
+    updater: (session: TestSession) => TestSession,
+  ) => {
+    if (!selectedSession) {
+      return;
+    }
+
+    setSessionSaveMessage(null);
+    setTestSessions((current) =>
+      current.map((session) =>
+        session.sessionId === selectedSession.sessionId
+          ? updater(session)
+          : session,
+      ),
+    );
+  };
+
+  const handleSaveSession = async () => {
+    if (!selectedSession) {
+      return;
+    }
+
+    try {
+      await saveTestSession(selectedSession);
+      setSessionSaveMessage("Session metadata saved locally.");
+    } catch (saveError) {
+      setSessionSaveMessage(
+        `Session save failed: ${
+          saveError instanceof Error ? saveError.message : String(saveError)
+        }`,
+      );
+    }
+  };
+
+  const handleSaveManualResult = async () => {
+    if (!manualResult) {
+      return;
+    }
+
+    try {
+      await saveManualASRTestResult({
+        ...manualResult,
+        notes: manualResultNotes,
+      });
+      const results = await getManualASRTestResults();
+      setManualResultsCount(results.length);
+      setManualResultSaved(true);
+      setPhase2ActionMessage("Phase 2 result saved locally.");
+    } catch (saveError) {
+      setPhase2ActionMessage(
+        `Result save failed: ${
+          saveError instanceof Error ? saveError.message : String(saveError)
+        }`,
+      );
+    }
+  };
+
+  const handleExportCsv = async () => {
+    try {
+      const csvPath = await exportManualASRResultsCsv();
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(csvPath, {
+          mimeType: "text/csv",
+          dialogTitle: "Share ASR Test Results CSV",
+        });
+      }
+      setCsvExportPath(csvPath);
+      setPhase2ActionMessage("CSV export created.");
+      console.log("CSV export created at:", csvPath);
+      // Alert.alert("CSV export created", csvPath);
+    } catch (exportError) {
+      const message =
+        exportError instanceof Error
+          ? exportError.message
+          : String(exportError);
+      setPhase2ActionMessage(`CSV export failed: ${message}`);
+      Alert.alert("CSV export failed", message);
     }
   };
 
@@ -358,6 +582,174 @@ export default function BenchScreen() {
           </Section>
         )}
 
+        <Section title="Test mode" meta={selectedMode}>
+          <View style={styles.segmentColumn}>
+            {testModes.map((mode) => (
+              <Pressable
+                key={mode}
+                onPress={() => setSelectedMode(mode)}
+                style={[
+                  styles.largeOption,
+                  selectedMode === mode && styles.largeOptionSelected,
+                ]}
+              >
+                <IconSymbol
+                  size={21}
+                  name="mic.fill"
+                  color={selectedMode === mode ? C.primary : C.textSubtle}
+                />
+                <Text
+                  style={[
+                    styles.largeOptionText,
+                    selectedMode === mode && styles.largeOptionTextSelected,
+                  ]}
+                >
+                  {mode}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </Section>
+
+        <Section
+          title="Test session"
+          meta={
+            selectedSession
+              ? formatNoiseCondition(selectedSession.noiseCondition)
+              : "Loading"
+          }
+        >
+          <View style={styles.chipRow}>
+            {testSessions.map((session) => (
+              <Pressable
+                key={session.sessionId}
+                onPress={() => setSelectedSessionId(session.sessionId)}
+                style={[
+                  styles.chip,
+                  selectedSessionId === session.sessionId &&
+                    styles.chipSelected,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    selectedSessionId === session.sessionId &&
+                      styles.chipTextSelected,
+                  ]}
+                >
+                  {formatNoiseCondition(session.noiseCondition)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {selectedSession ? (
+            <View style={styles.sessionSummary}>
+              <Text style={styles.optionTitle}>
+                {selectedSession.sessionName}
+              </Text>
+              <Text style={styles.optionDetail}>
+                Target {selectedSession.noiseProfile.targetRangeDba.min}-
+                {selectedSession.noiseProfile.targetRangeDba.max} dBA /{" "}
+                {selectedSession.noiseSource.sourceName}
+              </Text>
+            </View>
+          ) : null}
+        </Section>
+
+        {selectedSession ? (
+          <Section title="Session measurement" meta="editable">
+            <View style={styles.inputGrid}>
+              <EditableValue
+                label="Measured LAeq dBA"
+                keyboardType="decimal-pad"
+                value={formatNullableInput(
+                  selectedSession.noiseProfile.measuredLaeqDba,
+                )}
+                onChangeText={(value) =>
+                  updateSelectedSession((session) => ({
+                    ...session,
+                    noiseProfile: {
+                      ...session.noiseProfile,
+                      measuredLaeqDba: parseNullableNumber(value),
+                    },
+                  }))
+                }
+              />
+              <EditableValue
+                label="Measured max dBA"
+                keyboardType="decimal-pad"
+                value={formatNullableInput(
+                  selectedSession.noiseProfile.measuredMaxDba,
+                )}
+                onChangeText={(value) =>
+                  updateSelectedSession((session) => ({
+                    ...session,
+                    noiseProfile: {
+                      ...session.noiseProfile,
+                      measuredMaxDba: parseNullableNumber(value),
+                    },
+                  }))
+                }
+              />
+              <EditableValue
+                label="Measurement notes"
+                value={selectedSession.noiseProfile.measurementNotes}
+                onChangeText={(value) =>
+                  updateSelectedSession((session) => ({
+                    ...session,
+                    noiseProfile: {
+                      ...session.noiseProfile,
+                      measurementNotes: value,
+                    },
+                  }))
+                }
+                multiline
+              />
+              <EditableValue
+                label="Noise source URL/title"
+                value={selectedSession.noiseSource.sourceUrlOrNote}
+                onChangeText={(value) =>
+                  updateSelectedSession((session) => ({
+                    ...session,
+                    noiseSource: {
+                      ...session.noiseSource,
+                      sourceUrlOrNote: value,
+                    },
+                  }))
+                }
+                multiline
+              />
+              <EditableValue
+                label="Noise volume percent"
+                keyboardType="number-pad"
+                value={formatNullableInput(
+                  selectedSession.noiseSource.volumePercent,
+                )}
+                onChangeText={(value) =>
+                  updateSelectedSession((session) => ({
+                    ...session,
+                    noiseSource: {
+                      ...session.noiseSource,
+                      volumePercent: parseNullableNumber(value),
+                    },
+                  }))
+                }
+              />
+            </View>
+            <Pressable
+              style={styles.setupOutlineButton}
+              onPress={handleSaveSession}
+            >
+              <Text style={styles.setupOutlineButtonText}>
+                Save session metadata
+              </Text>
+            </Pressable>
+            {sessionSaveMessage ? (
+              <Text style={styles.setupStatusText}>{sessionSaveMessage}</Text>
+            ) : null}
+          </Section>
+        ) : null}
+
         <Section
           title="Language"
           meta={selectedLanguage === "en" ? "English" : "Finnish"}
@@ -386,56 +778,39 @@ export default function BenchScreen() {
           </View>
         </Section>
 
-        <Section title="Test mode" meta={selectedMode}>
-          <View style={styles.segmentColumn}>
-            {testModes.map((mode) => (
+        <Section
+          title="Test case"
+          meta={`${visibleTestCases.length} ${selectedLanguage.toUpperCase()} cases`}
+        >
+          <ScrollView
+            nestedScrollEnabled
+            showsVerticalScrollIndicator
+            keyboardShouldPersistTaps="handled"
+            style={styles.testCaseScroll}
+            contentContainerStyle={styles.testCaseList}
+          >
+            {visibleTestCases.map((testCase) => (
               <Pressable
-                key={mode}
-                onPress={() => setSelectedMode(mode)}
+                key={testCase.testCaseId}
+                onPress={() => setSelectedTestCaseId(testCase.testCaseId)}
                 style={[
-                  styles.largeOption,
-                  selectedMode === mode && styles.largeOptionSelected,
+                  styles.testCaseCard,
+                  selectedTestCase?.testCaseId === testCase.testCaseId &&
+                    styles.testCaseCardSelected,
                 ]}
               >
-                <IconSymbol
-                  size={21}
-                  name={
-                    mode === "Manual recording" ? "mic.fill" : "doc.text.fill"
-                  }
-                  color={selectedMode === mode ? C.primary : C.textSubtle}
-                />
-                <Text
-                  style={[
-                    styles.largeOptionText,
-                    selectedMode === mode && styles.largeOptionTextSelected,
-                  ]}
-                >
-                  {mode}
+                <View style={styles.optionTop}>
+                  <Text style={styles.optionTitle}>{testCase.testCaseId}</Text>
+                  <Text style={styles.sectionMeta}>
+                    {testCase.category} / {testCase.difficulty}
+                  </Text>
+                </View>
+                <Text style={styles.referenceText}>
+                  {testCase.referenceText}
                 </Text>
               </Pressable>
             ))}
-          </View>
-        </Section>
-
-        <Section title="Noise condition" meta={noise}>
-          <View style={styles.chipRow}>
-            {noiseLevels.map((level) => (
-              <Pressable
-                key={level}
-                onPress={() => setNoise(level)}
-                style={[styles.chip, noise === level && styles.chipSelected]}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    noise === level && styles.chipTextSelected,
-                  ]}
-                >
-                  {level}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          </ScrollView>
         </Section>
 
         <View style={styles.recordPanel}>
@@ -537,9 +912,19 @@ export default function BenchScreen() {
           <View style={styles.previewHeader}>
             <Text style={styles.previewTitle}>Transcript</Text>
             {latestResult ? (
-              <Text style={styles.savedText}>Saved locally</Text>
+              <Text style={styles.savedText}>
+                {manualResultSaved ? "Phase 2 saved" : "Phase 1 saved"}
+              </Text>
             ) : null}
           </View>
+          {selectedTestCase ? (
+            <View style={styles.referenceBlock}>
+              <Text style={styles.metricLabel}>Reference text</Text>
+              <Text style={styles.referenceText}>
+                {selectedTestCase.referenceText}
+              </Text>
+            </View>
+          ) : null}
           <Text style={styles.previewText}>{transcript}</Text>
           {partialTranscript &&
           !latestResult &&
@@ -586,6 +971,35 @@ export default function BenchScreen() {
                 }
               />
               <Metric
+                label="WER"
+                value={
+                  manualResult?.wer === null
+                    ? "--"
+                    : formatRate(manualResult?.wer)
+                }
+              />
+              <Metric
+                label="CER"
+                value={
+                  manualResult?.cer === null
+                    ? "--"
+                    : formatRate(manualResult?.cer)
+                }
+              />
+              <Metric
+                label="RTF"
+                value={
+                  manualResult?.realTimeFactor === null ||
+                  manualResult?.realTimeFactor === undefined
+                    ? "--"
+                    : manualResult.realTimeFactor.toFixed(2)
+                }
+              />
+              <Metric
+                label="Success"
+                value={manualResult?.success === false ? "false" : "true"}
+              />
+              <Metric
                 label="Segments"
                 value={String(latestResult.segmentCount ?? 0)}
               />
@@ -600,6 +1014,52 @@ export default function BenchScreen() {
               />
               <Metric label="Result ID" value={latestResult.id} />
             </View>
+          ) : null}
+
+          {manualResult ? (
+            <View style={styles.resultActions}>
+              <EditableValue
+                label="Result notes"
+                value={manualResultNotes}
+                onChangeText={setManualResultNotes}
+                multiline
+              />
+              <Pressable
+                style={[
+                  styles.startTestButton,
+                  manualResultSaved && styles.startTestButtonDisabled,
+                ]}
+                disabled={manualResultSaved}
+                onPress={handleSaveManualResult}
+              >
+                <Text style={styles.startTestText}>
+                  {manualResultSaved
+                    ? "Phase 2 result saved"
+                    : "Save Phase 2 result"}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <View style={styles.exportPanel}>
+            <View>
+              <Text style={styles.previewTitle}>CSV export</Text>
+              <Text style={styles.optionDetail}>
+                {manualResultsCount} Phase 2 results stored
+              </Text>
+            </View>
+            <Pressable
+              style={styles.setupOutlineButton}
+              onPress={handleExportCsv}
+            >
+              <Text style={styles.setupOutlineButtonText}>Export CSV</Text>
+            </Pressable>
+          </View>
+          {phase2ActionMessage ? (
+            <Text style={styles.setupStatusText}>{phase2ActionMessage}</Text>
+          ) : null}
+          {csvExportPath ? (
+            <Text style={styles.setupLinkText}>{csvExportPath}</Text>
           ) : null}
         </View>
       </ScrollView>
@@ -641,6 +1101,38 @@ function RuntimePill({ label, value }: { label: string; value: string }) {
     <View style={styles.runtimePill}>
       <Text style={styles.runtimeLabel}>{label}</Text>
       <Text style={styles.runtimeValue}>{value}</Text>
+    </View>
+  );
+}
+
+function EditableValue({
+  label,
+  value,
+  onChangeText,
+  keyboardType,
+  multiline,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  keyboardType?: React.ComponentProps<typeof TextInput>["keyboardType"];
+  multiline?: boolean;
+}) {
+  return (
+    <View style={styles.editableField}>
+      <Text style={styles.metricLabel}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        multiline={multiline}
+        placeholder="Leave empty if unavailable"
+        placeholderTextColor={C.textSubtle}
+        style={[
+          styles.editableInput,
+          multiline && styles.editableInputMultiline,
+        ]}
+      />
     </View>
   );
 }
@@ -700,6 +1192,44 @@ function formatVadStatus(status: string) {
   }
 
   return status;
+}
+
+function formatNoiseCondition(condition: string) {
+  if (condition === "quiet") {
+    return "Quiet";
+  }
+
+  if (condition === "moderate_noise") {
+    return "Moderate noise";
+  }
+
+  if (condition === "hard_noise") {
+    return "Hard noise";
+  }
+
+  return condition;
+}
+
+function parseNullableNumber(value: string) {
+  const trimmed = value.trim().replace(",", ".");
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatNullableInput(value: number | null | undefined) {
+  return value === null || value === undefined ? "" : String(value);
+}
+
+function formatRate(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return "--";
+  }
+
+  return `${(value * 100).toFixed(1)}%`;
 }
 
 function formatDuration(durationMs: number) {
@@ -1218,5 +1748,83 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontWeight: "900",
     marginTop: 4,
+  },
+  sessionSummary: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surfaceWarm,
+    padding: 12,
+  },
+  inputGrid: {
+    gap: 12,
+  },
+  editableField: {
+    gap: 6,
+  },
+  editableInput: {
+    minHeight: 46,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.borderStrong,
+    backgroundColor: C.surfaceWarm,
+    color: C.text,
+    fontSize: 15,
+    fontWeight: "700",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  editableInputMultiline: {
+    minHeight: 82,
+    textAlignVertical: "top",
+  },
+  testCaseScroll: {
+    maxHeight: 430,
+    overflow: "hidden",
+  },
+  testCaseList: {
+    gap: 10,
+    paddingBottom: 2,
+  },
+  testCaseCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surfaceWarm,
+    padding: 12,
+    gap: 8,
+  },
+  testCaseCardSelected: {
+    borderColor: C.primary,
+    backgroundColor: C.primarySoft,
+  },
+  referenceBlock: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
+    padding: 12,
+    marginTop: 12,
+    gap: 6,
+  },
+  referenceText: {
+    color: C.text,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "700",
+  },
+  resultActions: {
+    gap: 12,
+    marginTop: 16,
+  },
+  exportPanel: {
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    marginTop: 16,
+    paddingTop: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
   },
 });

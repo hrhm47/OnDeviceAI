@@ -1,0 +1,1125 @@
+{
+  "version": "phase2-manual-asr-testing-v1",
+  "description": "Manual English/Finnish construction ASR test cases, simple test sessions, and CSV export fields for Phase 2 baseline testing.",
+  "concepts": {
+    "testCase": "Sentence/reference data that defines what should be spoken and what expected report fields are represented.",
+    "testSession": "Noise/environment/device setup for a group of manual recordings.",
+    "testResult": "One model output and metrics for one test case inside one session."
+  },
+  "testSessions": [
+    {
+      "sessionId": "S00_QUIET_UNDER_50DBA",
+      "sessionName": "Quiet indoor test",
+      "testMode": "manual_mobile_test",
+      "noiseCondition": "quiet",
+      "noiseProfile": {
+        "targetRangeDba": {
+          "min": 35,
+          "max": 50
+        },
+        "measuredLaeqDba": null,
+        "measuredMaxDba": null,
+        "measurementDurationSec": 60,
+        "measurementDevice": "Android phone",
+        "soundMeterApp": "Android sound meter app",
+        "measurementNotes": "No added noise. Fill measured dBA values before or after testing."
+      },
+      "testDevice": {
+        "deviceName": "iPhone 11",
+        "platform": "iOS",
+        "role": "ASR test app device"
+      },
+      "noiseSource": {
+        "type": "none",
+        "sourceName": "No added noise",
+        "sourceUrlOrNote": "",
+        "playbackDevice": "",
+        "volumePercent": null,
+        "playbackStartTime": "",
+        "playbackEndTime": "",
+        "notes": "Quiet baseline condition."
+      },
+      "createdAt": "2026-05-10T00:00:00.000Z",
+      "notes": "Quiet baseline ASR test session."
+    },
+    {
+      "sessionId": "S01_MODERATE_65_75DBA",
+      "sessionName": "Moderate construction-like noise test",
+      "testMode": "manual_mobile_test",
+      "noiseCondition": "moderate_noise",
+      "noiseProfile": {
+        "targetRangeDba": {
+          "min": 65,
+          "max": 75
+        },
+        "measuredLaeqDba": null,
+        "measuredMaxDba": null,
+        "measurementDurationSec": 60,
+        "measurementDevice": "Android phone",
+        "soundMeterApp": "Android sound meter app",
+        "measurementNotes": "Noise measured approximately using Android phone while laptop played construction noise."
+      },
+      "testDevice": {
+        "deviceName": "iPhone 11",
+        "platform": "iOS",
+        "role": "ASR test app device"
+      },
+      "noiseSource": {
+        "type": "youtube_construction_noise",
+        "sourceName": "Construction site noise video",
+        "sourceUrlOrNote": "Paste YouTube link or video title here",
+        "playbackDevice": "laptop",
+        "volumePercent": 45,
+        "playbackStartTime": "02:00",
+        "playbackEndTime": "07:00",
+        "notes": "Same video section and same laptop volume used during this session."
+      },
+      "createdAt": "2026-05-10T00:00:00.000Z",
+      "notes": "Moderate noise ASR test session."
+    },
+    {
+      "sessionId": "S02_HARD_80_85DBA",
+      "sessionName": "Hard construction-like noise test",
+      "testMode": "manual_mobile_test",
+      "noiseCondition": "hard_noise",
+      "noiseProfile": {
+        "targetRangeDba": {
+          "min": 80,
+          "max": 85
+        },
+        "measuredLaeqDba": null,
+        "measuredMaxDba": null,
+        "measurementDurationSec": 60,
+        "measurementDevice": "Android phone",
+        "soundMeterApp": "Android sound meter app",
+        "measurementNotes": "Noise measured approximately using Android phone while laptop played construction noise."
+      },
+      "testDevice": {
+        "deviceName": "iPhone 11",
+        "platform": "iOS",
+        "role": "ASR test app device"
+      },
+      "noiseSource": {
+        "type": "youtube_construction_noise",
+        "sourceName": "Construction site noise video",
+        "sourceUrlOrNote": "Paste YouTube link or video title here",
+        "playbackDevice": "laptop",
+        "volumePercent": 70,
+        "playbackStartTime": "02:00",
+        "playbackEndTime": "07:00",
+        "notes": "Same video section and same laptop volume used during this session."
+      },
+      "createdAt": "2026-05-10T00:00:00.000Z",
+      "notes": "Short controlled high-noise session for ASR robustness testing."
+    }
+  ],
+  "testCases": [
+    {
+      "testCaseId": "EN_DEFECT_001",
+      "pairId": "DEFECT_001",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "easy",
+      "referenceText": "There is a water leak in apartment A302 bathroom. Assign it to the plumbing contractor.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Apartment A302 bathroom",
+        "category": "Plumbing",
+        "urgency": "Medium",
+        "responsibleParty": "Plumbing contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_001",
+      "pairId": "DEFECT_001",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "easy",
+      "referenceText": "Asunnon A302 kylpyhuoneessa on vesivuoto. Osoita se putkiurakoitsijalle.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Apartment A302 bathroom",
+        "category": "Plumbing",
+        "urgency": "Medium",
+        "responsibleParty": "Plumbing contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_002",
+      "pairId": "DEFECT_002",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "easy",
+      "referenceText": "The temporary railing in staircase B on the third floor is loose. Mark this as urgent.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Staircase B, third floor",
+        "category": "Safety",
+        "urgency": "High",
+        "responsibleParty": "Site safety team"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_002",
+      "pairId": "DEFECT_002",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "easy",
+      "referenceText": "Porrashuoneen B kolmannen kerroksen väliaikainen kaide on löysä. Merkitse tämä kiireelliseksi.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Staircase B, third floor",
+        "category": "Safety",
+        "urgency": "High",
+        "responsibleParty": "Site safety team"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_003",
+      "pairId": "DEFECT_003",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "quality",
+      "difficulty": "easy",
+      "referenceText": "The kitchen wall in apartment B115 has visible paint damage near the window.",
+      "expectedFields": {
+        "reportType": "quality",
+        "location": "Apartment B115 kitchen",
+        "category": "Finishing",
+        "urgency": "Low",
+        "responsibleParty": "Finishing contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_003",
+      "pairId": "DEFECT_003",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "quality",
+      "difficulty": "easy",
+      "referenceText": "Asunnon B115 keittiön seinässä on näkyvä maalivaurio ikkunan lähellä.",
+      "expectedFields": {
+        "reportType": "quality",
+        "location": "Apartment B115 kitchen",
+        "category": "Finishing",
+        "urgency": "Low",
+        "responsibleParty": "Finishing contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_004",
+      "pairId": "DEFECT_004",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "medium",
+      "referenceText": "The balcony door in apartment C204 does not close properly and cold air is coming through the seal.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Apartment C204 balcony door",
+        "category": "Doors and windows",
+        "urgency": "Medium",
+        "responsibleParty": "Window and door contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_004",
+      "pairId": "DEFECT_004",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "medium",
+      "referenceText": "Asunnon C204 parvekkeen ovi ei sulkeudu kunnolla ja tiivisteestä tulee kylmää ilmaa.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Apartment C204 balcony door",
+        "category": "Doors and windows",
+        "urgency": "Medium",
+        "responsibleParty": "Window and door contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_005",
+      "pairId": "DEFECT_005",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "safety",
+      "difficulty": "medium",
+      "referenceText": "There are loose cables near the main entrance walkway. This may cause a tripping hazard.",
+      "expectedFields": {
+        "reportType": "safety",
+        "location": "Main entrance",
+        "category": "Housekeeping",
+        "urgency": "Medium",
+        "responsibleParty": "Site supervisor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_005",
+      "pairId": "DEFECT_005",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "safety",
+      "difficulty": "medium",
+      "referenceText": "Pääsisäänkäynnin kulkuväylän lähellä on irrallisia kaapeleita. Tämä voi aiheuttaa kompastumisvaaran.",
+      "expectedFields": {
+        "reportType": "safety",
+        "location": "Main entrance",
+        "category": "Housekeeping",
+        "urgency": "Medium",
+        "responsibleParty": "Site supervisor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_006",
+      "pairId": "DEFECT_006",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "quality",
+      "difficulty": "medium",
+      "referenceText": "The bathroom floor tiles in apartment A210 are uneven and one tile is cracked near the drain.",
+      "expectedFields": {
+        "reportType": "quality",
+        "location": "Apartment A210 bathroom floor",
+        "category": "Tiling",
+        "urgency": "Medium",
+        "responsibleParty": "Tiling contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_006",
+      "pairId": "DEFECT_006",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "quality",
+      "difficulty": "medium",
+      "referenceText": "Asunnon A210 kylpyhuoneen lattialaatat ovat epätasaiset ja yksi laatta on haljennut lattiakaivon lähellä.",
+      "expectedFields": {
+        "reportType": "quality",
+        "location": "Apartment A210 bathroom floor",
+        "category": "Tiling",
+        "urgency": "Medium",
+        "responsibleParty": "Tiling contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_007",
+      "pairId": "DEFECT_007",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "medium",
+      "referenceText": "The light fixture in the fourth floor corridor is hanging loose. Assign this to the electrical contractor.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Fourth floor corridor",
+        "category": "Electrical",
+        "urgency": "High",
+        "responsibleParty": "Electrical contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_007",
+      "pairId": "DEFECT_007",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "medium",
+      "referenceText": "Neljännen kerroksen käytävän valaisin roikkuu irti. Osoita tämä sähköurakoitsijalle.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Fourth floor corridor",
+        "category": "Electrical",
+        "urgency": "High",
+        "responsibleParty": "Electrical contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_008",
+      "pairId": "DEFECT_008",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "quality",
+      "difficulty": "medium",
+      "referenceText": "The skirting board is missing from the living room wall in apartment D401.",
+      "expectedFields": {
+        "reportType": "quality",
+        "location": "Apartment D401 living room",
+        "category": "Finishing",
+        "urgency": "Low",
+        "responsibleParty": "Finishing contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_008",
+      "pairId": "DEFECT_008",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "quality",
+      "difficulty": "medium",
+      "referenceText": "Asunnon D401 olohuoneen seinältä puuttuu jalkalista.",
+      "expectedFields": {
+        "reportType": "quality",
+        "location": "Apartment D401 living room",
+        "category": "Finishing",
+        "urgency": "Low",
+        "responsibleParty": "Finishing contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_009",
+      "pairId": "DEFECT_009",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "safety",
+      "difficulty": "hard",
+      "referenceText": "The fire stopping around the pipe penetration in the basement technical room is incomplete and must be fixed before inspection.",
+      "expectedFields": {
+        "reportType": "safety",
+        "location": "Basement technical room",
+        "category": "Fire safety",
+        "urgency": "High",
+        "responsibleParty": "Fire stopping contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_009",
+      "pairId": "DEFECT_009",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "safety",
+      "difficulty": "hard",
+      "referenceText": "Kellarin teknisen tilan putkiläpiviennin palokatko on puutteellinen ja se pitää korjata ennen tarkastusta.",
+      "expectedFields": {
+        "reportType": "safety",
+        "location": "Basement technical room",
+        "category": "Fire safety",
+        "urgency": "High",
+        "responsibleParty": "Fire stopping contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_010",
+      "pairId": "DEFECT_010",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "hard",
+      "referenceText": "The ventilation unit on the roof level is making an unusual noise and the access panel is not secured.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Roof level, ventilation unit",
+        "category": "HVAC",
+        "urgency": "High",
+        "responsibleParty": "HVAC contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_010",
+      "pairId": "DEFECT_010",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "hard",
+      "referenceText": "Vesikaton ilmanvaihtokoneesta kuuluu poikkeavaa ääntä ja huoltoluukku ei ole kunnolla kiinni.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Roof level, ventilation unit",
+        "category": "HVAC",
+        "urgency": "High",
+        "responsibleParty": "HVAC contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_011",
+      "pairId": "DEFECT_011",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "observation",
+      "difficulty": "easy",
+      "referenceText": "The delivery pallets are blocking part of the loading area and should be moved today.",
+      "expectedFields": {
+        "reportType": "observation",
+        "location": "Loading area",
+        "category": "Site logistics",
+        "urgency": "Low",
+        "responsibleParty": "Site logistics"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_011",
+      "pairId": "DEFECT_011",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "observation",
+      "difficulty": "easy",
+      "referenceText": "Toimituslavat tukkivat osan lastausalueesta ja ne pitäisi siirtää tänään.",
+      "expectedFields": {
+        "reportType": "observation",
+        "location": "Loading area",
+        "category": "Site logistics",
+        "urgency": "Low",
+        "responsibleParty": "Site logistics"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_012",
+      "pairId": "DEFECT_012",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "medium",
+      "referenceText": "The waterproofing membrane is visible behind the shower wall tile in apartment B307. Please inspect it before closing the area.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Apartment B307 shower wall",
+        "category": "Waterproofing",
+        "urgency": "High",
+        "responsibleParty": "Waterproofing contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_012",
+      "pairId": "DEFECT_012",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "medium",
+      "referenceText": "Asunnon B307 suihkuseinän laatan takaa näkyy vedeneriste. Tarkastakaa se ennen alueen sulkemista.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Apartment B307 shower wall",
+        "category": "Waterproofing",
+        "urgency": "High",
+        "responsibleParty": "Waterproofing contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_013",
+      "pairId": "DEFECT_013",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "quality",
+      "difficulty": "medium",
+      "referenceText": "Several ceiling panels are misaligned in the second floor meeting room.",
+      "expectedFields": {
+        "reportType": "quality",
+        "location": "Second floor meeting room",
+        "category": "Ceiling",
+        "urgency": "Medium",
+        "responsibleParty": "Ceiling contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_013",
+      "pairId": "DEFECT_013",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "quality",
+      "difficulty": "medium",
+      "referenceText": "Toisen kerroksen neuvotteluhuoneessa useat kattopaneelit ovat vinossa.",
+      "expectedFields": {
+        "reportType": "quality",
+        "location": "Second floor meeting room",
+        "category": "Ceiling",
+        "urgency": "Medium",
+        "responsibleParty": "Ceiling contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_014",
+      "pairId": "DEFECT_014",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "safety",
+      "difficulty": "hard",
+      "referenceText": "The scaffold near the west facade is missing toe boards on the second level. Stop work in that area until it is fixed.",
+      "expectedFields": {
+        "reportType": "safety",
+        "location": "Scaffold near west facade",
+        "category": "Scaffolding",
+        "urgency": "High",
+        "responsibleParty": "Scaffolding contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_014",
+      "pairId": "DEFECT_014",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "safety",
+      "difficulty": "hard",
+      "referenceText": "Länsijulkisivun telineestä puuttuvat potkulaudat toiselta tasolta. Keskeytä työ alueella kunnes se on korjattu.",
+      "expectedFields": {
+        "reportType": "safety",
+        "location": "Scaffold near west facade",
+        "category": "Scaffolding",
+        "urgency": "High",
+        "responsibleParty": "Scaffolding contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_015",
+      "pairId": "DEFECT_015",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "medium",
+      "referenceText": "The radiator in apartment A105 bedroom is not heating properly. Check the valve and report back.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Apartment A105 bedroom",
+        "category": "Heating",
+        "urgency": "Medium",
+        "responsibleParty": "HVAC contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_015",
+      "pairId": "DEFECT_015",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "medium",
+      "referenceText": "Asunnon A105 makuuhuoneen patteri ei lämpene kunnolla. Tarkista venttiili ja raportoi takaisin.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Apartment A105 bedroom",
+        "category": "Heating",
+        "urgency": "Medium",
+        "responsibleParty": "HVAC contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_016",
+      "pairId": "DEFECT_016",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "observation",
+      "difficulty": "easy",
+      "referenceText": "Storage room one has too much waste material on the floor. Please clean it before the next inspection.",
+      "expectedFields": {
+        "reportType": "observation",
+        "location": "Storage room 1",
+        "category": "Housekeeping",
+        "urgency": "Low",
+        "responsibleParty": "Site team"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_016",
+      "pairId": "DEFECT_016",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "observation",
+      "difficulty": "easy",
+      "referenceText": "Varastohuoneessa yksi on liikaa jätemateriaalia lattialla. Siivotkaa se ennen seuraavaa tarkastusta.",
+      "expectedFields": {
+        "reportType": "observation",
+        "location": "Storage room 1",
+        "category": "Housekeeping",
+        "urgency": "Low",
+        "responsibleParty": "Site team"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_017",
+      "pairId": "DEFECT_017",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "quality",
+      "difficulty": "hard",
+      "referenceText": "The bathroom sink in apartment C310 drains slowly and there is a small leak under the trap.",
+      "expectedFields": {
+        "reportType": "quality",
+        "location": "Apartment C310 bathroom sink",
+        "category": "Plumbing",
+        "urgency": "Medium",
+        "responsibleParty": "Plumbing contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_017",
+      "pairId": "DEFECT_017",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "quality",
+      "difficulty": "hard",
+      "referenceText": "Asunnon C310 kylpyhuoneen pesuallas vetää hitaasti ja hajulukon alla on pieni vuoto.",
+      "expectedFields": {
+        "reportType": "quality",
+        "location": "Apartment C310 bathroom sink",
+        "category": "Plumbing",
+        "urgency": "Medium",
+        "responsibleParty": "Plumbing contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_018",
+      "pairId": "DEFECT_018",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "safety",
+      "difficulty": "hard",
+      "referenceText": "The protection around the elevator shaft opening is damaged. This is a high priority safety issue.",
+      "expectedFields": {
+        "reportType": "safety",
+        "location": "Elevator shaft opening",
+        "category": "Fall protection",
+        "urgency": "High",
+        "responsibleParty": "Site safety team"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_018",
+      "pairId": "DEFECT_018",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "safety",
+      "difficulty": "hard",
+      "referenceText": "Hissikuilun aukon ympärillä oleva suojaus on vaurioitunut. Tämä on korkean prioriteetin turvallisuuspuute.",
+      "expectedFields": {
+        "reportType": "safety",
+        "location": "Elevator shaft opening",
+        "category": "Fall protection",
+        "urgency": "High",
+        "responsibleParty": "Site safety team"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_019",
+      "pairId": "DEFECT_019",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "medium",
+      "referenceText": "The entrance door of apartment D208 rubs against the frame and the lock is difficult to turn.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Apartment D208 entrance door",
+        "category": "Doors and locks",
+        "urgency": "Medium",
+        "responsibleParty": "Door contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_019",
+      "pairId": "DEFECT_019",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "defect",
+      "difficulty": "medium",
+      "referenceText": "Asunnon D208 ulko-ovi hankaa karmiin ja lukkoa on vaikea kääntää.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Apartment D208 entrance door",
+        "category": "Doors and locks",
+        "urgency": "Medium",
+        "responsibleParty": "Door contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "EN_DEFECT_020",
+      "pairId": "DEFECT_020",
+      "language": "en",
+      "testSource": "manual_construction_dataset",
+      "category": "mixed",
+      "difficulty": "hard",
+      "referenceText": "There is a long crack on the parking garage ramp near grid line C4. Take a photo and assign it to the concrete contractor.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Parking garage ramp",
+        "category": "Concrete",
+        "urgency": "High",
+        "responsibleParty": "Concrete contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    },
+    {
+      "testCaseId": "FI_DEFECT_020",
+      "pairId": "DEFECT_020",
+      "language": "fi",
+      "testSource": "manual_construction_dataset",
+      "category": "mixed",
+      "difficulty": "hard",
+      "referenceText": "Pysäköintihallin rampissa ruutulinjan C4 lähellä on pitkä halkeama. Ota kuva ja osoita se betoniurakoitsijalle.",
+      "expectedFields": {
+        "reportType": "defect",
+        "location": "Parking garage ramp",
+        "category": "Concrete",
+        "urgency": "High",
+        "responsibleParty": "Concrete contractor"
+      },
+      "noiseConditions": [
+        "quiet",
+        "moderate_noise",
+        "hard_noise"
+      ],
+      "notes": "Read the referenceText naturally. Keep the intended location/code and contractor wording.",
+      "requiresReferenceTextForScoring": true
+    }
+  ],
+  "manualASRTestResultFields": [
+    "resultId",
+    "testCaseId",
+    "sessionId",
+    "timestamp",
+    "modelId",
+    "modelName",
+    "engineType",
+    "language",
+    "runtimeMode",
+    "referenceText",
+    "recognizedText",
+    "normalizedReferenceText",
+    "normalizedRecognizedText",
+    "wer",
+    "cer",
+    "recordingDurationMs",
+    "speechDurationMs",
+    "silenceDurationMs",
+    "ttfsMs",
+    "transcriptionTimeMs",
+    "realTimeFactor",
+    "partialTranscriptsCount",
+    "segmentCount",
+    "batteryLevelStart",
+    "batteryLevelEnd",
+    "batteryDelta",
+    "thermalStateBefore",
+    "thermalStateAfter",
+    "memoryWarningCount",
+    "availableMemoryMbBefore",
+    "availableMemoryMbAfter",
+    "success",
+    "errorMessage",
+    "notes"
+  ],
+  "optionalFieldsNote": "Battery, thermal, and memory fields may be null if the platform/runtime cannot collect them reliably. On iOS/React Native, memory may be represented by memory warnings and failure observations rather than exact RAM values.",
+  "csvExportFields": [
+    "resultId",
+    "timestamp",
+    "testCaseId",
+    "sessionId",
+    "noiseCondition",
+    "measuredLaeqDba",
+    "measuredMaxDba",
+    "noiseSourceType",
+    "noiseSourceName",
+    "volumePercent",
+    "modelId",
+    "modelName",
+    "engineType",
+    "language",
+    "runtimeMode",
+    "category",
+    "difficulty",
+    "referenceText",
+    "recognizedText",
+    "normalizedReferenceText",
+    "normalizedRecognizedText",
+    "wer",
+    "cer",
+    "recordingDurationMs",
+    "speechDurationMs",
+    "silenceDurationMs",
+    "ttfsMs",
+    "transcriptionTimeMs",
+    "realTimeFactor",
+    "partialTranscriptsCount",
+    "segmentCount",
+    "batteryLevelStart",
+    "batteryLevelEnd",
+    "batteryDelta",
+    "thermalStateBefore",
+    "thermalStateAfter",
+    "memoryWarningCount",
+    "availableMemoryMbBefore",
+    "availableMemoryMbAfter",
+    "success",
+    "errorMessage",
+    "notes"
+  ],
+  "scoringNotes": {
+    "wer": "Compute from normalizedReferenceText and normalizedRecognizedText unless raw WER is separately needed.",
+    "cer": "Important for Finnish because inflection and compound words can make word-level scoring harsh.",
+    "realTimeFactor": "transcriptionTimeMs / recordingDurationMs. If using VAD segments, also consider average segment processing time separately if available.",
+    "ttfsMs": "Time to first text/symbol/partial result. For offline models, this may be null or equal to time until first final text appears."
+  }
+}
