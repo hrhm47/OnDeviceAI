@@ -37,26 +37,19 @@ VAD does not make an offline ASR model true streaming. A model is only true stre
 
 ## Model runtime behavior
 
-| Engine | Language | Expected runtime mode | Role |
-|---|---|---|---|
-| Native ASR | EN/FI | true-streaming if partial callbacks work | real-time baseline |
-| Whisper base | EN/FI | offline-full-recording | multilingual offline baseline |
-| Qwen3-ASR | EN/FI | vad-segmented-offline | advanced on-device candidate |
+| Engine       | Language | Expected runtime mode                    | Role                          |
+| ------------ | -------- | ---------------------------------------- | ----------------------------- |
+| Native ASR   | EN/FI    | true-streaming if partial callbacks work | real-time baseline            |
+| Whisper base | EN/FI    | offline-full-recording                   | multilingual offline baseline |
+| Qwen3-ASR    | EN/FI    | vad-segmented-offline                    | advanced on-device candidate  |
 
 ## Implemented engines
 
-| Engine | Status | Runtime mode in this implementation | Notes |
-|---|---|---|---|
-| Native ASR | Working/platform-limited | `true-streaming` when interim callbacks produce partials | Uses `expo-speech-recognition` as the live baseline. |
-| Whisper base | Working | `offline-full-recording` | Uses bundled multilingual `whisper.rn` base model. On iOS the recorder is configured for mono 16 kHz linear PCM WAV to avoid passing compressed recorder output to Whisper. |
-| Qwen3-ASR | Ready when model files exist | `vad-segmented-offline`; `unsupported` when missing | Uses `react-native-sherpa-onnx` offline STT over VAD speech segments. |
-| Parakeet TDT | Deactivated | `unsupported` in selector | Code remains for later cleanup, but the model is not part of the active benchmark selector because it was crashing on iOS during recognition. |
-
-## Vosk removal
-
-Vosk was removed from active testing because the selected Vosk model was English-only and does not fit the Finnish/English thesis requirement.
-
-Vosk is not part of the active model selector, active ASR engine registry, or active model download service. It may be mentioned only as a rejected English-only baseline in thesis documentation.
+| Engine       | Status                       | Runtime mode in this implementation                      | Notes                                                                                                                                                                       |
+| ------------ | ---------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Native ASR   | Working/platform-limited     | `true-streaming` when interim callbacks produce partials | Uses `expo-speech-recognition` as the live baseline.                                                                                                                        |
+| Whisper base | Working                      | `offline-full-recording`                                 | Uses bundled multilingual `whisper.rn` base model. On iOS the recorder is configured for mono 16 kHz linear PCM WAV to avoid passing compressed recorder output to Whisper. |
+| Qwen3-ASR    | Ready when model files exist | `vad-segmented-offline`; `unsupported` when missing      | Uses `react-native-sherpa-onnx` offline STT over VAD speech segments.                                                                                                       |
 
 ## VAD implementation
 
@@ -99,12 +92,6 @@ Active model:
 
 `ggml-base.bin`
 
-Removed from active model selection:
-
-- `ggml-tiny.en.bin`
-- `ggml-tiny.bin`
-- `ggml-base.en.bin`
-
 Whisper base is multilingual and is the only active Whisper model for the thesis app. The app supports English and Finnish through this model.
 
 Whisper has a 30-second processing window internally, but that does not make the current app path true live partial-token streaming. Whisper is kept on the safer full-recording path: the app records once, stops, then calls `whisper.rn` once. The previous VAD-segment experiment was removed because running native PCM streaming and Whisper transcription together was unstable on iOS.
@@ -137,47 +124,6 @@ Required files:
 The Qwen adapter checks model paths safely and returns a saved `unsupported` result when files are missing. In this implementation Qwen is not marked true streaming, because the selected Qwen path uses Sherpa-ONNX offline STT rather than an online recognizer with partial callbacks.
 
 Qwen PCM recording feeds the VAD layer while the user is recording. Completed speech segments are queued and transcribed sequentially as soon as VAD closes each segment, then appended to the transcript. This is simulated streaming: text appears after utterance boundaries, not as partial words during the utterance.
-
-## Parakeet notes
-
-Parakeet is currently deactivated from the active model selector. The code and documentation below are retained only as reference for a later cleanup or native-library fix.
-
-Engine id:
-
-`parakeet-tdt-0.6b-v3-int8`
-
-Sherpa-ONNX model id:
-
-`sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8`
-
-Direct model URL used by the in-app download action:
-
-`https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2`
-
-Archive type:
-
-`tar.bz2`
-
-Expected project asset directory:
-
-`assets/models/parakeet/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8`
-
-Runtime document-directory fallback:
-
-`models/parakeet/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8`
-
-Required files after extraction:
-
-- `encoder.int8.onnx`
-- `decoder.int8.onnx`
-- `joiner.int8.onnx`
-- `tokens.txt`
-
-The model is the 25-European-language Parakeet TDT package. The thesis app exposes only English and Finnish, matching the current experiment language scope.
-
-The Sherpa-ONNX model type is `nemo_transducer`, with `preferInt8: true`, two CPU threads, and CPU provider. The adapter calls `detectSttModel()` with `modelType: "nemo_transducer"` before creating the recognizer.
-
-Parakeet is not marked true online streaming. Sherpa's simulated-streaming APKs use VAD to send completed speech segments into non-streaming/offline ASR, so this implementation uses `runtimeMode: "vad-segmented-offline"` and does not show live partial words. Missing files return a saved `unsupported` result with `Parakeet model files are missing or not configured.` rather than crashing the app.
 
 ## VAD metrics
 
@@ -245,6 +191,5 @@ Results are stored locally under the app document directory in `asr-results/resu
 - Native ASR partial behavior depends on the OS speech service and locale support.
 - Whisper is not true partial-token streaming in this prototype; it transcribes after recording stops.
 - Qwen3-ASR currently runs through Sherpa-ONNX offline recognition over VAD segments.
-- Parakeet is currently deactivated because it was unstable on iOS in this project.
 - WER/CER evaluation comes in Phase 2.
 - Context extraction and form autofill come later.
