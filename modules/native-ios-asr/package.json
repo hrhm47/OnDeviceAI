@@ -1,0 +1,7 @@
+{
+  "name": "native-ios-asr",
+  "version": "0.1.0",
+  "description": "Local Expo module for configurable Native iOS ASR",
+  "main": "src/index.ts",
+  "private": true
+}
