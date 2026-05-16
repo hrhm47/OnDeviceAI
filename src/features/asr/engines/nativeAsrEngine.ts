@@ -23,6 +23,7 @@ import {
   DEFAULT_NATIVE_ASR_PHASE3_CONFIG,
   nativeASRLocaleForLanguage,
 } from "../phase3/nativeASRPhase3.types";
+import { ContinuousTranscriptAccumulator } from "../phase3/continuousTranscriptAccumulator";
 import type {
   NativeIOSASRErrorEvent,
   NativeIOSASRFinalEvent,
@@ -50,6 +51,7 @@ export class NativeAsrEngine implements ASREngine {
   private streamingPartialTranscripts: string[] = [];
   private streamingError: string | null = null;
   private latestMetrics: NativeIOSASRMetricsEvent | null = null;
+  private transcriptAccumulator = new ContinuousTranscriptAccumulator();
   private stopStreamingResolver: ((result: TranscriptionResult) => void) | null =
     null;
   private stopTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -110,6 +112,7 @@ export class NativeAsrEngine implements ASREngine {
     this.streamingPartialTranscripts = [];
     this.streamingError = null;
     this.latestMetrics = null;
+    this.transcriptAccumulator.reset();
 
     this.listeners = [
       addNativeIOSASRListener("NativeIOSASR.onPartialResult", (event) =>
@@ -176,6 +179,7 @@ export class NativeAsrEngine implements ASREngine {
     this.streamingFinalTranscript = "";
     this.streamingPartialTranscripts = [];
     this.streamingError = null;
+    this.transcriptAccumulator.reset();
     await cancelNativeIOSASRRecognition().catch(() => undefined);
   }
 
@@ -192,8 +196,9 @@ export class NativeAsrEngine implements ASREngine {
       this.streamingFirstTextAt = nowMs();
     }
 
-    this.streamingPartialTranscripts.push(text);
-    options.onPartialResult?.(text);
+    const accumulatedTranscript = this.transcriptAccumulator.update(text);
+    this.streamingPartialTranscripts.push(accumulatedTranscript);
+    options.onPartialResult?.(accumulatedTranscript);
     options.onSpeechStart?.();
   }
 
@@ -202,9 +207,7 @@ export class NativeAsrEngine implements ASREngine {
     options: StreamingASROptions,
   ) {
     const text = event.text.trim();
-    if (text) {
-      this.streamingFinalTranscript = text;
-    }
+    this.streamingFinalTranscript = this.transcriptAccumulator.finalize(text);
     this.streamingFinalTextAt = nowMs();
     options.onFinalResult?.(this.streamingFinalTranscript);
 
@@ -244,6 +247,7 @@ export class NativeAsrEngine implements ASREngine {
     const finalTextAt = this.streamingFinalTextAt ?? stoppedAt;
     const transcript =
       this.streamingFinalTranscript ||
+      this.transcriptAccumulator.current() ||
       this.streamingPartialTranscripts[this.streamingPartialTranscripts.length - 1] ||
       "";
 

@@ -9,6 +9,7 @@ import type {
   TestSession,
 } from "@/src/features/asr/asrTesting/types/manualAsrTesting.types";
 import { buildContextualStrings } from "@/src/features/asr/phase3/contextualStringsBuilder";
+import { ContinuousTranscriptAccumulator } from "@/src/features/asr/phase3/continuousTranscriptAccumulator";
 import {
   cancelNativeIOSASRRecognition,
   getNativeIOSASRCapabilities,
@@ -98,6 +99,7 @@ export default function Phase3NativeASRScreen() {
   const finalResultTimeRef = useRef<number | null>(null);
   const recognitionStopTimeRef = useRef<number | null>(null);
   const partialTranscriptsRef = useRef<string[]>([]);
+  const transcriptAccumulatorRef = useRef(new ContinuousTranscriptAccumulator());
   const activeConfigRef = useRef<NativeASRPhase3Config>(
     DEFAULT_NATIVE_ASR_PHASE3_CONFIG,
   );
@@ -289,15 +291,22 @@ export default function Phase3NativeASRScreen() {
         if (firstPartialTimeRef.current === null) {
           firstPartialTimeRef.current = Date.now();
         }
-        partialTranscriptsRef.current.push(text);
-        setLivePartialTranscript(text);
+        const accumulatedTranscript =
+          transcriptAccumulatorRef.current.update(text);
+        partialTranscriptsRef.current.push(accumulatedTranscript);
+        setLivePartialTranscript(accumulatedTranscript);
       }),
       addNativeIOSASRListener("NativeIOSASR.onFinalResult", (event) => {
         const text = event.text.trim();
+        const accumulatedTranscript =
+          transcriptAccumulatorRef.current.finalize(text);
         finalResultTimeRef.current = Date.now();
         recognitionStopTimeRef.current = recognitionStopTimeRef.current ?? Date.now();
-        setFinalTranscript(text);
-        setPhase3Result(buildResult({ success: true, rawTranscript: text }));
+        setLivePartialTranscript(accumulatedTranscript);
+        setFinalTranscript(accumulatedTranscript);
+        setPhase3Result(
+          buildResult({ success: true, rawTranscript: accumulatedTranscript }),
+        );
         setResultSaved(false);
       }),
       addNativeIOSASRListener("NativeIOSASR.onError", (event) => {
@@ -326,6 +335,7 @@ export default function Phase3NativeASRScreen() {
     setResultSaved(false);
     setMetrics(null);
     partialTranscriptsRef.current = [];
+    transcriptAccumulatorRef.current.reset();
     firstPartialTimeRef.current = null;
     finalResultTimeRef.current = null;
     recognitionStopTimeRef.current = null;

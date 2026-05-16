@@ -32,6 +32,8 @@ public class NativeIOSASRModule: Module {
   private var partialTranscriptsCount = 0
   private var hasFinalResult = false
   private var isStopping = false
+  private var committedTranscript = ""
+  private var activePartialTranscript = ""
 
   public func definition() -> ModuleDefinition {
     Name("NativeIOSASR")
@@ -185,6 +187,8 @@ public class NativeIOSASRModule: Module {
     self.partialTranscriptsCount = 0
     self.hasFinalResult = false
     self.isStopping = false
+    self.committedTranscript = ""
+    self.activePartialTranscript = ""
 
     let supportsOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
     let policy = applyOnDevicePolicy(config.onDevicePolicy, supportsOnDeviceRecognition: supportsOnDeviceRecognition)
@@ -292,8 +296,9 @@ public class NativeIOSASRModule: Module {
     if let result {
       let text = result.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines)
       if !text.isEmpty {
+        let accumulatedText = accumulateTranscript(text)
         let event: [String: Any] = [
-          "text": text,
+          "text": accumulatedText,
           "timestampMs": Self.nowMs(),
           "isFinal": result.isFinal
         ]
@@ -354,6 +359,8 @@ public class NativeIOSASRModule: Module {
     recognitionTask = nil
     currentConfig = nil
     isStopping = false
+    committedTranscript = ""
+    activePartialTranscript = ""
   }
 
   private func cleanupAudioEngine() {
@@ -410,6 +417,111 @@ public class NativeIOSASRModule: Module {
 
   private static func nowMs() -> Double {
     return Date().timeIntervalSince1970 * 1000
+  }
+
+  private func accumulateTranscript(_ nextText: String) -> String {
+    let text = Self.cleanTranscriptText(nextText)
+    if text.isEmpty {
+      return currentTranscript()
+    }
+
+    if isCompleteSessionTranscript(text) {
+      committedTranscript = ""
+      activePartialTranscript = text
+      return currentTranscript()
+    }
+
+    if activePartialTranscript.isEmpty {
+      activePartialTranscript = text
+      return currentTranscript()
+    }
+
+    if Self.isLikelyPartialRevision(previous: activePartialTranscript, next: text) {
+      activePartialTranscript = text
+      return currentTranscript()
+    }
+
+    committedTranscript = Self.joinTranscriptParts(committedTranscript, activePartialTranscript)
+    activePartialTranscript = text
+    return currentTranscript()
+  }
+
+  private func currentTranscript() -> String {
+    return Self.joinTranscriptParts(committedTranscript, activePartialTranscript)
+  }
+
+  private func isCompleteSessionTranscript(_ text: String) -> Bool {
+    let normalizedText = Self.normalizeForComparison(text)
+    let normalizedCommitted = Self.normalizeForComparison(committedTranscript)
+    let normalizedCurrent = Self.normalizeForComparison(currentTranscript())
+
+    return (
+      (!normalizedCommitted.isEmpty && Self.startsWithTranscript(normalizedText, prefix: normalizedCommitted)) ||
+      (!normalizedCurrent.isEmpty && Self.startsWithTranscript(normalizedText, prefix: normalizedCurrent))
+    )
+  }
+
+  private static func isLikelyPartialRevision(previous: String, next: String) -> Bool {
+    let normalizedPrevious = normalizeForComparison(previous)
+    let normalizedNext = normalizeForComparison(next)
+
+    if normalizedPrevious.isEmpty || normalizedNext.isEmpty {
+      return false
+    }
+
+    if startsWithTranscript(normalizedNext, prefix: normalizedPrevious) ||
+      startsWithTranscript(normalizedPrevious, prefix: normalizedNext) {
+      return true
+    }
+
+    let previousTokens = Set(normalizedPrevious.split(separator: " ").map(String.init))
+    let nextTokens = Set(normalizedNext.split(separator: " ").map(String.init))
+    let sharedCount = previousTokens.intersection(nextTokens).count
+    let smallerTokenCount = min(previousTokens.count, nextTokens.count)
+
+    if smallerTokenCount == 0 {
+      return false
+    }
+
+    let overlapRatio = Double(sharedCount) / Double(smallerTokenCount)
+    let requiredOverlap = smallerTokenCount >= 4 ? 0.5 : 0.75
+    return overlapRatio >= requiredOverlap
+  }
+
+  private static func startsWithTranscript(_ text: String, prefix: String) -> Bool {
+    return text == prefix || text.hasPrefix("\(prefix) ")
+  }
+
+  private static func normalizeForComparison(_ text: String) -> String {
+    let punctuation = CharacterSet(charactersIn: ".,!?;:()[]{}\"'`")
+    return cleanTranscriptText(text)
+      .lowercased()
+      .components(separatedBy: punctuation)
+      .joined()
+      .components(separatedBy: .whitespacesAndNewlines)
+      .filter { !$0.isEmpty }
+      .joined(separator: " ")
+  }
+
+  private static func cleanTranscriptText(_ text: String) -> String {
+    return text
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .components(separatedBy: .whitespacesAndNewlines)
+      .filter { !$0.isEmpty }
+      .joined(separator: " ")
+  }
+
+  private static func joinTranscriptParts(_ first: String, _ second: String) -> String {
+    let left = cleanTranscriptText(first)
+    let right = cleanTranscriptText(second)
+
+    if left.isEmpty {
+      return right
+    }
+    if right.isEmpty {
+      return left
+    }
+    return "\(left) \(right)"
   }
 
   private static func errorMessage(_ error: Error) -> String {
