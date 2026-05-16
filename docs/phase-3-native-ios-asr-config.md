@@ -300,32 +300,49 @@ This supports privacy-first thesis claims without overstating offline behavior.
 
 Contextual strings are implemented as a configurable scaffold. They are disabled by default.
 
-React Native builds a small construction-specific list using:
+Apple's [`SFSpeechRecognitionRequest.contextualStrings`](https://developer.apple.com/documentation/speech/sfspeechrecognitionrequest/contextualstrings) documentation recommends short custom phrases and limits the total number of phrases to no more than 100. Phase 3 therefore uses a safer prototype cap of 90 phrases total, split into 45 English phrases and 45 Finnish phrases.
 
-- locations
-- rooms
+The current contextual string set is defined in `src/features/asr/phase3/projectSpeechContext.ts`:
+
+- `EN_CONSTRUCTION_CONTEXTUAL_STRINGS_V1`: 45 English construction-reporting phrases
+- `FI_CONSTRUCTION_CONTEXTUAL_STRINGS_V1`: 45 Finnish construction-reporting phrases
+- `MAX_CONTEXTUAL_STRINGS_TOTAL`: 90
+- `MAX_CONTEXTUAL_STRINGS_PER_LANGUAGE`: 45
+
+React Native builds the contextual string list from construction-specific terms such as:
+
 - issue types
-- categories
 - contractor roles
-- contractor names
+- inspection/reporting concepts
+- locations and building areas
+- defect descriptions
+- building systems
+- safety terms
 - urgency words
 - Finnish terms
 
-Example demo terms include:
+The selected English terms prioritize phrases likely to appear in spoken construction reports:
 
 ```text
-A302
-A303
-Building A
-bathroom
-staircase
 water leak
 plumbing contractor
-electrical contractor
-urgent
+electrical fault
+moisture damage
+fall protection
+site inspection
+corrective action
+```
+
+The selected Finnish terms prioritize equivalent construction-site vocabulary:
+
+```text
 vesivuoto
 kylpyhuone
+putkiurakoitsija
+sähköurakoitsija
 turvakaide
+putoamissuojaus
+kosteusvaurio
 ```
 
 When contextual strings are enabled and the list is non-empty, Swift applies:
@@ -336,7 +353,7 @@ request.contextualStrings = config.contextualStrings
 
 Contextual strings and punctuation are implemented as configurable features, but the actual vocabulary will be tuned after the first implementation.
 
-Contextual strings do not fine-tune Apple ASR. They only provide recognition hints that may help with project-specific terms, construction vocabulary, room codes, and Finnish construction words.
+Contextual strings do not fine-tune Apple ASR. They only provide recognition hints that may help with construction vocabulary, contractor roles, safety terms, and Finnish construction words.
 
 The UI shows only `contextualStringsCount`; it does not expose a large vocabulary editor yet.
 
@@ -510,16 +527,16 @@ To test contextual strings and punctuation, use the same sentence, same room, sa
 Useful English phrase:
 
 ```text
-There is a water leak in bathroom A302 near the staircase. The plumbing contractor should inspect it urgently.
+There is a water leak in the bathroom near the staircase. The plumbing contractor should inspect it urgently.
 ```
 
 Useful Finnish phrase:
 
 ```text
-A302 kylpyhuoneessa on vesivuoto. Turvakaide pitää tarkistaa kiireellisesti.
+Kylpyhuoneessa on vesivuoto. Turvakaide pitää tarkistaa kiireellisesti.
 ```
 
-For contextual strings, compare recognition of project terms such as `A302`, `A303`, `water leak`, `plumbing contractor`, `vesivuoto`, and `kylpyhuone`.
+For contextual strings, compare recognition of terms such as `water leak`, `plumbing contractor`, `moisture damage`, `fall protection`, `vesivuoto`, `kylpyhuone`, `putkiurakoitsija`, and `turvakaide`.
 
 For punctuation, compare the final raw transcript readability. WER/CER may not change because normalized scoring removes punctuation.
 

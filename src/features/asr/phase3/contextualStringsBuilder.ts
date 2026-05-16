@@ -1,6 +1,10 @@
-import type { ProjectSpeechContext } from "./projectSpeechContext";
+import {
+  MAX_CONTEXTUAL_STRINGS_PER_LANGUAGE,
+  MAX_CONTEXTUAL_STRINGS_TOTAL,
+  type ProjectSpeechContext,
+} from "./projectSpeechContext";
 
-const DEFAULT_MAX_ITEMS = 100;
+const DEFAULT_MAX_ITEMS = MAX_CONTEXTUAL_STRINGS_TOTAL;
 const MAX_PHRASE_LENGTH = 64;
 
 export function buildContextualStrings(
@@ -19,19 +23,45 @@ export function buildContextualStrings(
   const includeEnglish = options?.includeEnglish ?? true;
   const includeFinnish = options?.includeFinnish ?? true;
 
-  const values = [
-    ...(includeEnglish ? context.locations : []),
-    ...(includeEnglish ? context.rooms : []),
-    ...(includeEnglish ? context.issueTypes : []),
-    ...(includeEnglish ? context.categories : []),
-    ...(includeEnglish ? context.contractorRoles : []),
-    ...(includeEnglish ? context.contractorNames : []),
-    ...(includeEnglish ? context.urgencyWords : []),
-    ...(includeFinnish ? context.finnishTerms : []),
-  ];
-
   const seen = new Set<string>();
   const result: string[] = [];
+
+  if (includeEnglish) {
+    appendValues(result, seen, englishValues(context), maxItems);
+  }
+
+  if (includeFinnish) {
+    appendValues(result, seen, finnishValues(context), maxItems);
+  }
+
+  return result;
+}
+
+function englishValues(context: ProjectSpeechContext): readonly string[] {
+  return (
+    context.englishTerms ?? [
+      ...(context.locations ?? []),
+      ...(context.rooms ?? []),
+      ...(context.issueTypes ?? []),
+      ...(context.categories ?? []),
+      ...(context.contractorRoles ?? []),
+      ...(context.contractorNames ?? []),
+      ...(context.urgencyWords ?? []),
+    ]
+  );
+}
+
+function finnishValues(context: ProjectSpeechContext): readonly string[] {
+  return context.finnishTerms ?? [];
+}
+
+function appendValues(
+  result: string[],
+  seen: Set<string>,
+  values: readonly string[],
+  maxItems: number,
+) {
+  let addedForLanguage = 0;
 
   for (const value of values) {
     const trimmed = value.trim().replace(/\s+/g, " ");
@@ -42,11 +72,13 @@ export function buildContextualStrings(
 
     seen.add(key);
     result.push(trimmed);
+    addedForLanguage += 1;
 
-    if (result.length >= maxItems) {
+    if (
+      result.length >= maxItems ||
+      addedForLanguage >= MAX_CONTEXTUAL_STRINGS_PER_LANGUAGE
+    ) {
       break;
     }
   }
-
-  return result;
 }

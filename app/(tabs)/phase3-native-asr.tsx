@@ -38,7 +38,7 @@ import {
   getPhase3NativeASRResults,
   savePhase3NativeASRResult,
 } from "@/src/features/asr/phase3/phase3NativeASRStorage";
-import { demoProjectSpeechContext } from "@/src/features/asr/phase3/projectSpeechContext";
+import { phase3ConstructionSpeechContext } from "@/src/features/asr/phase3/projectSpeechContext";
 import { preparePhase3Transcript } from "@/src/features/asr/phase3/transcriptPreparation";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -107,7 +107,7 @@ export default function Phase3NativeASRScreen() {
   const contextualStrings = useMemo(
     () =>
       contextualStringsEnabled
-        ? buildContextualStrings(demoProjectSpeechContext, {
+        ? buildContextualStrings(phase3ConstructionSpeechContext, {
             includeEnglish: language === "en",
             includeFinnish: language === "fi",
           })
