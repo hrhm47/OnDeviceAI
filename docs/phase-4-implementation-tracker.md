@@ -45,3 +45,11 @@ Implementation started: 2026-05-19, Europe/Helsinki.
 - Checklist: prompt includes transcript, model task rules, allowed companies/tags/actions/dates, schema, policy, and JSON shape.
 - Known limitations: prompt builder does not call a model; provider work is separate.
 - Verification: `npx tsc --noEmit` passed; `npm run lint` passed; prompt sections confirmed with `rg`.
+
+### `phase4/llm-provider-interface`
+
+- Files added: provider interface, deterministic mock provider, local Qwen provider placeholder.
+- Files modified: implementation tracker.
+- Checklist: mock provider returns JSON; local provider does not fake inference; no cloud API imported.
+- Known limitations: real local LLM runtime is still not connected.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed; scan found no cloud API imports in provider files.
