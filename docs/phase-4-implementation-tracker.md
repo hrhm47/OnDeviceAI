@@ -53,3 +53,11 @@ Implementation started: 2026-05-19, Europe/Helsinki.
 - Checklist: mock provider returns JSON; local provider does not fake inference; no cloud API imported.
 - Known limitations: real local LLM runtime is still not connected.
 - Verification: `npx tsc --noEmit` passed; `npm run lint` passed; scan found no cloud API imports in provider files.
+
+### `phase4/parser-and-validator`
+
+- Files added: safe LLM JSON parser, allowed value checks, draft validator, validation warning type.
+- Files modified: implementation tracker.
+- Checklist: invented companies/tags/areas/due dates are rejected or removed; marker/photos/impacts/notifications are forced to Phase 4 policy.
+- Known limitations: validator is deterministic local rules, not semantic retrieval.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed.
