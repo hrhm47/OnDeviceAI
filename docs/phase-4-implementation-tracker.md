@@ -29,3 +29,11 @@ Implementation started: 2026-05-19, Europe/Helsinki.
 - Checklist: reference repository added; no UI/provider/parser work included.
 - Known limitations: dummy company data is local v1 thesis data, not a production Congrid dataset.
 - Verification: `npx tsc --noEmit` passed; `npm run lint` passed.
+
+### `phase4/model-config`
+
+- Files added: selected Phase 4 LLM model config and local model folder README.
+- Files modified: `.gitignore`, implementation tracker.
+- Checklist: GGUF ignore rule added; selected model metadata exported; no runtime inference claimed.
+- Known limitations: real local llama.cpp-compatible runtime is not connected yet.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed; `.gitignore` contains `models/llm/**/*.gguf`.
