@@ -28,7 +28,7 @@ const company = (
 export const PHASE4_DUMMY_COMPANIES_V1: readonly Phase4CompanyReference[] = [
   company("company_aquapipe_finland", "AquaPipe Finland Oy", "plumbing", ["pipe", "leak", "water leak", "plumbing"], ["putki", "vesivuoto", "vuoto", "lvi"], ["Korjaus", "Fixed"], ["Quality"], true),
   company("company_saku_putki", "Saku Putki Service Oy", "plumbing", ["pipe", "drain", "water"], ["putki", "viemäri", "vesi"], ["Korjaus", "Kuntoon"]),
-  company("company_northflow_lvi", "NorthFlow LVI Oy", "hvac_ventilation", ["hvac", "ventilation", "air"], ["lvi", "ilmanvaihto"], ["Korjaus", "Kuntoon"], ["Quality"], true),
+  company("company_northflow_lvi", "NorthFlow LVI Oy", "hvac_ventilation", ["hvac", "ventilation", "air", "radiator", "heating", "valve"], ["lvi", "ilmanvaihto", "patteri", "lämmitys", "venttiili"], ["Korjaus", "Kuntoon"], ["Quality"], true),
   company("company_kitchenfix", "KitchenFix Pro Oy", "kitchen", ["kitchen", "cabinet", "countertop"], ["keittiö", "kaappi", "taso"], ["Kiinnitetään kunnolla", "Korjaus"], ["Quality"], true),
   company("company_kalustekulma", "KalusteKulma Oy", "kitchen", ["fixture", "furniture", "cabinet"], ["kaluste", "kaappi"], ["Kiinnitetään kunnolla", "Kuntoon"]),
   company("company_applianceinstall", "ApplianceInstall Finland Oy", "kitchen", ["appliance", "oven", "dishwasher"], ["kodinkone", "uuni", "astianpesukone"], ["Korjaus", "Kuntoon"]),
@@ -47,4 +47,11 @@ export const PHASE4_DUMMY_COMPANIES_V1: readonly Phase4CompanyReference[] = [
   company("company_palostop", "PaloStop Oy", "fire_stopping_safety", ["fire stop", "fire stopping", "penetration"], ["palokatko", "läpivienti"], ["Korjaus", "Kuntoon"], ["Palokatko", "Safety"], true),
   company("company_cleansite", "CleanSite Oy", "cleaning", ["clean", "debris", "dust"], ["siivous", "roska", "pöly"], ["Kuntoon"], ["Environment"], true),
   company("company_masonry_structural", "Masonry Structural Oy", "masonry_structural", ["masonry", "concrete", "structure"], ["muuraus", "betoni", "rakenne"], ["Korjaus", "Kuntoon"], ["Quality"], true),
+  company("company_window_door_service", "Window and Door Service Oy", "doors_windows", ["balcony door", "window", "door seal", "cold air", "does not close", "seal"], ["parvekkeen ovi", "ikkuna", "tiiviste", "kylmää ilmaa", "ei sulkeudu"], ["Korjaus", "Kuntoon"], ["Quality"], true),
+  company("company_doorfix_rakennus", "DoorFix Rakennus Oy", "doors_locks", ["entrance door", "door", "lock", "frame", "rubs"], ["ulko-ovi", "ovi", "lukko", "karmi", "hankaa"], ["Korjaus", "Kiinnitetään kunnolla"], ["Quality"], true),
+  company("company_ceilingpro", "CeilingPro Oy", "ceiling", ["ceiling", "ceiling panel", "meeting room"], ["katto", "kattopaneeli", "kokoushuone"], ["Kuntoon", "Korjaus"], ["Quality"], true),
+  company("company_scaffoldsafe", "ScaffoldSafe Oy", "scaffolding", ["scaffold", "scaffolding", "west facade"], ["teline", "rakennusteline", "länsijulkisivu"], ["Kiinnitetään kunnolla", "Korjaus"], ["Safety"], true),
+  company("company_concretecare", "ConcreteCare Oy", "concrete", ["concrete", "parking garage ramp", "crack"], ["betoni", "parkkihallin ramppi", "halkeama"], ["Korjaus", "Kuntoon"], ["Quality"], true),
+  company("company_site_logistics", "SiteLogistics Oy", "site_logistics", ["loading area", "delivery", "materials"], ["lastausalue", "toimitus", "materiaalit"], ["Kuntoon"], ["Environment"], true),
+  company("company_fall_protection", "FallProtect Site Safety Oy", "fall_protection", ["fall protection", "elevator shaft", "opening", "guardrail"], ["putoamissuojaus", "hissikuilu", "aukko", "kaide"], ["Kiinnitetään kunnolla", "Korjaus"], ["Safety"], true),
 ] as const;

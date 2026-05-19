@@ -1,3 +1,4 @@
+import { resolvePhase4Candidates } from "../candidates/phase4CandidateResolver";
 import { buildPhase4LLMInput } from "../llm/phase4LLMInputBuilder";
 import { parsePhase4LLMOutput } from "../llm/phase4LLMOutputParser";
 import { phase4MockLLMProvider } from "../llm/phase4MockLLMProvider";
@@ -39,10 +40,15 @@ export const extractGeneralTaskFormDraft = async (input: {
 }): Promise<Phase4ExtractionResult> => {
   const transcript = preparePhase4Transcript(input);
   const referenceData = getPhase4ReferenceData();
+  const candidateResolution = resolvePhase4Candidates({
+    transcript,
+    referenceData,
+  });
   const llmInput = buildPhase4LLMInput({
     transcript,
     language: input.language,
     referenceData,
+    candidateResolution,
   });
   const provider = input.provider ?? phase4MockLLMProvider;
   let rawLlmOutput = "";
@@ -64,6 +70,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     parsedOutput: parseResult.output,
     transcript,
     referenceData,
+    candidateResolution,
   });
 
   return {

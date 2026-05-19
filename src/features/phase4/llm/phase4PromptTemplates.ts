@@ -7,16 +7,16 @@ You are extracting fields for a Congrid-style construction task form.
 You must follow these rules:
 ${input.extractionPolicy.rules.map((rule) => `- ${rule}`).join("\n")}
 
+Prefer these deterministic local candidates when present. Do not choose values outside the allowed lists:
+${JSON.stringify(input.candidateResolution ?? {}, null, 2)}
+
 Language: ${input.language}
 
 Transcript:
 ${input.transcript}
 
-Target form:
-${JSON.stringify(input.formSchema, null, 2)}
-
 Allowed companies:
-${JSON.stringify(input.allowedCompanies, null, 2)}
+${JSON.stringify(compactCompanies(input), null, 2)}
 
 Allowed tags:
 ${JSON.stringify(input.allowedTags, null, 2)}
@@ -118,3 +118,22 @@ Return JSON only in this structure:
 }
 
 export const buildPhase4GeneralTaskPrompt = buildPhase4ExtractionPrompt;
+
+const compactCompanies = (input: Phase4LLMInput) => {
+  const candidateIds = new Set(
+    input.candidateResolution?.companyCandidates.map(
+      (candidate) => candidate.value.companyId,
+    ) ?? [],
+  );
+  const companies = candidateIds.size
+    ? input.allowedCompanies.filter((company) => candidateIds.has(company.companyId))
+    : input.allowedCompanies.slice(0, 5);
+
+  return companies.map((company) => ({
+    companyId: company.companyId,
+    displayName: company.displayName,
+    primaryCategory: company.primaryCategory,
+    actionHints: company.actionHints,
+    tagHints: company.tagHints,
+  }));
+};

@@ -41,7 +41,14 @@ export type Phase4CompanyCategory =
   | "hvac_ventilation"
   | "fire_stopping_safety"
   | "cleaning"
-  | "masonry_structural";
+  | "masonry_structural"
+  | "doors_windows"
+  | "doors_locks"
+  | "ceiling"
+  | "scaffolding"
+  | "concrete"
+  | "site_logistics"
+  | "fall_protection";
 
 export type Phase4CompanyReference = {
   companyId: string;
@@ -84,6 +91,28 @@ export type Phase4ReferenceData = {
   extractionPolicy: Phase4ExtractionPolicy;
 };
 
+export type Phase4CandidateConfidence = "high" | "medium" | "low";
+
+export type Phase4Candidate<T> = {
+  value: T;
+  confidence: Phase4CandidateConfidence;
+  evidence: string;
+  reason: string;
+};
+
+export type Phase4CompanyCandidate = Phase4Candidate<{
+  companyId: string;
+  displayName: string;
+}>;
+
+export type Phase4CandidateResolution = {
+  companyCandidates: Phase4CompanyCandidate[];
+  areaCandidates: Phase4Candidate<string>[];
+  requiredActionCandidates: Phase4Candidate<Phase4RequiredAction>[];
+  dueDateCandidates: Phase4Candidate<Phase4AllowedDueDate>[];
+  tagCandidates: Phase4Candidate<Phase4TaskTag>[];
+};
+
 export type Phase4LLMInput = {
   promptVersion: "phase4_general_task_prompt_v1";
   language: Phase4Language;
@@ -94,6 +123,7 @@ export type Phase4LLMInput = {
   allowedRequiredActions: readonly Phase4RequiredAction[];
   allowedDueDates: readonly Phase4AllowedDueDate[];
   extractionPolicy: Phase4ExtractionPolicy;
+  candidateResolution?: Phase4CandidateResolution;
 };
 
 export type Phase4LLMField<T> = {

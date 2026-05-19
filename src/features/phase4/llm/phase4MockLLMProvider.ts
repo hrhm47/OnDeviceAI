@@ -70,8 +70,29 @@ const priorityCompanyId = (text: string) => {
   if (text.includes("paint") || text.includes("painting") || text.includes("wall scratch") || text.includes("maalaus")) {
     return "company_maalausmestarit";
   }
+  if (text.includes("waterproofing membrane") || text.includes("shower wall")) {
+    return "company_wetroom_shield";
+  }
   if (text.includes("sealant") || text.includes("sauma")) {
     return "company_sealpro";
+  }
+  if (text.includes("balcony door") || text.includes("window") || text.includes("cold air") || text.includes("door seal") || text.includes("parvekkeen ovi") || text.includes("tiiviste")) {
+    return "company_window_door_service";
+  }
+  if (text.includes("entrance door") || text.includes("lock") || text.includes("frame") || text.includes("rubs") || text.includes("ulko-ovi") || text.includes("lukko") || text.includes("karmi")) {
+    return "company_doorfix_rakennus";
+  }
+  if (text.includes("radiator") || text.includes("heating") || text.includes("valve")) {
+    return "company_northflow_lvi";
+  }
+  if (text.includes("ceiling")) {
+    return "company_ceilingpro";
+  }
+  if (text.includes("scaffold")) {
+    return "company_scaffoldsafe";
+  }
+  if (text.includes("concrete") || text.includes("parking garage ramp")) {
+    return "company_concretecare";
   }
   if (text.includes("electrical") || text.includes("sähkö")) {
     return "company_north_electric";
