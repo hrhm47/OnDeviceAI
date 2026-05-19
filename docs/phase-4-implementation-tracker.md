@@ -69,3 +69,11 @@ Implementation started: 2026-05-19, Europe/Helsinki.
 - Checklist: transcript selection order implemented; pipeline returns safe draft even if provider or parser fails; mock provider is default.
 - Known limitations: real local provider must be passed explicitly and currently throws placeholder error.
 - Verification: `npx tsc --noEmit` passed; `npm run lint` passed.
+
+### `phase4/storage-and-export`
+
+- Files added: Phase 4 extraction storage and CSV export.
+- Files modified: implementation tracker.
+- Checklist: save/load/clear/export functions added; CSV fields match Phase 4 extraction requirements and escape commas/newlines/quotes.
+- Known limitations: storage is local JSON file storage only, not a database.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed.
