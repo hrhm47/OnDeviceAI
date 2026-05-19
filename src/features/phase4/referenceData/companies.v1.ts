@@ -1,0 +1,50 @@
+import type {
+  Phase4CompanyCategory,
+  Phase4CompanyReference,
+  Phase4RequiredAction,
+  Phase4TaskTag,
+} from "../types/phase4.types";
+
+const company = (
+  companyId: string,
+  displayName: string,
+  primaryCategory: Phase4CompanyCategory,
+  keywordsEn: string[],
+  keywordsFi: string[],
+  actionHints: Phase4RequiredAction[],
+  tagHints: Phase4TaskTag[] = ["Quality"],
+  isDefaultForCategory = false,
+): Phase4CompanyReference => ({
+  companyId,
+  displayName,
+  primaryCategory,
+  roleLabels: { en: [primaryCategory.replace(/_/g, " ")], fi: [primaryCategory.replace(/_/g, " ")] },
+  serviceKeywords: { en: keywordsEn, fi: keywordsFi },
+  actionHints: { en: actionHints, fi: actionHints },
+  tagHints,
+  isDefaultForCategory,
+});
+
+export const PHASE4_DUMMY_COMPANIES_V1: readonly Phase4CompanyReference[] = [
+  company("company_aquapipe_finland", "AquaPipe Finland Oy", "plumbing", ["pipe", "leak", "water leak", "plumbing"], ["putki", "vesivuoto", "vuoto", "lvi"], ["Korjaus", "Fixed"], ["Quality"], true),
+  company("company_saku_putki", "Saku Putki Service Oy", "plumbing", ["pipe", "drain", "water"], ["putki", "viemäri", "vesi"], ["Korjaus", "Kuntoon"]),
+  company("company_northflow_lvi", "NorthFlow LVI Oy", "hvac_ventilation", ["hvac", "ventilation", "air"], ["lvi", "ilmanvaihto"], ["Korjaus", "Kuntoon"], ["Quality"], true),
+  company("company_kitchenfix", "KitchenFix Pro Oy", "kitchen", ["kitchen", "cabinet", "countertop"], ["keittiö", "kaappi", "taso"], ["Kiinnitetään kunnolla", "Korjaus"], ["Quality"], true),
+  company("company_kalustekulma", "KalusteKulma Oy", "kitchen", ["fixture", "furniture", "cabinet"], ["kaluste", "kaappi"], ["Kiinnitetään kunnolla", "Kuntoon"]),
+  company("company_applianceinstall", "ApplianceInstall Finland Oy", "kitchen", ["appliance", "oven", "dishwasher"], ["kodinkone", "uuni", "astianpesukone"], ["Korjaus", "Kuntoon"]),
+  company("company_sealpro", "SealPro Finland Oy", "sealing_waterproofing", ["sealant", "seal", "waterproofing"], ["sauma", "tiiviste", "vedeneristys"], ["Kittaus ja maalaus", "Korjaus"], ["Quality"], true),
+  company("company_wetroom_shield", "WetRoom Shield Oy", "sealing_waterproofing", ["wet room", "waterproofing", "bathroom seal"], ["märkätila", "vedeneristys", "kylpyhuone"], ["Korjaus", "Kuntoon"]),
+  company("company_saumatek", "SaumaTek Oy", "sealing_waterproofing", ["joint", "sealant", "caulk"], ["sauma", "kittaus"], ["Kittaus ja maalaus", "Korjaus"]),
+  company("company_nordic_flooring", "Nordic Flooring Oy", "flooring", ["floor", "flooring", "tile"], ["lattia", "laatta"], ["Korjaus", "Hionta"], ["Quality"], true),
+  company("company_laattalattia", "LaattaLattia Oy", "flooring", ["tile", "floor tile"], ["laatta", "laattalattia"], ["Korjaus", "Kuntoon"]),
+  company("company_floorcare", "FloorCare Rakennus Oy", "flooring", ["scratch", "floor repair"], ["naarmu", "lattiakorjaus"], ["Hionta", "Korjaus"]),
+  company("company_maalausmestarit", "MaalausMestarit Oy", "painting_finishing", ["paint", "painting", "wall scratch"], ["maali", "maalaus", "seinänaarmu"], ["Maalataan uudestaan", "Maalataan"], ["Quality"], true),
+  company("company_surfacefix", "SurfaceFix Oy", "painting_finishing", ["surface", "scratch", "finish"], ["pinta", "naarmu", "viimeistely"], ["Maalataan", "Korjaus"]),
+  company("company_drywall_finish", "Drywall Finish Oy", "painting_finishing", ["drywall", "plaster", "finish"], ["kipsilevy", "tasoite"], ["Kittaus ja maalaus", "Maalataan"]),
+  company("company_north_electric", "North Electric Oy", "electrical", ["electrical", "socket", "cable", "safety issue"], ["sähkö", "pistorasia", "kaapeli", "turvallisuus"], ["Korjaus", "Kuntoon"], ["Safety"], true),
+  company("company_valovirta", "ValoVirta Oy", "electrical", ["light", "lighting", "power"], ["valo", "valaistus", "virta"], ["Korjaus", "Kuntoon"]),
+  company("company_socketpro", "SocketPro Service Oy", "electrical", ["socket", "outlet"], ["pistorasia", "rasia"], ["Kiinnitetään kunnolla", "Korjaus"]),
+  company("company_palostop", "PaloStop Oy", "fire_stopping_safety", ["fire stop", "fire stopping", "penetration"], ["palokatko", "läpivienti"], ["Korjaus", "Kuntoon"], ["Palokatko", "Safety"], true),
+  company("company_cleansite", "CleanSite Oy", "cleaning", ["clean", "debris", "dust"], ["siivous", "roska", "pöly"], ["Kuntoon"], ["Environment"], true),
+  company("company_masonry_structural", "Masonry Structural Oy", "masonry_structural", ["masonry", "concrete", "structure"], ["muuraus", "betoni", "rakenne"], ["Korjaus", "Kuntoon"], ["Quality"], true),
+] as const;
