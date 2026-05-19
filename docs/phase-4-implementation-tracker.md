@@ -37,3 +37,11 @@ Implementation started: 2026-05-19, Europe/Helsinki.
 - Checklist: GGUF ignore rule added; selected model metadata exported; no runtime inference claimed.
 - Known limitations: real local llama.cpp-compatible runtime is not connected yet.
 - Verification: `npx tsc --noEmit` passed; `npm run lint` passed; `.gitignore` contains `models/llm/**/*.gguf`.
+
+### `phase4/llm-input-and-prompt`
+
+- Files added: Phase 4 LLM input builder and prompt template.
+- Files modified: implementation tracker.
+- Checklist: prompt includes transcript, model task rules, allowed companies/tags/actions/dates, schema, policy, and JSON shape.
+- Known limitations: prompt builder does not call a model; provider work is separate.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed; prompt sections confirmed with `rg`.
