@@ -1,5 +1,3 @@
-import { ExpoSpeechRecognitionModule } from "expo-speech-recognition";
-
 import {
   ASREngine,
   ASRLanguage,
@@ -7,18 +5,37 @@ import {
   StreamingASROptions,
   TranscriptionResult,
 } from "../types/asr.types";
-import { getNativeLocaleForLanguage } from "../utils/audioHelpers";
 import {
   createBaseTranscriptionResult,
   createErrorTranscriptionResult,
   nowMs,
 } from "../utils/metricsHelpers";
+import {
+  addNativeIOSASRListener,
+  cancelNativeIOSASRRecognition,
+  getNativeIOSASRCapabilities,
+  isNativeIOSASRModuleAvailable,
+  requestNativeIOSASRPermissions,
+  startNativeIOSASRRecognition,
+  stopNativeIOSASRRecognition,
+} from "../phase3/nativeIOSASRModule";
+import {
+  DEFAULT_NATIVE_ASR_PHASE3_CONFIG,
+  nativeASRLocaleForLanguage,
+} from "../phase3/nativeASRPhase3.types";
+import { ContinuousTranscriptAccumulator } from "../phase3/continuousTranscriptAccumulator";
+import type {
+  NativeIOSASRErrorEvent,
+  NativeIOSASRFinalEvent,
+  NativeIOSASRMetricsEvent,
+  NativeIOSASRPartialEvent,
+} from "../phase3/nativeASRPhase3.types";
 
-const NATIVE_TRANSCRIPTION_TIMEOUT_MS = 120000;
+const STOP_FINAL_TIMEOUT_MS = 4500;
 
 export class NativeAsrEngine implements ASREngine {
   id = "native";
-  name = "Native ASR";
+  name = "Native iOS ASR";
   engineType = "native" as const;
   mode = "native" as const;
   languageSupport: ASRLanguage[] = ["en", "fi"];
@@ -29,236 +46,186 @@ export class NativeAsrEngine implements ASREngine {
   private streamingOptions: StreamingASROptions | null = null;
   private streamingStartedAt: number | null = null;
   private streamingFirstTextAt: number | null = null;
+  private streamingFinalTextAt: number | null = null;
   private streamingFinalTranscript = "";
   private streamingPartialTranscripts: string[] = [];
-  private streamingAudioUri: string | undefined;
+  private streamingError: string | null = null;
+  private latestMetrics: NativeIOSASRMetricsEvent | null = null;
+  private transcriptAccumulator = new ContinuousTranscriptAccumulator();
   private stopStreamingResolver: ((result: TranscriptionResult) => void) | null =
     null;
+  private stopTimeout: ReturnType<typeof setTimeout> | null = null;
 
   async isAvailable(): Promise<boolean> {
+    if (!isNativeIOSASRModuleAvailable) {
+      return false;
+    }
+
     try {
-      return ExpoSpeechRecognitionModule.isRecognitionAvailable();
+      const capabilities = await getNativeIOSASRCapabilities("en-US");
+      return capabilities.recognizerAvailable;
     } catch {
       return false;
     }
   }
 
   async initialize(): Promise<void> {
-    const { status } =
-      await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-    if (status !== "granted") {
+    const permissions = await requestNativeIOSASRPermissions();
+    if (!permissions.canStartRecognition) {
       throw new Error(
-        "Speech recognition and microphone permissions are required for Native ASR.",
+        "Speech recognition and microphone permissions are required for Native iOS ASR.",
       );
     }
   }
 
   async transcribe(input: AudioInput): Promise<TranscriptionResult> {
     const startedAt = nowMs();
-    const partialTranscripts: string[] = [];
-    let firstTextAt: number | null = null;
-    let finalTranscript = "";
-
-    try {
-      await this.initialize();
-
-      if (!this.languageSupport.includes(input.language)) {
-        throw new Error(`Native ASR does not support ${input.language}.`);
-      }
-
-      if (!input.uri) {
-        throw new Error("Native ASR requires a recorded audio URI.");
-      }
-
-      const result = await new Promise<TranscriptionResult>((resolve) => {
-        const finish = (error?: string | null) => {
-          const transcriptionTimeMs = nowMs() - startedAt;
-          this.removeListeners();
-          try {
-            ExpoSpeechRecognitionModule.stop();
-          } catch {
-            // The recognizer may already have ended after file transcription.
-          }
-
-          resolve(
-            createBaseTranscriptionResult(this, input, {
-              transcript: finalTranscript.trim(),
-              partialTranscripts,
-              transcriptionTimeMs,
-              timeToFirstTextMs:
-                firstTextAt === null ? null : firstTextAt - startedAt,
-              runtimeMode:
-                partialTranscripts.length > 0 ? "true-streaming" : "offline-full-recording",
-              error: error ?? null,
-            }),
-          );
-        };
-
-        const timeout = setTimeout(() => {
-          finish("Native ASR timed out while transcribing the recorded audio.");
-        }, NATIVE_TRANSCRIPTION_TIMEOUT_MS);
-
-        const finishWithCleanup = (error?: string | null) => {
-          clearTimeout(timeout);
-          finish(error);
-        };
-
-        this.listeners = [
-          ExpoSpeechRecognitionModule.addListener("result", (event: any) => {
-            const text = event?.results?.[0]?.transcript ?? "";
-            if (!text) {
-              return;
-            }
-
-            if (firstTextAt === null) {
-              firstTextAt = nowMs();
-            }
-
-            if (event.isFinal) {
-              finalTranscript = `${finalTranscript} ${text}`.trim();
-            } else {
-              partialTranscripts.push(text);
-              finalTranscript = text;
-            }
-          }),
-          ExpoSpeechRecognitionModule.addListener("end", () => {
-            finishWithCleanup();
-          }),
-          ExpoSpeechRecognitionModule.addListener("error", (event: any) => {
-            finishWithCleanup(
-              event?.message ?? event?.error ?? "Native ASR transcription failed.",
-            );
-          }),
-        ];
-
-        ExpoSpeechRecognitionModule.start({
-          lang: getNativeLocaleForLanguage(input.language),
-          interimResults: true,
-          continuous: false,
-          requiresOnDeviceRecognition: false,
-          audioSource: { uri: input.uri },
-          recordingOptions: {
-            persist: false,
-            outputSampleRate: input.sampleRate ?? 16000,
-          },
-          androidIntentOptions: {
-            EXTRA_LANGUAGE_MODEL: "web_search",
-            EXTRA_ENABLE_FORMATTING: "latency",
-            EXTRA_PREFER_OFFLINE: true,
-          },
-        } as any);
-      });
-
-      return result;
-    } catch (error) {
-      return createErrorTranscriptionResult(
-        this,
-        input,
-        error,
-        nowMs() - startedAt,
-      );
-    }
+    return createErrorTranscriptionResult(
+      this,
+      input,
+      "Native iOS ASR Phase 3 supports live microphone recognition only. Recorded-file transcription is not part of this phase.",
+      nowMs() - startedAt,
+      "unsupported",
+    );
   }
 
   async startStreaming(options: StreamingASROptions): Promise<void> {
+    if (!isNativeIOSASRModuleAvailable) {
+      throw new Error(
+        "Native iOS ASR requires a custom Expo development build on iOS and is not available in Expo Go or on Android.",
+      );
+    }
+
     await this.initialize();
 
     if (!this.languageSupport.includes(options.language)) {
-      throw new Error(`Native ASR does not support ${options.language}.`);
+      throw new Error(`Native iOS ASR does not support ${options.language}.`);
     }
 
-    this.removeListeners();
+    await this.dispose();
+
     this.streamingOptions = options;
     this.streamingStartedAt = nowMs();
     this.streamingFirstTextAt = null;
+    this.streamingFinalTextAt = null;
     this.streamingFinalTranscript = "";
     this.streamingPartialTranscripts = [];
-    this.streamingAudioUri = undefined;
+    this.streamingError = null;
+    this.latestMetrics = null;
+    this.transcriptAccumulator.reset();
 
     this.listeners = [
-      ExpoSpeechRecognitionModule.addListener("audiostart", (event: any) => {
-        this.streamingAudioUri = event?.uri ?? undefined;
-      }),
-      ExpoSpeechRecognitionModule.addListener("speechstart", () => {
-        options.onSpeechStart?.();
-      }),
-      ExpoSpeechRecognitionModule.addListener("speechend", () => {
-        options.onSpeechEnd?.();
-      }),
-      ExpoSpeechRecognitionModule.addListener("result", (event: any) => {
-        const text = event?.results?.[0]?.transcript ?? "";
-        if (!text) {
-          return;
-        }
-
-        if (this.streamingFirstTextAt === null) {
-          this.streamingFirstTextAt = nowMs();
-        }
-
-        if (event.isFinal) {
-          this.streamingFinalTranscript = `${this.streamingFinalTranscript} ${text}`.trim();
-          options.onFinalResult?.(this.streamingFinalTranscript);
-        } else {
-          this.streamingPartialTranscripts.push(text);
-          options.onPartialResult?.(text);
-        }
-      }),
-      ExpoSpeechRecognitionModule.addListener("end", () => {
-        this.resolveStreamingResult();
-      }),
-      ExpoSpeechRecognitionModule.addListener("error", (event: any) => {
-        const message =
-          event?.message ?? event?.error ?? "Native ASR streaming failed.";
-        options.onError?.(message);
-        this.resolveStreamingResult(message);
+      addNativeIOSASRListener("NativeIOSASR.onPartialResult", (event) =>
+        this.handlePartialResult(event, options),
+      ),
+      addNativeIOSASRListener("NativeIOSASR.onFinalResult", (event) =>
+        this.handleFinalResult(event, options),
+      ),
+      addNativeIOSASRListener("NativeIOSASR.onError", (event) =>
+        this.handleError(event, options),
+      ),
+      addNativeIOSASRListener("NativeIOSASR.onMetrics", (event) => {
+        this.latestMetrics = event;
       }),
     ];
 
-    ExpoSpeechRecognitionModule.start({
-      lang: getNativeLocaleForLanguage(options.language),
-      interimResults: true,
-      continuous: true,
-      requiresOnDeviceRecognition: false,
-      recordingOptions: {
-        persist: true,
-        outputSampleRate: options.sampleRate ?? 16000,
-      },
-      androidIntentOptions: {
-        EXTRA_LANGUAGE_MODEL: "free_form",
-        EXTRA_ENABLE_FORMATTING: "latency",
-        EXTRA_PREFER_OFFLINE: true,
-        EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 10000,
-      },
-    } as any);
+    await startNativeIOSASRRecognition({
+      ...DEFAULT_NATIVE_ASR_PHASE3_CONFIG,
+      configId: "native_ios_phase3_engine_default_v1",
+      language: options.language,
+      locale: nativeASRLocaleForLanguage(options.language),
+      contextualStringsEnabled: false,
+      contextualStrings: [],
+    });
   }
 
   async stopStreaming(): Promise<TranscriptionResult> {
     if (!this.streamingOptions || this.streamingStartedAt === null) {
-      throw new Error("Native ASR streaming has not been started.");
+      throw new Error("Native iOS ASR streaming has not been started.");
     }
 
     return new Promise<TranscriptionResult>((resolve) => {
       this.stopStreamingResolver = resolve;
 
-      setTimeout(() => {
-        this.resolveStreamingResult();
-      }, 4500);
+      this.stopTimeout = setTimeout(() => {
+        this.resolveStreamingResult(
+          this.streamingError ??
+            (!this.streamingFinalTranscript
+              ? "No final Native iOS ASR result was returned before timeout."
+              : null),
+        );
+      }, STOP_FINAL_TIMEOUT_MS);
 
-      try {
-        ExpoSpeechRecognitionModule.stop();
-      } catch {
-        this.resolveStreamingResult();
-      }
+      stopNativeIOSASRRecognition().catch((error) => {
+        this.resolveStreamingResult(
+          error instanceof Error ? error.message : String(error),
+        );
+      });
     });
   }
 
   async dispose(): Promise<void> {
-    try {
-      ExpoSpeechRecognitionModule.stop();
-    } catch {
-      // No active session.
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout);
+      this.stopTimeout = null;
     }
+
     this.removeListeners();
+    this.stopStreamingResolver = null;
+    this.streamingOptions = null;
+    this.streamingStartedAt = null;
+    this.streamingFirstTextAt = null;
+    this.streamingFinalTextAt = null;
+    this.streamingFinalTranscript = "";
+    this.streamingPartialTranscripts = [];
+    this.streamingError = null;
+    this.transcriptAccumulator.reset();
+    await cancelNativeIOSASRRecognition().catch(() => undefined);
+  }
+
+  private handlePartialResult(
+    event: NativeIOSASRPartialEvent,
+    options: StreamingASROptions,
+  ) {
+    const text = event.text.trim();
+    if (!text) {
+      return;
+    }
+
+    if (this.streamingFirstTextAt === null) {
+      this.streamingFirstTextAt = nowMs();
+    }
+
+    const accumulatedTranscript = this.transcriptAccumulator.update(text);
+    this.streamingPartialTranscripts.push(accumulatedTranscript);
+    options.onPartialResult?.(accumulatedTranscript);
+    options.onSpeechStart?.();
+  }
+
+  private handleFinalResult(
+    event: NativeIOSASRFinalEvent,
+    options: StreamingASROptions,
+  ) {
+    const text = event.text.trim();
+    this.streamingFinalTranscript = this.transcriptAccumulator.finalize(text);
+    this.streamingFinalTextAt = nowMs();
+    options.onFinalResult?.(this.streamingFinalTranscript);
+
+    if (this.stopStreamingResolver) {
+      this.resolveStreamingResult();
+    }
+  }
+
+  private handleError(
+    event: NativeIOSASRErrorEvent,
+    options: StreamingASROptions,
+  ) {
+    this.streamingError = event.errorMessage;
+    options.onError?.(event.errorMessage);
+
+    if (this.stopStreamingResolver) {
+      this.resolveStreamingResult(event.errorMessage);
+    }
   }
 
   private resolveStreamingResult(error?: string | null) {
@@ -270,24 +237,31 @@ export class NativeAsrEngine implements ASREngine {
       return;
     }
 
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout);
+      this.stopTimeout = null;
+    }
+
     const stoppedAt = nowMs();
     const recordingDurationMs = stoppedAt - this.streamingStartedAt;
+    const finalTextAt = this.streamingFinalTextAt ?? stoppedAt;
     const transcript =
       this.streamingFinalTranscript ||
+      this.transcriptAccumulator.current() ||
       this.streamingPartialTranscripts[this.streamingPartialTranscripts.length - 1] ||
       "";
+
     const result = createBaseTranscriptionResult(
       this,
       {
         language: this.streamingOptions.language,
-        sampleRate: this.streamingOptions.sampleRate ?? 16000,
-        uri: this.streamingAudioUri,
+        sampleRate: this.latestMetrics?.sampleRate ?? 16000,
         recordingDurationMs,
       },
       {
         transcript: transcript.trim(),
         partialTranscripts: this.streamingPartialTranscripts,
-        transcriptionTimeMs: Math.max(0, stoppedAt - this.streamingStartedAt),
+        transcriptionTimeMs: Math.max(0, finalTextAt - this.streamingStartedAt),
         timeToFirstTextMs:
           this.streamingFirstTextAt === null
             ? null
@@ -296,7 +270,7 @@ export class NativeAsrEngine implements ASREngine {
           this.streamingPartialTranscripts.length > 0
             ? "true-streaming"
             : "offline-full-recording",
-        error: error ?? null,
+        error: error ?? this.streamingError,
       },
     );
 

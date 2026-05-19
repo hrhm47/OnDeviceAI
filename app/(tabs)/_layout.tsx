@@ -42,6 +42,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="phase3-native-asr"
+        options={{
+          title: "Phase 3",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={25} name="waveform" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="history"
         options={{
           title: "Results",
