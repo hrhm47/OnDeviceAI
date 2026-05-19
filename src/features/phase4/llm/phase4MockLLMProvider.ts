@@ -20,7 +20,9 @@ const buildMockOutput = (input: Phase4LLMInput) => {
     ? "Maalataan uudestaan"
     : text.includes("sealant") || text.includes("sauma")
       ? "Kittaus ja maalaus"
-      : "Korjaus";
+      : text.includes("fix") || text.includes("repair") || text.includes("korjata") || text.includes("fixed")
+        ? "Korjaus"
+        : null;
   const dueDate = text.includes("today") || text.includes("tänään") || text.includes("safety")
     ? "Now"
     : text.includes("three days") || text.includes("kolme")
@@ -47,7 +49,7 @@ const buildMockOutput = (input: Phase4LLMInput) => {
       area: field(pickArea(input, text), pickArea(input, text) ? "extracted" : "manual_required", pickArea(input, text) ? "medium" : "none", pickArea(input, text), "Area is filled only when an allowed area is spoken."),
       marker: field(null, "manual_required", "none", null, "Marker must be selected manually."),
       photos: field([], "skipped", "none", null, "Photos are outside Phase 4 extraction."),
-      requiredAction: field(action, "suggested", "medium", input.transcript, "Suggested from transcript and company hints."),
+      requiredAction: field(action, action ? "suggested" : "manual_required", action ? "medium" : "none", action ? input.transcript : null, "Suggested from transcript and company hints."),
       requiredActionDueDate: field(dueDate, dueDate ? "suggested" : "manual_required", dueDate ? "medium" : "none", dueDate, "Due date must be one of the allowed options."),
       tags: field(Array.from(new Set(tags)), "suggested", "medium", input.transcript, "Tags are limited to allowed local tags."),
       impacts: field([], "not_configured", "none", null, "Impacts are not configured."),

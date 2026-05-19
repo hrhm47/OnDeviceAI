@@ -10,8 +10,7 @@ export type Phase4FieldCheckResult = {
 };
 
 export type Phase4ManualCheckResult = {
-  checkCaseId: string;
-  title: string;
+  checkId: string;
   passed: boolean;
   fields: Phase4FieldCheckResult[];
 };
@@ -40,18 +39,18 @@ const runCase = async (checkCase: Phase4ManualCheckCase) => {
   const draft = result.draft;
   const expected = checkCase.expected;
   const fields = [
-    compare("company", expected.company, draft.company.value),
+    compare("company", expected.companyName, draft.company.value),
     compare("companyStatus", expected.companyStatus, draft.company.status),
     contains("description", expected.descriptionContains, draft.description.value),
-    compare("area", expected.area, draft.area.value),
+    compare("area", expected.areaValue, draft.area.value),
     compare("requiredAction", expected.requiredAction, draft.requiredAction.value),
-    compare("dueDate", expected.dueDate, draft.requiredActionDueDate.value),
+    compare("dueDate", expected.requiredActionDueDate, draft.requiredActionDueDate.value),
     includesAll("tags", expected.tags, draft.tags.value),
+    compare("notifications", expected.notifications, draft.notifications.value),
   ].filter((field): field is Phase4FieldCheckResult => Boolean(field));
 
   return {
-    checkCaseId: checkCase.checkCaseId,
-    title: checkCase.title,
+    checkId: checkCase.checkId,
     passed: fields.every((field) => field.passed),
     fields,
   };
