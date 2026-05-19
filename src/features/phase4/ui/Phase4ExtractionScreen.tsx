@@ -5,7 +5,6 @@ import {
   extractGeneralTaskFormDraft,
   type Phase4ExtractionResult,
 } from "@/src/features/phase4/draft/phase4TaskDraftBuilder";
-import { phase4LocalLLMProvider } from "@/src/features/phase4/llm/phase4LocalLLMProvider";
 import { phase4MockLLMProvider } from "@/src/features/phase4/llm/phase4MockLLMProvider";
 import { PHASE4_SELECTED_LLM_MODEL } from "@/src/features/phase4/llm/phase4ModelConfig";
 import {
@@ -40,12 +39,19 @@ export default function Phase4ExtractionScreen() {
   const [checkSummary, setCheckSummary] = useState<string | null>(null);
 
   const runExtraction = async () => {
-    const provider =
-      providerChoice === "local" ? phase4LocalLLMProvider : phase4MockLLMProvider;
+    if (providerChoice === "local") {
+      setResult(null);
+      setRawVisible(false);
+      setMessage(
+        "Local Phase 4 LLM runtime is not connected yet. Use the mock provider for the verified Phase 4 pipeline.",
+      );
+      return;
+    }
+
     const nextResult = await extractGeneralTaskFormDraft({
       transcript,
       language,
-      provider,
+      provider: phase4MockLLMProvider,
     });
     setResult(nextResult);
     setMessage(
@@ -111,7 +117,12 @@ export default function Phase4ExtractionScreen() {
           </View>
           <View style={styles.row}>
             <Chip selected={providerChoice === "mock"} label="Mock provider" onPress={() => setProviderChoice("mock")} />
-            <Chip selected={providerChoice === "local"} label="Local provider" onPress={() => setProviderChoice("local")} />
+            <Chip
+              disabled
+              selected={providerChoice === "local"}
+              label="Local provider not connected"
+              onPress={() => setProviderChoice("local")}
+            />
           </View>
         </Section>
 
@@ -168,9 +179,13 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </View>
 );
 
-const Chip = ({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) => (
-  <Pressable onPress={onPress} style={[styles.chip, selected && styles.chipSelected]}>
-    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+const Chip = ({ label, selected, onPress, disabled }: { label: string; selected: boolean; onPress: () => void; disabled?: boolean }) => (
+  <Pressable
+    disabled={disabled}
+    onPress={onPress}
+    style={[styles.chip, selected && styles.chipSelected, disabled && styles.chipDisabled]}
+  >
+    <Text style={[styles.chipText, selected && styles.chipTextSelected, disabled && styles.chipTextDisabled]}>{label}</Text>
   </Pressable>
 );
 
@@ -211,8 +226,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: C.surface },
   chipSelected: { borderColor: C.primary, backgroundColor: C.primarySoft },
+  chipDisabled: { backgroundColor: C.surfaceAlt, borderColor: C.border },
   chipText: { color: C.textMuted, fontWeight: "700" },
   chipTextSelected: { color: C.primary },
+  chipTextDisabled: { color: C.textSubtle },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   button: { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 8, backgroundColor: C.primary, paddingHorizontal: 12, paddingVertical: 11 },
   buttonDisabled: { backgroundColor: C.borderStrong },
