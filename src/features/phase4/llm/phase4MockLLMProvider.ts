@@ -57,11 +57,28 @@ const buildMockOutput = (input: Phase4LLMInput) => {
 };
 
 const pickCompany = (input: Phase4LLMInput, text: string) =>
+  input.allowedCompanies.find((company) => company.companyId === priorityCompanyId(text)) ??
   input.allowedCompanies.find((company) =>
     [...company.serviceKeywords.en, ...company.serviceKeywords.fi].some((keyword) =>
       text.includes(keyword.toLowerCase()),
     ),
   ) ?? null;
+
+const priorityCompanyId = (text: string) => {
+  if (text.includes("paint") || text.includes("painting") || text.includes("wall scratch") || text.includes("maalaus")) {
+    return "company_maalausmestarit";
+  }
+  if (text.includes("sealant") || text.includes("sauma")) {
+    return "company_sealpro";
+  }
+  if (text.includes("electrical") || text.includes("sähkö")) {
+    return "company_north_electric";
+  }
+  if (text.includes("palokatko") || text.includes("fire stop")) {
+    return "company_palostop";
+  }
+  return null;
+};
 
 const pickArea = (input: Phase4LLMInput, text: string) =>
   input.formSchema.allowedAreaOptions.find((area) =>

@@ -77,3 +77,11 @@ Implementation started: 2026-05-19, Europe/Helsinki.
 - Checklist: save/load/clear/export functions added; CSV fields match Phase 4 extraction requirements and escape commas/newlines/quotes.
 - Known limitations: storage is local JSON file storage only, not a database.
 - Verification: `npx tsc --noEmit` passed; `npm run lint` passed.
+
+### `phase4/manual-checks`
+
+- Files added: six manual Phase 4 check cases and check runner.
+- Files modified: mock provider keyword priority, implementation tracker.
+- Checklist: runner uses mock provider and returns pass/fail field summaries.
+- Known limitations: checks are manual acceptance helpers, not a formal Jest test suite.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed; compiled runner in `/private/tmp` and confirmed 6/6 manual checks passed.
