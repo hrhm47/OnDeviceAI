@@ -1,6 +1,7 @@
 # Phase 4 Implementation Tracker
 
 Implementation started: 2026-05-19, Europe/Helsinki.
+Last updated: 2026-05-19 18:49:44 EEST.
 
 ## Selected Model
 
@@ -93,3 +94,34 @@ Implementation started: 2026-05-19, Europe/Helsinki.
 - Checklist: UI supports transcript input, language/provider selection, model info, run/save/export/checks, draft fields, warnings, timing, and raw output toggle.
 - Known limitations: local provider path shows placeholder behavior until a real runtime is connected; UI is debug/extraction only, not Phase 5 editing.
 - Verification: `npx tsc --noEmit` passed; `npm run lint` passed.
+
+### `phase4/docs`
+
+- Files added: Phase 4 data-grounded LLM extraction documentation.
+- Files modified: implementation tracker.
+- Checklist: docs cover purpose, local-only scope, selected model, GGUF exclusion, schema/reference data, prompt, validator, providers, UI/check usage, known limitations, and future work.
+- Known limitations: documentation reflects mock-provider verification; real local inference is not claimed.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed; manual check runner still reports 6/6 passed.
+
+## Final Checklist
+
+- [x] App compiles with TypeScript.
+- [x] Existing Phase 1, Phase 2, and Phase 3 files remain in the compile/lint path.
+- [x] Phase 4 reference repository returns local datasets.
+- [x] Selected model config exists.
+- [x] GGUF file is ignored by Git.
+- [x] Mock provider returns valid JSON.
+- [x] Parser handles JSON safely.
+- [x] Validator rejects invented values and forces manual/skipped/default fields.
+- [x] Draft builder returns safe draft objects.
+- [x] Storage and CSV export compile.
+- [x] Manual checks run and summarize results.
+- [x] UI screen compiles and is reachable from the tab layout.
+- [x] Documentation updated.
+
+Final verification summary:
+
+- `npx tsc --noEmit`: passed.
+- `npm run lint`: passed.
+- Manual checks: 6/6 passed.
+- Validator smoke check: invented company, tag, area, unsupported due date, and `notifications: true` were rejected or forced safe.
