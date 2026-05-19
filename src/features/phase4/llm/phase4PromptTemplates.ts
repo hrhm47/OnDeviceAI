@@ -1,86 +1,119 @@
 import type { Phase4LLMInput } from "../types/phase4.types";
 
-export const PHASE4_GENERAL_TASK_PROMPT_VERSION =
-  "phase4_general_task_prompt_v1" as const;
+export function buildPhase4ExtractionPrompt(input: Phase4LLMInput): string {
+  return `
+You are extracting fields for a Congrid-style construction task form.
 
-export const buildPhase4GeneralTaskPrompt = (input: Phase4LLMInput) => {
-  const allowedCompanies = input.allowedCompanies.map((company) => ({
-    companyId: company.companyId,
-    displayName: company.displayName,
-    primaryCategory: company.primaryCategory,
-    serviceKeywords: company.serviceKeywords,
-    actionHints: company.actionHints,
-    tagHints: company.tagHints,
-  }));
+You must follow these rules:
+${input.extractionPolicy.rules.map((rule) => `- ${rule}`).join("\n")}
 
-  return [
-    "You are extracting fields for a Congrid-style construction task form.",
-    "This is controlled extraction, not chat. Return JSON only.",
-    "",
-    "Rules:",
-    "- Use only allowed values from the reference data.",
-    "- Do not invent companies or company IDs.",
-    "- Do not invent tags.",
-    "- Do not invent due dates.",
-    "- Fill area only if spoken and matching allowed area options.",
-    "- Marker is manual.",
-    "- Photos are skipped.",
-    "- Notifications are false.",
-    "- Every field must include value, status, confidence, evidence, and reason.",
-    "",
-    `Language: ${input.language}`,
-    `Prompt version: ${input.promptVersion}`,
-    "",
-    "Transcript:",
-    input.transcript,
-    "",
-    "General Task Form schema:",
-    JSON.stringify(input.formSchema, null, 2),
-    "",
-    "Allowed companies:",
-    JSON.stringify(allowedCompanies, null, 2),
-    "",
-    "Allowed tags:",
-    JSON.stringify(input.allowedTags, null, 2),
-    "",
-    "Allowed required actions:",
-    JSON.stringify(input.allowedRequiredActions, null, 2),
-    "",
-    "Allowed due dates:",
-    JSON.stringify(input.allowedDueDates, null, 2),
-    "",
-    "Extraction policy:",
-    JSON.stringify(input.extractionPolicy, null, 2),
-    "",
-    "Return exactly this JSON object shape:",
-    JSON.stringify(
-      {
-        formId: "general_task_form",
-        schemaVersion: "v1",
-        fields: {
-          list: field("Hallo"),
-          company: { ...field(null), companyId: null },
-          description: field(""),
-          area: field(null),
-          marker: field(null),
-          photos: field([]),
-          requiredAction: field(null),
-          requiredActionDueDate: field(null),
-          tags: field([]),
-          impacts: field([]),
-          notifications: field(false),
-        },
-      },
-      null,
-      2,
-    ),
-  ].join("\n");
-};
+Language: ${input.language}
 
-const field = (value: unknown) => ({
-  value,
-  status: "manual_required",
-  confidence: "none",
-  evidence: null,
-  reason: "",
-});
+Transcript:
+${input.transcript}
+
+Target form:
+${JSON.stringify(input.formSchema, null, 2)}
+
+Allowed companies:
+${JSON.stringify(input.allowedCompanies, null, 2)}
+
+Allowed tags:
+${JSON.stringify(input.allowedTags, null, 2)}
+
+Allowed required actions:
+${JSON.stringify(input.allowedRequiredActions, null, 2)}
+
+Allowed due dates:
+${JSON.stringify(input.allowedDueDates, null, 2)}
+
+Return JSON only in this structure:
+
+{
+  "formId": "congrid_general_task_v1",
+  "fields": {
+    "list": {
+      "value": "Hallo",
+      "status": "defaulted",
+      "confidence": "high",
+      "evidence": null,
+      "reason": "Default list used."
+    },
+    "company": {
+      "value": string | null,
+      "companyId": string | null,
+      "status": "auto_filled" | "suggested" | "manual_required",
+      "confidence": "high" | "medium" | "low" | "missing",
+      "evidence": string | null,
+      "reason": string | null
+    },
+    "description": {
+      "value": string | null,
+      "status": "auto_filled" | "manual_required",
+      "confidence": "high" | "medium" | "low" | "missing",
+      "evidence": string | null,
+      "reason": string | null
+    },
+    "area": {
+      "value": string | null,
+      "status": "auto_filled" | "manual_required",
+      "confidence": "high" | "medium" | "low" | "missing",
+      "evidence": string | null,
+      "reason": string | null
+    },
+    "marker": {
+      "value": null,
+      "status": "manual_required",
+      "confidence": "missing",
+      "evidence": null,
+      "reason": "Marker must be selected manually."
+    },
+    "photos": {
+      "value": [],
+      "status": "skipped",
+      "confidence": "not_applicable",
+      "evidence": null,
+      "reason": "Photos are skipped in this prototype."
+    },
+    "requiredAction": {
+      "value": string | null,
+      "status": "auto_filled" | "suggested" | "manual_required",
+      "confidence": "high" | "medium" | "low" | "missing",
+      "evidence": string | null,
+      "reason": string | null
+    },
+    "requiredActionDueDate": {
+      "value": "Now" | "+3 days" | "+7 days" | null,
+      "status": "auto_filled" | "manual_required",
+      "confidence": "high" | "medium" | "low" | "missing",
+      "evidence": string | null,
+      "reason": string | null
+    },
+    "tags": {
+      "value": string[],
+      "status": "auto_filled" | "suggested" | "manual_required",
+      "confidence": "high" | "medium" | "low" | "missing",
+      "evidence": string | null,
+      "reason": string | null
+    },
+    "impacts": {
+      "value": [],
+      "status": "not_configured",
+      "confidence": "missing",
+      "evidence": null,
+      "reason": "Impact options are not configured in Phase 4 v1."
+    },
+    "notifications": {
+      "value": false,
+      "status": "defaulted",
+      "confidence": "high",
+      "evidence": null,
+      "reason": "Notifications are false by default."
+    }
+  },
+  "warnings": []
+}
+`;
+}
+
+export const buildPhase4GeneralTaskPrompt = buildPhase4ExtractionPrompt;
