@@ -30,7 +30,8 @@ ${JSON.stringify(input.allowedDueDates, null, 2)}
 Return JSON only in this structure:
 
 {
-  "formId": "congrid_general_task_v1",
+  "formId": "general_task_form",
+  "schemaVersion": "v1",
   "fields": {
     "list": {
       "value": "Hallo",

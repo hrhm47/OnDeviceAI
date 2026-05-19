@@ -5,6 +5,11 @@ import {
   extractGeneralTaskFormDraft,
   type Phase4ExtractionResult,
 } from "@/src/features/phase4/draft/phase4TaskDraftBuilder";
+import {
+  downloadPhase4LocalLLMModel,
+  getPhase4LocalLLMReadiness,
+  phase4LocalLLMProvider,
+} from "@/src/features/phase4/llm/phase4LocalLLMProvider";
 import { phase4MockLLMProvider } from "@/src/features/phase4/llm/phase4MockLLMProvider";
 import { PHASE4_SELECTED_LLM_MODEL } from "@/src/features/phase4/llm/phase4ModelConfig";
 import {
@@ -37,21 +42,15 @@ export default function Phase4ExtractionScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [rawVisible, setRawVisible] = useState(false);
   const [checkSummary, setCheckSummary] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
 
   const runExtraction = async () => {
-    if (providerChoice === "local") {
-      setResult(null);
-      setRawVisible(false);
-      setMessage(
-        "Local Phase 4 LLM runtime is not connected yet. Use the mock provider for the verified Phase 4 pipeline.",
-      );
-      return;
-    }
-
+    const provider =
+      providerChoice === "local" ? phase4LocalLLMProvider : phase4MockLLMProvider;
     const nextResult = await extractGeneralTaskFormDraft({
       transcript,
       language,
-      provider: phase4MockLLMProvider,
+      provider,
     });
     setResult(nextResult);
     setMessage(
@@ -92,6 +91,25 @@ export default function Phase4ExtractionScreen() {
     setMessage(summary.summary);
   };
 
+  const checkLocalModel = async () => {
+    const readiness = await getPhase4LocalLLMReadiness();
+    setMessage(readiness.message);
+  };
+
+  const downloadLocalModel = async () => {
+    try {
+      setDownloadProgress(0);
+      const uri = await downloadPhase4LocalLLMModel(setDownloadProgress);
+      setMessage(`Phase 4 local model downloaded to ${uri}`);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      setMessage(`Model download failed: ${text}`);
+      Alert.alert("Model download failed", text);
+    } finally {
+      setDownloadProgress(null);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -117,12 +135,7 @@ export default function Phase4ExtractionScreen() {
           </View>
           <View style={styles.row}>
             <Chip selected={providerChoice === "mock"} label="Mock provider" onPress={() => setProviderChoice("mock")} />
-            <Chip
-              disabled
-              selected={providerChoice === "local"}
-              label="Local provider not connected"
-              onPress={() => setProviderChoice("local")}
-            />
+            <Chip selected={providerChoice === "local"} label="Local provider" onPress={() => setProviderChoice("local")} />
           </View>
         </Section>
 
@@ -130,7 +143,7 @@ export default function Phase4ExtractionScreen() {
           <Metric label="Selected model" value={PHASE4_SELECTED_LLM_MODEL.displayName} />
           <Metric label="Runtime" value={PHASE4_SELECTED_LLM_MODEL.runtimeTarget} />
           <Text style={styles.note}>
-            Local provider may be placeholder if the GGUF runtime is not connected.
+            Local provider uses llama.rn and needs the GGUF file in the app document directory.
           </Text>
         </Section>
 
@@ -139,9 +152,14 @@ export default function Phase4ExtractionScreen() {
           <Button label="Save result" icon="tray.and.arrow.down.fill" onPress={saveResult} disabled={!result} />
           <Button label="Export CSV" icon="arrow.down.doc" onPress={exportCsv} />
           <Button label="Run checks" icon="checkmark.circle" onPress={runChecks} />
+          <Button label="Check model" icon="info.circle.fill" onPress={checkLocalModel} />
+          <Button label="Download model" icon="icloud.and.arrow.down" onPress={downloadLocalModel} />
         </View>
 
         {message ? <Text style={styles.message}>{message}</Text> : null}
+        {downloadProgress !== null ? (
+          <Text style={styles.note}>Downloading model: {Math.round(downloadProgress)}%</Text>
+        ) : null}
         {checkSummary ? <Text style={styles.note}>{checkSummary}</Text> : null}
 
         {result ? (
@@ -179,13 +197,12 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   </View>
 );
 
-const Chip = ({ label, selected, onPress, disabled }: { label: string; selected: boolean; onPress: () => void; disabled?: boolean }) => (
+const Chip = ({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) => (
   <Pressable
-    disabled={disabled}
     onPress={onPress}
-    style={[styles.chip, selected && styles.chipSelected, disabled && styles.chipDisabled]}
+    style={[styles.chip, selected && styles.chipSelected]}
   >
-    <Text style={[styles.chipText, selected && styles.chipTextSelected, disabled && styles.chipTextDisabled]}>{label}</Text>
+    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
   </Pressable>
 );
 
@@ -226,10 +243,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: C.surface },
   chipSelected: { borderColor: C.primary, backgroundColor: C.primarySoft },
-  chipDisabled: { backgroundColor: C.surfaceAlt, borderColor: C.border },
   chipText: { color: C.textMuted, fontWeight: "700" },
   chipTextSelected: { color: C.primary },
-  chipTextDisabled: { color: C.textSubtle },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   button: { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 8, backgroundColor: C.primary, paddingHorizontal: 12, paddingVertical: 11 },
   buttonDisabled: { backgroundColor: C.borderStrong },

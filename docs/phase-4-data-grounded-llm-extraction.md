@@ -68,7 +68,15 @@ Manual/skipped/default fields:
 
 The mock provider is deterministic, local-only, and used for manual checks and UI smoke testing.
 
-The local provider is a placeholder for a llama.cpp-compatible Qwen2.5 GGUF runtime. It does not fake inference and throws a clear “not connected yet” error until a real runtime is wired.
+The local provider uses `llama.rn`, a React Native binding for `llama.cpp`, to run the selected GGUF model on device. This requires a custom native Expo development build; Expo Go cannot load this native runtime.
+
+The model file must exist inside the app document directory:
+
+```text
+<documentDirectory>/models/llm/qwen2_5_1_5b_instruct_q4_k_m/qwen2.5-1.5b-instruct-q4_k_m.gguf
+```
+
+The Phase 4 UI can check this path and download the selected GGUF file from the configured Hugging Face source URL. Inference remains local after the model file is present.
 
 ## Running Phase 4
 
@@ -77,15 +85,16 @@ Use the Phase 4 tab in the app:
 1. Enter or paste a transcript.
 2. Select English or Finnish.
 3. Use the mock provider for current verified behavior.
-4. Run extraction.
-5. Review extracted fields, statuses, confidence, warnings, and raw output.
-6. Save locally or export CSV.
+4. For local inference, check/download the model first.
+5. Run extraction.
+6. Review extracted fields, statuses, confidence, warnings, and raw output.
+7. Save locally or export CSV.
 
 Manual checks can be run from the Phase 4 UI. The check runner is implemented in `src/features/phase4/checks/phase4CheckRunner.ts`.
 
 ## Known Limitations
 
-- Real local LLM runtime connection is not implemented yet.
+- Real local LLM inference requires a custom native build and a downloaded/copied GGUF file on the device.
 - Company data is dummy local thesis reference data.
 - Candidate retrieval is keyword-based in the mock provider only.
 - No local database is used in v1.
@@ -93,7 +102,7 @@ Manual checks can be run from the Phase 4 UI. The check runner is implemented in
 
 Future improvements:
 
-- real local LLM runtime connection
+- performance tuning for the local LLM runtime
 - candidate retrieval
 - local database
 - Phase 5 editable preview

@@ -125,3 +125,11 @@ Final verification summary:
 - `npm run lint`: passed.
 - Manual checks: 6/6 passed.
 - Validator smoke check: invented company, tag, area, unsupported due date, and `notifications: true` were rejected or forced safe.
+
+### `phase4/local-llm-runtime`
+
+- Files added: none.
+- Files modified: `package.json`, `package-lock.json`, `app.json`, local provider, prompt template, Phase 4 UI, Phase 4 docs.
+- Checklist: `llama.rn@0.9.7` installed for GGUF inference without enabling React Native New Architecture; Expo plugin added; local provider resolves/downloads the Qwen2.5 GGUF in app documents and runs `initLlama`; UI exposes local provider, model check, and model download.
+- Known limitations: native inference still requires a custom Expo development build and the GGUF file on the device; it cannot be verified in Node or Expo Go.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed; manual check runner still reports 6/6 passed.
