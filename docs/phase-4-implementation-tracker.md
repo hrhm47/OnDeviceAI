@@ -61,3 +61,11 @@ Implementation started: 2026-05-19, Europe/Helsinki.
 - Checklist: invented companies/tags/areas/due dates are rejected or removed; marker/photos/impacts/notifications are forced to Phase 4 policy.
 - Known limitations: validator is deterministic local rules, not semantic retrieval.
 - Verification: `npx tsc --noEmit` passed; `npm run lint` passed.
+
+### `phase4/draft-builder`
+
+- Files added: transcript preparation and main Phase 4 extraction/draft builder.
+- Files modified: implementation tracker.
+- Checklist: transcript selection order implemented; pipeline returns safe draft even if provider or parser fails; mock provider is default.
+- Known limitations: real local provider must be passed explicitly and currently throws placeholder error.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed.
