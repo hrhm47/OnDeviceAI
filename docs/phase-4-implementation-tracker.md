@@ -85,3 +85,11 @@ Implementation started: 2026-05-19, Europe/Helsinki.
 - Checklist: runner uses mock provider and returns pass/fail field summaries.
 - Known limitations: checks are manual acceptance helpers, not a formal Jest test suite.
 - Verification: `npx tsc --noEmit` passed; `npm run lint` passed; compiled runner in `/private/tmp` and confirmed 6/6 manual checks passed.
+
+### `phase4/ui`
+
+- Files added: Phase 4 extraction/debug screen and Expo Router tab route.
+- Files modified: tab layout, implementation tracker.
+- Checklist: UI supports transcript input, language/provider selection, model info, run/save/export/checks, draft fields, warnings, timing, and raw output toggle.
+- Known limitations: local provider path shows placeholder behavior until a real runtime is connected; UI is debug/extraction only, not Phase 5 editing.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed.
