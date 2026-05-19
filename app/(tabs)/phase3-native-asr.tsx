@@ -10,19 +10,6 @@ import type {
 } from "@/src/features/asr/asrTesting/types/manualAsrTesting.types";
 import { buildContextualStrings } from "@/src/features/asr/phase3/contextualStringsBuilder";
 import { ContinuousTranscriptAccumulator } from "@/src/features/asr/phase3/continuousTranscriptAccumulator";
-import {
-  cancelNativeIOSASRRecognition,
-  getNativeIOSASRCapabilities,
-  isNativeIOSASRModuleAvailable,
-  requestNativeIOSASRPermissions,
-  startNativeIOSASRRecognition,
-  stopNativeIOSASRRecognition,
-  addNativeIOSASRListener,
-} from "@/src/features/asr/phase3/nativeIOSASRModule";
-import {
-  DEFAULT_NATIVE_ASR_PHASE3_CONFIG,
-  nativeASRLocaleForLanguage,
-} from "@/src/features/asr/phase3/nativeASRPhase3.types";
 import type {
   NativeASRLanguage,
   NativeASROnDevicePolicy,
@@ -32,6 +19,19 @@ import type {
   NativeIOSASRStateEvent,
   Phase3NativeASRResult,
 } from "@/src/features/asr/phase3/nativeASRPhase3.types";
+import {
+  DEFAULT_NATIVE_ASR_PHASE3_CONFIG,
+  nativeASRLocaleForLanguage,
+} from "@/src/features/asr/phase3/nativeASRPhase3.types";
+import {
+  addNativeIOSASRListener,
+  cancelNativeIOSASRRecognition,
+  getNativeIOSASRCapabilities,
+  isNativeIOSASRModuleAvailable,
+  requestNativeIOSASRPermissions,
+  startNativeIOSASRRecognition,
+  stopNativeIOSASRRecognition,
+} from "@/src/features/asr/phase3/nativeIOSASRModule";
 import { createPhase3NativeASRResult } from "@/src/features/asr/phase3/phase3NativeASRResultBuilder";
 import {
   exportPhase3NativeASRResultsCsv,
@@ -41,7 +41,13 @@ import {
 import { phase3ConstructionSpeechContext } from "@/src/features/asr/phase3/projectSpeechContext";
 import { preparePhase3Transcript } from "@/src/features/asr/phase3/transcriptPreparation";
 import * as Sharing from "expo-sharing";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Alert,
   Pressable,
@@ -99,7 +105,9 @@ export default function Phase3NativeASRScreen() {
   const finalResultTimeRef = useRef<number | null>(null);
   const recognitionStopTimeRef = useRef<number | null>(null);
   const partialTranscriptsRef = useRef<string[]>([]);
-  const transcriptAccumulatorRef = useRef(new ContinuousTranscriptAccumulator());
+  const transcriptAccumulatorRef = useRef(
+    new ContinuousTranscriptAccumulator(),
+  );
   const activeConfigRef = useRef<NativeASRPhase3Config>(
     DEFAULT_NATIVE_ASR_PHASE3_CONFIG,
   );
@@ -167,15 +175,23 @@ export default function Phase3NativeASRScreen() {
   );
 
   const buildResult = useCallback(
-    (options: { success: boolean; rawTranscript?: string; error?: string | null }) => {
+    (options: {
+      success: boolean;
+      rawTranscript?: string;
+      error?: string | null;
+    }) => {
       const recordingStart = recordingStartTimeRef.current;
       const firstPartial = firstPartialTimeRef.current;
       const finalTime = finalResultTimeRef.current ?? Date.now();
       const stoppedAt = recognitionStopTimeRef.current ?? finalTime;
       const recordingDurationMs =
-        recordingStart === null ? null : Math.max(0, stoppedAt - recordingStart);
+        recordingStart === null
+          ? null
+          : Math.max(0, stoppedAt - recordingStart);
       const finalLatencyMs =
-        recordingStart === null ? null : Math.max(0, finalTime - recordingStart);
+        recordingStart === null
+          ? null
+          : Math.max(0, finalTime - recordingStart);
 
       return createPhase3NativeASRResult({
         config: activeConfigRef.current,
@@ -301,7 +317,8 @@ export default function Phase3NativeASRScreen() {
         const accumulatedTranscript =
           transcriptAccumulatorRef.current.finalize(text);
         finalResultTimeRef.current = Date.now();
-        recognitionStopTimeRef.current = recognitionStopTimeRef.current ?? Date.now();
+        recognitionStopTimeRef.current =
+          recognitionStopTimeRef.current ?? Date.now();
         setLivePartialTranscript(accumulatedTranscript);
         setFinalTranscript(accumulatedTranscript);
         setPhase3Result(
@@ -312,7 +329,8 @@ export default function Phase3NativeASRScreen() {
       addNativeIOSASRListener("NativeIOSASR.onError", (event) => {
         const message = event.errorMessage;
         finalResultTimeRef.current = Date.now();
-        recognitionStopTimeRef.current = recognitionStopTimeRef.current ?? Date.now();
+        recognitionStopTimeRef.current =
+          recognitionStopTimeRef.current ?? Date.now();
         setErrorMessage(message);
         setPhase3Result(
           buildResult({ success: false, rawTranscript: "", error: message }),
@@ -436,18 +454,19 @@ export default function Phase3NativeASRScreen() {
           title="Native module"
           meta={isNativeIOSASRModuleAvailable ? "available" : "unavailable"}
         >
-          <Metric
-            label="Selected model"
-            value="Native iOS ASR"
-          />
+          <Metric label="Selected model" value="Native iOS ASR" />
           <Metric
             label="Recognizer"
-            value={capabilities?.recognizerAvailable ? "available" : "unavailable"}
+            value={
+              capabilities?.recognizerAvailable ? "available" : "unavailable"
+            }
           />
           <Metric
             label="On-device"
             value={
-              capabilities?.supportsOnDeviceRecognition ? "supported" : "not supported"
+              capabilities?.supportsOnDeviceRecognition
+                ? "supported"
+                : "not supported"
             }
           />
           <Metric
@@ -482,7 +501,10 @@ export default function Phase3NativeASRScreen() {
           </View>
         </Section>
 
-        <Section title="Native ASR config" meta={currentConfig.configId}>
+        <Section
+          title="Native ASR config"
+          // meta={currentConfig.configId}
+        >
           <Text style={styles.metricLabel}>On-device policy</Text>
           <View style={styles.chipRow}>
             {onDevicePolicies.map((policy) => (
@@ -563,7 +585,11 @@ export default function Phase3NativeASRScreen() {
 
         <Section
           title="Phase 2 session"
-          meta={selectedSession ? formatNoiseCondition(selectedSession.noiseCondition) : "loading"}
+          meta={
+            selectedSession
+              ? formatNoiseCondition(selectedSession.noiseCondition)
+              : "loading"
+          }
         >
           <View style={styles.chipRow}>
             {testSessions.map((session) => (
@@ -572,7 +598,8 @@ export default function Phase3NativeASRScreen() {
                 onPress={() => setSelectedSessionId(session.sessionId)}
                 style={[
                   styles.chip,
-                  selectedSessionId === session.sessionId && styles.chipSelected,
+                  selectedSessionId === session.sessionId &&
+                    styles.chipSelected,
                 ]}
               >
                 <Text
@@ -664,27 +691,22 @@ export default function Phase3NativeASRScreen() {
           ) : null}
           <Text style={styles.metricLabel}>Live partial transcript</Text>
           <Text style={styles.previewText}>
-            {livePartialTranscript || "Partial Native iOS ASR text appears here."}
+            {livePartialTranscript ||
+              "Partial Native iOS ASR text appears here."}
           </Text>
           <Text style={styles.metricLabel}>Final raw transcript</Text>
           <Text style={styles.previewText}>
             {finalTranscript || "Final raw transcript appears after stop."}
           </Text>
           <Text style={styles.metricLabel}>Normalized transcript</Text>
-          <Text style={styles.previewText}>
-            {normalizedTranscript || "--"}
-          </Text>
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+          <Text style={styles.previewText}>{normalizedTranscript || "--"}</Text>
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
 
           <View style={styles.metricsGrid}>
-            <Metric
-              label="WER"
-              value={formatRate(phase3Result?.rawWER)}
-            />
-            <Metric
-              label="CER"
-              value={formatRate(phase3Result?.rawCER)}
-            />
+            <Metric label="WER" value={formatRate(phase3Result?.rawWER)} />
+            <Metric label="CER" value={formatRate(phase3Result?.rawCER)} />
             <Metric
               label="TTFS"
               value={formatNullableMs(phase3Result?.ttfsMs)}
@@ -707,7 +729,9 @@ export default function Phase3NativeASRScreen() {
             />
             <Metric
               label="Requires on-device"
-              value={metrics?.requestedRequiresOnDeviceRecognition ? "true" : "false"}
+              value={
+                metrics?.requestedRequiresOnDeviceRecognition ? "true" : "false"
+              }
             />
           </View>
 
@@ -739,7 +763,10 @@ export default function Phase3NativeASRScreen() {
                 {resultsCount} Phase 3 results stored
               </Text>
             </View>
-            <Pressable style={styles.setupOutlineButton} onPress={handleExportCsv}>
+            <Pressable
+              style={styles.setupOutlineButton}
+              onPress={handleExportCsv}
+            >
               <Text style={styles.setupOutlineButtonText}>Export CSV</Text>
             </Pressable>
           </View>
@@ -795,7 +822,11 @@ function ToggleRow({
 }) {
   return (
     <Pressable style={styles.toggleRow} onPress={onPress}>
-      <View>
+      <View
+        style={{
+          paddingVertical: 8,
+        }}
+      >
         <Text style={styles.optionTitle}>{label}</Text>
         {meta ? <Text style={styles.optionDetail}>{meta}</Text> : null}
       </View>
@@ -842,9 +873,9 @@ function formatNoiseCondition(condition: string) {
   if (condition === "moderate_noise") {
     return "Moderate noise";
   }
-  if (condition === "hard_noise") {
-    return "Hard noise";
-  }
+  // if (condition === "hard_noise") {
+  //   return "Hard noise";
+  // }
   return condition;
 }
 
@@ -859,7 +890,9 @@ function formatNullableMs(value: number | null | undefined) {
   if (value === null || value === undefined) {
     return "--";
   }
-  return value >= 1000 ? `${(value / 1000).toFixed(1)} s` : `${Math.round(value)} ms`;
+  return value >= 1000
+    ? `${(value / 1000).toFixed(1)} s`
+    : `${Math.round(value)} ms`;
 }
 
 const styles = StyleSheet.create({
@@ -916,6 +949,7 @@ const styles = StyleSheet.create({
   },
   sectionMeta: {
     color: C.textSubtle,
+    flexWrap: "wrap",
     fontSize: 13,
     fontWeight: "800",
   },
