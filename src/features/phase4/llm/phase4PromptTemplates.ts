@@ -10,6 +10,16 @@ ${input.extractionPolicy.rules.map((rule) => `- ${rule}`).join("\n")}
 Prefer these deterministic local candidates when present. Do not choose values outside the allowed lists:
 ${JSON.stringify(input.candidateResolution ?? {}, null, 2)}
 
+Field constraints:
+- company.value must be the company displayName, never the companyId.
+- company.companyId must be the matching companyId.
+- area.value must be null unless it exactly matches an area candidate or allowed area option.
+- Room words such as bathroom, kitchen, corridor, bedroom, or balcony alone are not valid area values.
+- marker.value must be null.
+- requiredAction.value must be one allowed action or null.
+- requiredActionDueDate.value must be Now, +3 days, +7 days, or null.
+- tags.value must contain only allowed tags.
+
 Language: ${input.language}
 
 Transcript:
@@ -41,26 +51,26 @@ Return JSON only in this structure:
       "reason": "Default list used."
     },
     "company": {
-      "value": string | null,
-      "companyId": string | null,
-      "status": "auto_filled" | "suggested" | "manual_required",
-      "confidence": "high" | "medium" | "low" | "missing",
-      "evidence": string | null,
-      "reason": string | null
+      "value": "AquaPipe Finland Oy",
+      "companyId": "company_aquapipe_finland",
+      "status": "suggested",
+      "confidence": "high",
+      "evidence": "pipe leak",
+      "reason": "Matched local company candidate."
     },
     "description": {
-      "value": string | null,
-      "status": "auto_filled" | "manual_required",
-      "confidence": "high" | "medium" | "low" | "missing",
-      "evidence": string | null,
-      "reason": string | null
+      "value": "short description from transcript",
+      "status": "extracted",
+      "confidence": "high",
+      "evidence": "transcript phrase",
+      "reason": "Description is based on transcript."
     },
     "area": {
-      "value": string | null,
-      "status": "auto_filled" | "manual_required",
-      "confidence": "high" | "medium" | "low" | "missing",
-      "evidence": string | null,
-      "reason": string | null
+      "value": null,
+      "status": "manual_required",
+      "confidence": "missing",
+      "evidence": null,
+      "reason": "No allowed area candidate was spoken."
     },
     "marker": {
       "value": null,
@@ -77,11 +87,11 @@ Return JSON only in this structure:
       "reason": "Photos are skipped in this prototype."
     },
     "requiredAction": {
-      "value": string | null,
-      "status": "auto_filled" | "suggested" | "manual_required",
-      "confidence": "high" | "medium" | "low" | "missing",
-      "evidence": string | null,
-      "reason": string | null
+      "value": "Korjaus",
+      "status": "suggested",
+      "confidence": "high",
+      "evidence": "defect wording",
+      "reason": "Repair is an allowed action."
     },
     "requiredActionDueDate": {
       "value": "Now" | "+3 days" | "+7 days" | null,

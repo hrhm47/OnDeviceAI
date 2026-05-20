@@ -13,9 +13,11 @@ export const findAllowedCompany = (
   referenceData.companies.find(
     (company) =>
       typeof companyId === "string" &&
-      typeof displayName === "string" &&
       company.companyId === companyId &&
-      company.displayName === displayName,
+      (displayName === undefined ||
+        displayName === null ||
+        displayName === company.displayName ||
+        displayName === company.companyId),
   ) ?? null;
 
 export const isAllowedArea = (

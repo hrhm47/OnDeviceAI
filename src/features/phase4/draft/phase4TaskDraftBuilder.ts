@@ -1,8 +1,8 @@
 import { resolvePhase4Candidates } from "../candidates/phase4CandidateResolver";
 import { buildPhase4LLMInput } from "../llm/phase4LLMInputBuilder";
 import { parsePhase4LLMOutput } from "../llm/phase4LLMOutputParser";
-import { phase4MockLLMProvider } from "../llm/phase4MockLLMProvider";
 import type { Phase4LLMProvider } from "../llm/phase4LLMProvider";
+import { phase4MockLLMProvider } from "../llm/phase4MockLLMProvider";
 import { getPhase4ReferenceData } from "../referenceData/phase4ReferenceRepository";
 import type { GeneralTaskFormDraft, Phase4Language } from "../types/phase4.types";
 import {
@@ -50,13 +50,30 @@ export const extractGeneralTaskFormDraft = async (input: {
     referenceData,
     candidateResolution,
   });
+  console.log("Phase 4 LLM input summary:", {
+    providerLanguage: input.language,
+    transcriptLength: transcript.length,
+    allowedCompaniesCount: llmInput.allowedCompanies.length,
+    companyCandidatesCount: candidateResolution.companyCandidates.length,
+    areaCandidatesCount: candidateResolution.areaCandidates.length,
+    actionCandidatesCount: candidateResolution.requiredActionCandidates.length,
+    dueDateCandidatesCount: candidateResolution.dueDateCandidates.length,
+    tagCandidatesCount: candidateResolution.tagCandidates.length,
+  });
   const provider = input.provider ?? phase4MockLLMProvider;
+  console.log(`Using LLM provider: ${provider.providerId} with method ${provider.method}`);
   let rawLlmOutput = "";
   let extractionTimeMs = 0;
   let providerError: string | null = null;
 
   try {
+    const providerStartedAt = Date.now();
     const response = await provider.extractTaskForm(llmInput);
+    console.log("Phase 4 LLM response summary:", {
+      elapsedMs: Date.now() - providerStartedAt,
+      providerDurationMs: response.durationMs,
+      rawTextLength: response.rawText.length,
+    });
     rawLlmOutput = response.rawText;
     extractionTimeMs = response.durationMs;
   } catch (error) {
@@ -66,11 +83,28 @@ export const extractGeneralTaskFormDraft = async (input: {
   const parseResult = rawLlmOutput
     ? parsePhase4LLMOutput(rawLlmOutput)
     : { success: false, output: null, normalizedText: "", errorMessage: providerError };
+  console.log("Phase 4 LLM parse summary:", {
+    success: parseResult.success,
+    errorMessage: parseResult.errorMessage,
+    normalizedTextLength: parseResult.normalizedText.length,
+  });
+  const validationStartedAt = Date.now();
   const validation: Phase4ValidationResult = validateAndBuildTaskFormDraft({
     parsedOutput: parseResult.output,
     transcript,
     referenceData,
     candidateResolution,
+  });
+
+  console.log("Phase 4 validation summary:", {
+    validationMs: Date.now() - validationStartedAt,
+    validationPassed: validation.validationPassed,
+    warnings: validation.warnings,
+    company: validation.draft.company.value,
+    area: validation.draft.area.value,
+    requiredAction: validation.draft.requiredAction.value,
+    dueDate: validation.draft.requiredActionDueDate.value,
+    tags: validation.draft.tags.value,
   });
 
   return {

@@ -1,4 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
+import type { LlamaContext } from "llama.rn";
 
 import { PHASE4_SELECTED_LLM_MODEL } from "./phase4ModelConfig";
 import type { Phase4LLMProvider } from "./phase4LLMProvider";
@@ -15,6 +16,9 @@ const STOP_WORDS = [
   "<|endoftext|>",
 ];
 
+let cachedContext: LlamaContext | null = null;
+let cachedContextModelUri: string | null = null;
+
 export const phase4LocalLLMProvider: Phase4LLMProvider = {
   providerId: "phase4_local_llm_provider_qwen2_5_llama_rn_v1",
   method: "local_llm_with_validation",
@@ -27,39 +31,68 @@ export const phase4LocalLLMProvider: Phase4LLMProvider = {
       );
     }
 
-    const { initLlama } = await import("llama.rn");
-    const context = await initLlama({
-      model: modelUri,
-      use_mlock: true,
-      n_ctx: 4096,
-      n_gpu_layers: 99,
+    const contextStartTime = Date.now();
+    const context = await getPhase4LlamaContext(modelUri);
+    const contextReadyAt = Date.now();
+    await context.clearCache(false).catch(() => undefined);
+
+    const completionStartTime = Date.now();
+    const result = await context.completion({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a controlled extraction engine. Return one valid JSON object only.",
+        },
+        { role: "user", content: buildPhase4ExtractionPrompt(input) },
+      ],
+      response_format: { type: "json_object" },
+      n_predict: 700,
+      temperature: 0,
+      top_p: 1,
+      stop: STOP_WORDS,
+    });
+    const completedAt = Date.now();
+    console.log("Phase 4 local LLM timing", {
+      contextMs: contextReadyAt - contextStartTime,
+      completionMs: completedAt - completionStartTime,
+      totalMs: completedAt - startedAt,
     });
 
-    try {
-      const result = await context.completion({
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a controlled extraction engine. Return one valid JSON object only.",
-          },
-          { role: "user", content: buildPhase4ExtractionPrompt(input) },
-        ],
-        response_format: { type: "json_object" },
-        n_predict: 900,
-        temperature: 0,
-        top_p: 1,
-        stop: STOP_WORDS,
-      });
-
-      return {
-        rawText: result.text,
-        durationMs: Date.now() - startedAt,
-      };
-    } finally {
-      await context.release().catch(() => undefined);
-    }
+    return {
+      rawText: result.text,
+      durationMs: completedAt - startedAt,
+    };
   },
+};
+
+const getPhase4LlamaContext = async (modelUri: string) => {
+  if (cachedContext && cachedContextModelUri === modelUri) {
+    return cachedContext;
+  }
+
+  await releasePhase4LocalLLMContext();
+  const { initLlama } = await import("llama.rn");
+  cachedContext = await initLlama({
+    model: modelUri,
+    use_mlock: true,
+    n_ctx: 4096,
+    n_gpu_layers: 99,
+  });
+  cachedContextModelUri = modelUri;
+  return cachedContext;
+};
+
+export const releasePhase4LocalLLMContext = async () => {
+  if (!cachedContext) {
+    cachedContextModelUri = null;
+    return;
+  }
+
+  const context = cachedContext;
+  cachedContext = null;
+  cachedContextModelUri = null;
+  await context.release().catch(() => undefined);
 };
 
 export const getPhase4DocumentModelUri = () => {
