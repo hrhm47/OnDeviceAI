@@ -19,6 +19,9 @@ Field constraints:
 - requiredAction.value must be one allowed action or null.
 - requiredActionDueDate.value must be Now, +3 days, +7 days, or null.
 - tags.value must contain only allowed tags.
+- If the transcript contains useful intent that is not an allowed final value, keep it in reviewSuggestions.
+- Unsupported due date phrases such as tomorrow must be reviewSuggestions.spokenDueDateText, not a final due date value.
+- Use local company responsibility summaries and workIntents to suggest nearest allowed companies for manual review.
 
 Language: ${input.language}
 
@@ -122,6 +125,14 @@ Return JSON only in this structure:
       "reason": "Notifications are false by default."
     }
   },
+  "reviewSuggestions": {
+    "workIntent": "water_leak",
+    "spokenDueDateText": null,
+    "unsupportedDueDateReason": null,
+    "spokenCompanyText": null,
+    "suggestedCompanyIds": ["company_aquapipe_finland"],
+    "manualReviewReasons": []
+  },
   "warnings": []
 }
 `;
@@ -143,6 +154,8 @@ const compactCompanies = (input: Phase4LLMInput) => {
     companyId: company.companyId,
     displayName: company.displayName,
     primaryCategory: company.primaryCategory,
+    responsibilitySummary: company.responsibilitySummary,
+    workIntents: company.workIntents,
     actionHints: company.actionHints,
     tagHints: company.tagHints,
   }));

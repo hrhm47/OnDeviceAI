@@ -11,6 +11,7 @@ export type Phase4RawLLMOutput = {
   formId: "general_task_form";
   schemaVersion?: unknown;
   fields: Record<string, RawField>;
+  reviewSuggestions?: Record<string, unknown>;
 };
 
 export type Phase4ParseResult = {

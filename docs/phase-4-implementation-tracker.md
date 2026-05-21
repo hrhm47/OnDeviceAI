@@ -1,7 +1,7 @@
 # Phase 4 Implementation Tracker
 
 Implementation started: 2026-05-19, Europe/Helsinki.
-Last updated: 2026-05-19 18:49:44 EEST.
+Last updated: 2026-05-21 00:00:00 EEST.
 
 ## Selected Model
 
@@ -133,3 +133,11 @@ Final verification summary:
 - Checklist: `llama.rn@0.9.7` installed for GGUF inference without enabling React Native New Architecture; Expo plugin added; local provider resolves/downloads the Qwen2.5 GGUF in app documents and runs `initLlama`; UI exposes local provider, model check, and model download.
 - Known limitations: native inference still requires a custom Expo development build and the GGUF file on the device; it cannot be verified in Node or Expo Go.
 - Verification: `npx tsc --noEmit` passed; `npm run lint` passed; manual check runner still reports 6/6 passed.
+
+### `phase4/grounded-review-suggestions`
+
+- Files added: none.
+- Files modified: Phase 4 types, company reference data, candidate resolver, prompt template, parser, validator, draft builder, mock provider, manual checks, UI, CSV export, and docs.
+- Checklist: final draft fields stay strict; unsupported but useful intent is preserved in `reviewSuggestions`; company responsibility summaries and work intents are available to the local LLM; CSV/UI expose suggestions for user review.
+- Known limitations: no embeddings, vector indexing, reranking, translation, remote retrieval, or model/runtime tuning were added in this branch.
+- Verification: `npx tsc --noEmit` passed; `npm run lint` passed; compiled runner in `/private/tmp` and confirmed 14/14 manual checks passed.

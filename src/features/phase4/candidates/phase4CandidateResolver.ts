@@ -38,6 +38,9 @@ const rankCompanyCandidates = (
         ...company.serviceKeywords.fi,
         ...company.roleLabels.en,
         ...company.roleLabels.fi,
+        ...(company.workIntents ?? []),
+        company.responsibilitySummary?.en ?? "",
+        company.responsibilitySummary?.fi ?? "",
       ];
       const matched = keywords.filter((keyword) =>
         normalized.includes(normalize(keyword)),
@@ -145,7 +148,7 @@ const resolveActionCandidates = (
   if (matchesAny(normalized, ["paint", "painted again", "maala", "maalata"])) {
     return [candidate("Maalataan uudestaan", "medium", "paint", "Painting damage implies repainting.")];
   }
-  if (matchesAny(normalized, ["loose", "does not close", "cold air", "leak", "drains slowly", "not heating", "rubs", "lock", "seal", "waterproofing", "membrane", "tiiviste", "vuoto", "hankaa", "lukko"])) {
+  if (matchesAny(normalized, ["loose", "does not close", "cold air", "leak", "drains slowly", "not heating", "rubs", "lock", "seal", "waterproofing", "membrane", "gas connection", "connection", "tiiviste", "vuoto", "hankaa", "lukko", "liitäntä"])) {
     return [candidate("Korjaus", "medium", "defect wording", "Physical defect wording implies repair.")];
   }
   if (matchesAny(normalized, ["missing", "puuttuu"])) {

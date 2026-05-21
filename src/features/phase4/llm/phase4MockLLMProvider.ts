@@ -55,6 +55,22 @@ const buildMockOutput = (input: Phase4LLMInput) => {
       impacts: field([], "not_configured", "none", null, "Impacts are not configured."),
       notifications: field(false, "defaulted", "high", null, "Notifications default to false."),
     },
+    reviewSuggestions: {
+      workIntent: pickWorkIntent(text),
+      spokenDueDateText: text.includes("tomorrow") || text.includes("huomenna")
+        ? text.includes("huomenna")
+          ? "huomenna"
+          : "tomorrow"
+        : null,
+      unsupportedDueDateReason: text.includes("tomorrow") || text.includes("huomenna")
+        ? "The spoken due date is useful for review but is not an allowed final due date option."
+        : null,
+      spokenCompanyText: text.includes("superfast builder")
+        ? "SuperFast Builder Company"
+        : null,
+      suggestedCompanyIds: company ? [company.companyId] : [],
+      manualReviewReasons: [],
+    },
   };
 };
 
@@ -85,6 +101,9 @@ const priorityCompanyId = (text: string) => {
   if (text.includes("radiator") || text.includes("heating") || text.includes("valve")) {
     return "company_northflow_lvi";
   }
+  if (text.includes("gas connection") || text.includes("gas pipe") || text.includes("kaasuliitäntä")) {
+    return "company_aquapipe_finland";
+  }
   if (text.includes("ceiling")) {
     return "company_ceilingpro";
   }
@@ -99,6 +118,22 @@ const priorityCompanyId = (text: string) => {
   }
   if (text.includes("palokatko") || text.includes("fire stop")) {
     return "company_palostop";
+  }
+  return null;
+};
+
+const pickWorkIntent = (text: string) => {
+  if (text.includes("gas connection") || text.includes("kaasuliitäntä")) {
+    return "gas_connection";
+  }
+  if (text.includes("pipe") || text.includes("putki")) {
+    return "pipe_connection";
+  }
+  if (text.includes("balcony door") || text.includes("door seal")) {
+    return "door_seal_repair";
+  }
+  if (text.includes("appliance") || text.includes("fridge")) {
+    return "appliance_installation";
   }
   return null;
 };

@@ -50,11 +50,15 @@ export type Phase4CompanyCategory =
   | "site_logistics"
   | "fall_protection";
 
+export type Phase4WorkIntent = string;
+
 export type Phase4CompanyReference = {
   companyId: string;
   displayName: string;
   primaryCategory: Phase4CompanyCategory;
   secondaryCategories?: Phase4CompanyCategory[];
+  responsibilitySummary?: Record<Phase4Language, string>;
+  workIntents?: readonly Phase4WorkIntent[];
   roleLabels: Record<Phase4Language, string[]>;
   serviceKeywords: Record<Phase4Language, string[]>;
   actionHints: Record<Phase4Language, Phase4RequiredAction[]>;
@@ -132,6 +136,24 @@ export type Phase4LLMField<T> = {
   confidence: Phase4Confidence;
   evidence: string | null;
   reason: string;
+};
+
+export type Phase4CompanyReviewSuggestion = {
+  companyId: string | null;
+  displayName: string | null;
+  confidence: Phase4Confidence;
+  matchType: "exact" | "nearest" | "manual_review";
+  reason: string;
+  source: "llm" | "candidate" | "validator";
+};
+
+export type Phase4ReviewSuggestions = {
+  workIntent: string | null;
+  spokenDueDateText: string | null;
+  unsupportedDueDateReason: string | null;
+  spokenCompanyText: string | null;
+  companySuggestions: Phase4CompanyReviewSuggestion[];
+  manualReviewReasons: string[];
 };
 
 export type GeneralTaskFormDraft = {

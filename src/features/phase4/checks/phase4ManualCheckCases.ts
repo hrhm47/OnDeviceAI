@@ -18,6 +18,10 @@ export type Phase4ManualCheckCase = {
     requiredActionDueDate: Phase4AllowedDueDate | null;
     tags: Phase4TaskTag[];
     notifications: false;
+    reviewWorkIntent?: string | null;
+    reviewSpokenDueDateText?: string | null;
+    reviewSpokenCompanyText?: string | null;
+    reviewCompanyName?: string;
   };
 };
 
@@ -212,6 +216,41 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
       requiredActionDueDate: null,
       tags: ["Quality"],
       notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_gas_connection_tomorrow",
+    language: "en",
+    transcript: "There is a need of gas connection tomorrow.",
+    expected: {
+      companyName: "AquaPipe Finland Oy",
+      companyStatus: "suggested",
+      descriptionContains: "gas connection",
+      areaValue: null,
+      requiredAction: "Korjaus",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+      reviewWorkIntent: "gas_connection",
+      reviewSpokenDueDateText: "tomorrow",
+      reviewCompanyName: "AquaPipe Finland Oy",
+    },
+  },
+  {
+    checkId: "phase4_check_invented_company_preserved",
+    language: "en",
+    transcript:
+      "Ask SuperFast Builder Company to fix the leaking pipe today.",
+    expected: {
+      companyName: "AquaPipe Finland Oy",
+      companyStatus: "suggested",
+      descriptionContains: "leaking pipe",
+      areaValue: null,
+      requiredAction: "Korjaus",
+      requiredActionDueDate: "Now",
+      tags: ["Quality"],
+      notifications: false,
+      reviewSpokenCompanyText: "SuperFast Builder Company",
     },
   },
 ];

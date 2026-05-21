@@ -47,6 +47,10 @@ const runCase = async (checkCase: Phase4ManualCheckCase) => {
     compare("dueDate", expected.requiredActionDueDate, draft.requiredActionDueDate.value),
     includesAll("tags", expected.tags, draft.tags.value),
     compare("notifications", expected.notifications, draft.notifications.value),
+    compare("reviewWorkIntent", expected.reviewWorkIntent, result.reviewSuggestions.workIntent),
+    compare("reviewSpokenDueDateText", expected.reviewSpokenDueDateText, result.reviewSuggestions.spokenDueDateText),
+    compare("reviewSpokenCompanyText", expected.reviewSpokenCompanyText, result.reviewSuggestions.spokenCompanyText),
+    includesSuggestion("reviewCompany", expected.reviewCompanyName, result.reviewSuggestions.companySuggestions.map((item) => item.displayName ?? "")),
   ].filter((field): field is Phase4FieldCheckResult => Boolean(field));
 
   return {
@@ -82,6 +86,20 @@ const includesAll = (fieldId: string, expected: string[] | undefined, actual: st
         fieldId,
         passed: expected.every((item) => actual.includes(item)),
         expected: expected.join(" | "),
+        actual: actual.join(" | "),
+      }
+    : null;
+
+const includesSuggestion = (
+  fieldId: string,
+  expected: string | undefined,
+  actual: string[],
+) =>
+  expected
+    ? {
+        fieldId,
+        passed: actual.includes(expected),
+        expected,
         actual: actual.join(" | "),
       }
     : null;

@@ -45,13 +45,23 @@ export default function Phase4ExtractionScreen() {
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
 
   const runExtraction = async () => {
+    console.log("Running extraction with input:", {
+      transcript,
+      language,
+      provider: providerChoice,
+    });
+    setMessage("Running Phase 4 extraction...");
     const provider =
-      providerChoice === "local" ? phase4LocalLLMProvider : phase4MockLLMProvider;
+      providerChoice === "local"
+        ? phase4LocalLLMProvider
+        : phase4MockLLMProvider;
     const nextResult = await extractGeneralTaskFormDraft({
       transcript,
       language,
       provider,
     });
+
+    console.log("Extraction result:", nextResult);
     setResult(nextResult);
     setMessage(
       nextResult.errorMessage
@@ -130,59 +140,169 @@ export default function Phase4ExtractionScreen() {
             style={styles.textArea}
           />
           <View style={styles.row}>
-            <Chip selected={language === "en"} label="English" onPress={() => setLanguage("en")} />
-            <Chip selected={language === "fi"} label="Finnish" onPress={() => setLanguage("fi")} />
+            <Chip
+              selected={language === "en"}
+              label="English"
+              onPress={() => setLanguage("en")}
+            />
+            <Chip
+              selected={language === "fi"}
+              label="Finnish"
+              onPress={() => setLanguage("fi")}
+            />
           </View>
           <View style={styles.row}>
-            <Chip selected={providerChoice === "mock"} label="Mock provider" onPress={() => setProviderChoice("mock")} />
-            <Chip selected={providerChoice === "local"} label="Local provider" onPress={() => setProviderChoice("local")} />
+            <Chip
+              selected={providerChoice === "mock"}
+              label="Mock provider"
+              onPress={() => setProviderChoice("mock")}
+            />
+            <Chip
+              selected={providerChoice === "local"}
+              label="Local provider"
+              onPress={() => setProviderChoice("local")}
+            />
           </View>
         </Section>
 
         <Section title="Model">
-          <Metric label="Selected model" value={PHASE4_SELECTED_LLM_MODEL.displayName} />
-          <Metric label="Runtime" value={PHASE4_SELECTED_LLM_MODEL.runtimeTarget} />
+          <Metric
+            label="Selected model"
+            value={PHASE4_SELECTED_LLM_MODEL.displayName}
+          />
+          <Metric
+            label="Runtime"
+            value={PHASE4_SELECTED_LLM_MODEL.runtimeTarget}
+          />
           <Text style={styles.note}>
-            Local provider uses llama.rn and needs the GGUF file in the app document directory.
+            Local provider uses llama.rn and needs the GGUF file in the app
+            document directory.
           </Text>
         </Section>
 
         <View style={styles.actions}>
-          <Button label="Run extraction" icon="play.fill" onPress={runExtraction} />
-          <Button label="Save result" icon="tray.and.arrow.down.fill" onPress={saveResult} disabled={!result} />
-          <Button label="Export CSV" icon="arrow.down.doc" onPress={exportCsv} />
-          <Button label="Run checks" icon="checkmark.circle" onPress={runChecks} />
-          <Button label="Check model" icon="info.circle.fill" onPress={checkLocalModel} />
-          <Button label="Download model" icon="icloud.and.arrow.down" onPress={downloadLocalModel} />
+          <Button
+            label="Run extraction"
+            icon="play.fill"
+            onPress={runExtraction}
+          />
+          <Button
+            label="Save result"
+            icon="tray.and.arrow.down.fill"
+            onPress={saveResult}
+            disabled={!result}
+          />
+          <Button
+            label="Export CSV"
+            icon="arrow.down.doc"
+            onPress={exportCsv}
+          />
+          <Button
+            label="Run checks"
+            icon="checkmark.circle"
+            onPress={runChecks}
+          />
+          <Button
+            label="Check model"
+            icon="info.circle.fill"
+            onPress={checkLocalModel}
+          />
+          <Button
+            label="Download model"
+            icon="icloud.and.arrow.down"
+            onPress={downloadLocalModel}
+          />
         </View>
 
         {message ? <Text style={styles.message}>{message}</Text> : null}
         {downloadProgress !== null ? (
-          <Text style={styles.note}>Downloading model: {Math.round(downloadProgress)}%</Text>
+          <Text style={styles.note}>
+            Downloading model: {Math.round(downloadProgress)}%
+          </Text>
         ) : null}
         {checkSummary ? <Text style={styles.note}>{checkSummary}</Text> : null}
 
         {result ? (
           <Section title="Extracted draft">
-            <Text style={styles.note}>Company is suggested and must be confirmed.</Text>
-            <Text style={styles.note}>Area is filled only if spoken and allowed.</Text>
-            <Text style={styles.note}>Marker must be selected manually. Photos are skipped. Notifications are false by default.</Text>
-            <Field label="List" value={result.draft.list.value} status={result.draft.list.status} confidence={result.draft.list.confidence} />
-            <Field label="Company" value={result.draft.company.value ?? "Manual"} status={result.draft.company.status} confidence={result.draft.company.confidence} />
-            <Field label="Description" value={result.draft.description.value} status={result.draft.description.status} confidence={result.draft.description.confidence} />
-            <Field label="Area" value={result.draft.area.value ?? "Manual"} status={result.draft.area.status} confidence={result.draft.area.confidence} />
-            <Field label="Required action" value={result.draft.requiredAction.value ?? "Manual"} status={result.draft.requiredAction.status} confidence={result.draft.requiredAction.confidence} />
-            <Field label="Due date" value={result.draft.requiredActionDueDate.value ?? "Manual"} status={result.draft.requiredActionDueDate.status} confidence={result.draft.requiredActionDueDate.confidence} />
-            <Field label="Tags" value={result.draft.tags.value.join(", ") || "Manual"} status={result.draft.tags.status} confidence={result.draft.tags.confidence} />
-            <Metric label="Extraction time" value={`${result.extractionTimeMs} ms`} />
-            <Metric label="Parse / validation" value={`${result.parseSuccess ? "parsed" : "failed"} / ${result.validationPassed ? "passed" : "needs review"}`} />
+            <Text style={styles.note}>
+              Company is suggested and must be confirmed.
+            </Text>
+            <Text style={styles.note}>
+              Area is filled only if spoken and allowed.
+            </Text>
+            <Text style={styles.note}>
+              Marker must be selected manually. Photos are skipped.
+              Notifications are false by default.
+            </Text>
+            <Field
+              label="List"
+              value={result.draft.list.value}
+              status={result.draft.list.status}
+              confidence={result.draft.list.confidence}
+            />
+            <Field
+              label="Company"
+              value={result.draft.company.value ?? "Manual"}
+              status={result.draft.company.status}
+              confidence={result.draft.company.confidence}
+            />
+            <Field
+              label="Description"
+              value={result.draft.description.value}
+              status={result.draft.description.status}
+              confidence={result.draft.description.confidence}
+            />
+            <Field
+              label="Area"
+              value={result.draft.area.value ?? "Manual"}
+              status={result.draft.area.status}
+              confidence={result.draft.area.confidence}
+            />
+            <Field
+              label="Required action"
+              value={result.draft.requiredAction.value ?? "Manual"}
+              status={result.draft.requiredAction.status}
+              confidence={result.draft.requiredAction.confidence}
+            />
+            <Field
+              label="Due date"
+              value={result.draft.requiredActionDueDate.value ?? "Manual"}
+              status={result.draft.requiredActionDueDate.status}
+              confidence={result.draft.requiredActionDueDate.confidence}
+            />
+            <Field
+              label="Tags"
+              value={result.draft.tags.value.join(", ") || "Manual"}
+              status={result.draft.tags.status}
+              confidence={result.draft.tags.confidence}
+            />
+            <Metric
+              label="Extraction time"
+              value={`${result.extractionTimeMs} ms`}
+            />
+            <Metric
+              label="Parse / validation"
+              value={`${result.parseSuccess ? "parsed" : "failed"} / ${result.validationPassed ? "passed" : "needs review"}`}
+            />
             {result.warnings.map((item) => (
-              <Text key={`${item.fieldId}-${item.code}`} style={styles.warning}>{item.fieldId}: {item.message}</Text>
+              <Text key={`${item.fieldId}-${item.code}`} style={styles.warning}>
+                {item.fieldId}: {item.message}
+              </Text>
             ))}
-            <Pressable style={styles.debugToggle} onPress={() => setRawVisible((value) => !value)}>
-              <Text style={styles.debugText}>{rawVisible ? "Hide raw LLM output" : "Show raw LLM output"}</Text>
+            <ReviewSuggestions result={result} />
+            <Pressable
+              style={styles.debugToggle}
+              onPress={() => setRawVisible((value) => !value)}
+            >
+              <Text style={styles.debugText}>
+                {rawVisible ? "Hide raw LLM output" : "Show raw LLM output"}
+              </Text>
             </Pressable>
-            {rawVisible ? <Text style={styles.raw}>{result.rawLlmOutput || result.errorMessage}</Text> : null}
+            {rawVisible ? (
+              <Text style={styles.raw}>
+                {result.rawLlmOutput || result.errorMessage}
+              </Text>
+            ) : null}
           </Section>
         ) : null}
       </ScrollView>
@@ -190,25 +310,59 @@ export default function Phase4ExtractionScreen() {
   );
 }
 
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+const Section = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>{title}</Text>
     {children}
   </View>
 );
 
-const Chip = ({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) => (
+const Chip = ({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) => (
   <Pressable
     onPress={onPress}
     style={[styles.chip, selected && styles.chipSelected]}
   >
-    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+      {label}
+    </Text>
   </Pressable>
 );
 
-const Button = ({ label, icon, onPress, disabled }: { label: string; icon: React.ComponentProps<typeof IconSymbol>["name"]; onPress: () => void; disabled?: boolean }) => (
-  <Pressable onPress={onPress} disabled={disabled} style={[styles.button, disabled && styles.buttonDisabled]}>
-    <IconSymbol name={icon} size={18} color={disabled ? C.textSubtle : C.surface} />
+const Button = ({
+  label,
+  icon,
+  onPress,
+  disabled,
+}: {
+  label: string;
+  icon: React.ComponentProps<typeof IconSymbol>["name"];
+  onPress: () => void;
+  disabled?: boolean;
+}) => (
+  <Pressable
+    onPress={onPress}
+    disabled={disabled}
+    style={[styles.button, disabled && styles.buttonDisabled]}
+  >
+    <IconSymbol
+      name={icon}
+      size={18}
+      color={disabled ? C.textSubtle : C.surface}
+    />
     <Text style={styles.buttonText}>{label}</Text>
   </Pressable>
 );
@@ -220,47 +374,178 @@ const Metric = ({ label, value }: { label: string; value: string }) => (
   </View>
 );
 
-const Field = ({ label, value, status, confidence }: { label: string; value: string; status: string; confidence: string }) => (
+const Field = ({
+  label,
+  value,
+  status,
+  confidence,
+}: {
+  label: string;
+  value: string;
+  status: string;
+  confidence: string;
+}) => (
   <View style={styles.fieldRow}>
     <View style={styles.fieldText}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <Text style={styles.fieldValue}>{value}</Text>
     </View>
-    <Text style={styles.status}>{status} / {confidence}</Text>
+    <Text style={styles.status}>
+      {status} / {confidence}
+    </Text>
   </View>
 );
+
+const ReviewSuggestions = ({
+  result,
+}: {
+  result: Phase4ExtractionResult;
+}) => {
+  const suggestions = result.reviewSuggestions;
+  const hasSuggestions =
+    Boolean(suggestions.workIntent) ||
+    Boolean(suggestions.spokenDueDateText) ||
+    Boolean(suggestions.spokenCompanyText) ||
+    suggestions.companySuggestions.length > 0 ||
+    suggestions.manualReviewReasons.length > 0;
+
+  if (!hasSuggestions) {
+    return null;
+  }
+
+  return (
+    <View style={styles.suggestionBox}>
+      <Text style={styles.suggestionTitle}>Review suggestions</Text>
+      {suggestions.workIntent ? (
+        <Text style={styles.note}>Work intent: {suggestions.workIntent}</Text>
+      ) : null}
+      {suggestions.spokenDueDateText ? (
+        <Text style={styles.note}>
+          Spoken due date: {suggestions.spokenDueDateText}
+        </Text>
+      ) : null}
+      {suggestions.spokenCompanyText ? (
+        <Text style={styles.note}>
+          Spoken company: {suggestions.spokenCompanyText}
+        </Text>
+      ) : null}
+      {suggestions.companySuggestions.map((item) => (
+        <Text
+          key={`${item.companyId ?? item.displayName}-${item.source}`}
+          style={styles.note}
+        >
+          {item.displayName ?? item.companyId ?? "Manual company"} -{" "}
+          {item.matchType} / {item.confidence}
+        </Text>
+      ))}
+      {suggestions.manualReviewReasons.map((reason) => (
+        <Text key={reason} style={styles.note}>
+          {reason}
+        </Text>
+      ))}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.background },
   content: { padding: 20, gap: 18 },
   header: { gap: 5 },
-  eyebrow: { color: C.primary, fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
+  eyebrow: {
+    color: C.primary,
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
   title: { color: C.text, fontSize: 28, fontWeight: "800" },
   subtitle: { color: C.textSubtle, fontSize: 15, lineHeight: 21 },
-  section: { gap: 10, borderTopWidth: 1, borderTopColor: C.border, paddingTop: 16 },
+  section: {
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    paddingTop: 16,
+  },
   sectionTitle: { color: C.text, fontSize: 18, fontWeight: "800" },
-  textArea: { minHeight: 120, borderWidth: 1, borderColor: C.border, borderRadius: 8, backgroundColor: C.surface, color: C.text, padding: 12, fontSize: 15, lineHeight: 21 },
+  textArea: {
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    backgroundColor: C.surface,
+    color: C.text,
+    padding: 12,
+    fontSize: 15,
+    lineHeight: 21,
+  },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: { borderWidth: 1, borderColor: C.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: C.surface },
+  chip: {
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    backgroundColor: C.surface,
+  },
   chipSelected: { borderColor: C.primary, backgroundColor: C.primarySoft },
   chipText: { color: C.textMuted, fontWeight: "700" },
   chipTextSelected: { color: C.primary },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  button: { flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 8, backgroundColor: C.primary, paddingHorizontal: 12, paddingVertical: 11 },
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    borderRadius: 8,
+    backgroundColor: C.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
   buttonDisabled: { backgroundColor: C.borderStrong },
   buttonText: { color: C.surface, fontWeight: "800" },
   message: { color: C.teal, fontSize: 14, fontWeight: "700" },
   note: { color: C.textSubtle, fontSize: 13, lineHeight: 19 },
   metric: { gap: 2 },
-  metricLabel: { color: C.textSubtle, fontSize: 12, fontWeight: "700", textTransform: "uppercase" },
+  metricLabel: {
+    color: C.textSubtle,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
   metricValue: { color: C.text, fontSize: 15, fontWeight: "700" },
-  fieldRow: { borderWidth: 1, borderColor: C.border, borderRadius: 8, backgroundColor: C.surface, padding: 12, gap: 8 },
+  fieldRow: {
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    backgroundColor: C.surface,
+    padding: 12,
+    gap: 8,
+  },
   fieldText: { gap: 3 },
-  fieldLabel: { color: C.textSubtle, fontSize: 12, fontWeight: "800", textTransform: "uppercase" },
+  fieldLabel: {
+    color: C.textSubtle,
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
   fieldValue: { color: C.text, fontSize: 15, lineHeight: 21 },
   status: { color: C.primary, fontSize: 12, fontWeight: "800" },
+  suggestionBox: {
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    backgroundColor: C.surfaceAlt,
+    padding: 12,
+    gap: 6,
+  },
+  suggestionTitle: { color: C.text, fontSize: 14, fontWeight: "800" },
   warning: { color: C.warning, fontSize: 13, fontWeight: "700" },
   debugToggle: { paddingVertical: 8 },
   debugText: { color: C.primary, fontWeight: "800" },
-  raw: { color: C.neutralDark, backgroundColor: C.surfaceAlt, borderRadius: 8, padding: 12, fontFamily: "monospace", fontSize: 12 },
+  raw: {
+    color: C.neutralDark,
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 8,
+    padding: 12,
+    fontFamily: "monospace",
+    fontSize: 12,
+  },
 });

@@ -14,7 +14,7 @@ Phase 3 transcript
 -> LLM provider
 -> JSON parser
 -> validator
--> General Task Form draft
+-> General Task Form draft + review suggestions
 -> local storage / CSV export
 -> debug UI / manual checks
 ```
@@ -47,14 +47,23 @@ Reference data lives under `src/features/phase4/referenceData` and includes:
 - allowed due date options
 - allowed area options
 - extraction policy
+- compact company responsibility summaries and work intents
 
 Companies, tags, actions, due dates, and areas must come from allowed local data. Area is only filled if spoken and allowed.
 
+## AI Technique
+
+Phase 4 uses grounded local LLM structured extraction with deterministic validation. Candidate matching is local rule-based candidate retrieval over local TypeScript reference data, not embedding search, vector indexing, reranking, translation, or cloud retrieval.
+
+The LLM receives the transcript, deterministic candidates, allowed form values, company responsibility summaries, and work intents. It can suggest nearest allowed companies and preserve review-only intent, such as a spoken due date that is not available in the strict form dropdown.
+
 ## Prompt And Validation
 
-The prompt version is `phase4_general_task_prompt_v1`. The LLM input package includes transcript, form schema, allowed values, extraction policy, and a strict JSON output shape.
+The prompt version is `phase4_general_task_prompt_v1`. The LLM input package includes transcript, form schema, allowed values, extraction policy, grounded responsibility data, and a strict JSON output shape.
 
 The LLM is not trusted blindly. The parser safely handles invalid JSON, and the validator rebuilds the draft from allowed local data.
+
+Unsupported but useful LLM or user intent is preserved in `reviewSuggestions` instead of being silently deleted. For example, if the transcript says `tomorrow`, the final due-date field remains manual because v1 only allows `Now`, `+3 days`, and `+7 days`, but `tomorrow` is stored as review context for the user flow.
 
 Manual/skipped/default fields:
 
@@ -88,7 +97,8 @@ Use the Phase 4 tab in the app:
 4. For local inference, check/download the model first.
 5. Run extraction.
 6. Review extracted fields, statuses, confidence, warnings, and raw output.
-7. Save locally or export CSV.
+7. Review AI suggestions such as work intent, spoken unsupported due dates, and nearest allowed company candidates.
+8. Save locally or export CSV.
 
 Manual checks can be run from the Phase 4 UI. The check runner is implemented in `src/features/phase4/checks/phase4CheckRunner.ts`.
 
@@ -96,13 +106,13 @@ Manual checks can be run from the Phase 4 UI. The check runner is implemented in
 
 - Real local LLM inference requires a custom native build and a downloaded/copied GGUF file on the device.
 - Company data is dummy local thesis reference data.
-- Candidate retrieval is keyword-based in the mock provider only.
+- Candidate retrieval is local rule/responsibility matching, not semantic embeddings.
 - No local database is used in v1.
 - The UI is a debug extraction screen, not a Phase 5 editable preview.
 
 Future improvements:
 
 - performance tuning for the local LLM runtime
-- candidate retrieval
+- optional embeddings/vector indexing only if local reference data grows beyond simple local matching
 - local database
 - Phase 5 editable preview

@@ -7,6 +7,8 @@ import type {
   Phase4FieldStatus,
   Phase4LLMField,
   Phase4ReferenceData,
+  Phase4ReviewSuggestions,
+  Phase4CompanyReviewSuggestion,
 } from "../types/phase4.types";
 import {
   filterAllowedTags,
@@ -19,6 +21,7 @@ import { warning, type Phase4ValidationWarning } from "./phase4Warnings";
 
 export type Phase4ValidationResult = {
   draft: GeneralTaskFormDraft;
+  reviewSuggestions: Phase4ReviewSuggestions;
   validationPassed: boolean;
   warnings: Phase4ValidationWarning[];
 };
@@ -138,6 +141,16 @@ export const validateAndBuildTaskFormDraft = (input: {
       ),
     );
   }
+  const reviewSuggestions = buildReviewSuggestions({
+    parsedOutput: input.parsedOutput,
+    transcript: input.transcript,
+    referenceData: input.referenceData,
+    candidateResolution: input.candidateResolution,
+    llmCompany,
+    company,
+    companyField,
+    dueDateField: fields.requiredActionDueDate,
+  });
 
   const companyConfidence = llmCompany
     ? companyNameSpoken
@@ -232,7 +245,172 @@ export const validateAndBuildTaskFormDraft = (input: {
     ),
   };
 
-  return { draft, validationPassed: warnings.length === 0, warnings };
+  return {
+    draft,
+    reviewSuggestions,
+    validationPassed: warnings.length === 0,
+    warnings,
+  };
+};
+
+const buildReviewSuggestions = (input: {
+  parsedOutput: Phase4RawLLMOutput | null;
+  transcript: string;
+  referenceData: Phase4ReferenceData;
+  candidateResolution?: Phase4CandidateResolution;
+  llmCompany: Phase4ReferenceData["companies"][number] | null;
+  company: Phase4ReferenceData["companies"][number] | null;
+  companyField: Phase4RawLLMOutput["fields"][string] | undefined;
+  dueDateField: Phase4RawLLMOutput["fields"][string] | undefined;
+}): Phase4ReviewSuggestions => {
+  const rawSuggestions = input.parsedOutput?.reviewSuggestions ?? {};
+  const spokenDueDateText =
+    stringValue(rawSuggestions.spokenDueDateText) ??
+    unsupportedDueDateText(input.dueDateField?.value) ??
+    detectUnsupportedDueDate(input.transcript);
+  const spokenCompanyText =
+    stringValue(rawSuggestions.spokenCompanyText) ??
+    detectUnsupportedCompanyText(input.transcript, input.referenceData) ??
+    (!input.llmCompany && input.companyField?.value
+      ? stringValue(input.companyField.value)
+      : null);
+  const manualReviewReasons = stringArray(rawSuggestions.manualReviewReasons);
+
+  if (spokenDueDateText) {
+    manualReviewReasons.push(
+      `${spokenDueDateText} was spoken but is not one of the allowed due date options.`,
+    );
+  }
+  if (spokenCompanyText) {
+    manualReviewReasons.push(
+      `${spokenCompanyText} was spoken or suggested but is not an exact allowed company match.`,
+    );
+  }
+
+  return {
+    workIntent:
+      stringValue(rawSuggestions.workIntent) ??
+      inferWorkIntent(input.transcript, input.company, input.candidateResolution),
+    spokenDueDateText,
+    unsupportedDueDateReason: spokenDueDateText
+      ? "The spoken due date is useful for review but cannot be written into the strict due date field."
+      : stringValue(rawSuggestions.unsupportedDueDateReason),
+    spokenCompanyText,
+    companySuggestions: buildCompanyReviewSuggestions(input, rawSuggestions),
+    manualReviewReasons: Array.from(new Set(manualReviewReasons)),
+  };
+};
+
+const buildCompanyReviewSuggestions = (
+  input: {
+    parsedOutput: Phase4RawLLMOutput | null;
+    referenceData: Phase4ReferenceData;
+    candidateResolution?: Phase4CandidateResolution;
+    llmCompany: Phase4ReferenceData["companies"][number] | null;
+    company: Phase4ReferenceData["companies"][number] | null;
+  },
+  rawSuggestions: Record<string, unknown>,
+): Phase4CompanyReviewSuggestion[] => {
+  const seen = new Set<string>();
+  const suggestions: Phase4CompanyReviewSuggestion[] = [];
+  const push = (suggestion: Phase4CompanyReviewSuggestion) => {
+    const key = suggestion.companyId ?? suggestion.displayName ?? suggestion.reason;
+    if (!seen.has(key)) {
+      seen.add(key);
+      suggestions.push(suggestion);
+    }
+  };
+
+  for (const companyId of stringArray(rawSuggestions.suggestedCompanyIds)) {
+    const company = input.referenceData.companies.find(
+      (item) => item.companyId === companyId,
+    );
+    if (company) {
+      push({
+        companyId: company.companyId,
+        displayName: company.displayName,
+        confidence: "medium",
+        matchType: input.llmCompany?.companyId === company.companyId ? "exact" : "nearest",
+        reason: "LLM suggested this allowed local company for user review.",
+        source: "llm",
+      });
+    }
+  }
+
+  if (input.company) {
+    push({
+      companyId: input.company.companyId,
+      displayName: input.company.displayName,
+      confidence: input.llmCompany ? "medium" : "low",
+      matchType: input.llmCompany ? "exact" : "nearest",
+      reason: input.llmCompany
+        ? "Company exists in the allowed database."
+        : "Closest local candidate from deterministic responsibility matching.",
+      source: input.llmCompany ? "llm" : "candidate",
+    });
+  }
+
+  for (const candidate of input.candidateResolution?.companyCandidates.slice(0, 3) ?? []) {
+    push({
+      companyId: candidate.value.companyId,
+      displayName: candidate.value.displayName,
+      confidence: candidateConfidence(candidate.confidence),
+      matchType: "nearest",
+      reason: candidate.reason,
+      source: "candidate",
+    });
+  }
+
+  return suggestions;
+};
+
+const inferWorkIntent = (
+  transcript: string,
+  company: Phase4ReferenceData["companies"][number] | null,
+  candidateResolution: Phase4CandidateResolution | undefined,
+) => {
+  const normalizedTranscript = normalizeText(transcript);
+  const intents =
+    company?.workIntents ??
+    candidateResolution?.companyCandidates.flatMap((candidate) => {
+      const evidence = normalizeText(candidate.evidence);
+      return evidence ? [evidence.replace(/\s+/g, "_")] : [];
+    }) ??
+    [];
+
+  return (
+    intents.find((intent) => normalizedTranscript.includes(normalizeText(intent))) ??
+    null
+  );
+};
+
+const unsupportedDueDateText = (value: unknown) => {
+  const text = stringValue(value);
+  return text && !["Now", "+3 days", "+7 days"].includes(text) ? text : null;
+};
+
+const detectUnsupportedDueDate = (transcript: string) => {
+  const normalized = normalizeText(transcript);
+  if (normalized.includes("tomorrow") || normalized.includes("huomenna")) {
+    return normalized.includes("huomenna") ? "huomenna" : "tomorrow";
+  }
+  return null;
+};
+
+const detectUnsupportedCompanyText = (
+  transcript: string,
+  referenceData: Phase4ReferenceData,
+) => {
+  const match = transcript.match(/\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){1,3}\s+(?:Company|Oy|Ltd|Inc))\b/);
+  const spoken = match?.[1]?.trim() ?? null;
+  if (!spoken) {
+    return null;
+  }
+
+  const isAllowed = referenceData.companies.some(
+    (company) => normalizeText(company.displayName) === normalizeText(spoken),
+  );
+  return isAllowed ? null : spoken;
 };
 
 const isCandidateArea = (
@@ -245,7 +423,21 @@ const candidateConfidence = (
 ): Phase4Confidence => confidence ?? "none";
 
 const stringValue = (value: unknown) =>
-  typeof value === "string" ? value.trim() : "";
+  typeof value === "string" && value.trim() ? value.trim() : null;
+
+const stringArray = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
+    : [];
+
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[-_/.,:;]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 const field = <T,>(
   value: T,

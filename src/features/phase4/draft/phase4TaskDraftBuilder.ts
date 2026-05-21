@@ -4,7 +4,11 @@ import { parsePhase4LLMOutput } from "../llm/phase4LLMOutputParser";
 import type { Phase4LLMProvider } from "../llm/phase4LLMProvider";
 import { phase4MockLLMProvider } from "../llm/phase4MockLLMProvider";
 import { getPhase4ReferenceData } from "../referenceData/phase4ReferenceRepository";
-import type { GeneralTaskFormDraft, Phase4Language } from "../types/phase4.types";
+import type {
+  GeneralTaskFormDraft,
+  Phase4Language,
+  Phase4ReviewSuggestions,
+} from "../types/phase4.types";
 import {
   validateAndBuildTaskFormDraft,
   type Phase4ValidationResult,
@@ -19,6 +23,7 @@ export type Phase4ExtractionResult = {
   language: Phase4Language;
   transcript: string;
   draft: GeneralTaskFormDraft;
+  reviewSuggestions: Phase4ReviewSuggestions;
   llmProviderId: string;
   method: Phase4LLMProvider["method"];
   promptVersion: "phase4_general_task_prompt_v1";
@@ -105,6 +110,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     requiredAction: validation.draft.requiredAction.value,
     dueDate: validation.draft.requiredActionDueDate.value,
     tags: validation.draft.tags.value,
+    reviewSuggestions: validation.reviewSuggestions,
   });
 
   return {
@@ -114,6 +120,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     language: input.language,
     transcript,
     draft: validation.draft,
+    reviewSuggestions: validation.reviewSuggestions,
     llmProviderId: provider.providerId,
     method: provider.method,
     promptVersion: llmInput.promptVersion,

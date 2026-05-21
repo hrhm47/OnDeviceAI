@@ -10,7 +10,10 @@ export const PHASE4_EXTRACTION_CSV_FIELDS = [
   "photosStatus", "requiredActionValue", "requiredActionStatus",
   "requiredActionConfidence", "requiredActionDueDateValue",
   "requiredActionDueDateStatus", "tagsValue", "tagsStatus",
-  "impactsStatus", "notificationsValue", "warnings", "errorMessage",
+  "impactsStatus", "notificationsValue", "reviewWorkIntent",
+  "reviewSpokenDueDateText", "reviewUnsupportedDueDateReason",
+  "reviewSpokenCompanyText", "reviewCompanySuggestions",
+  "reviewManualReviewReasons", "warnings", "errorMessage",
 ] as const;
 
 export const buildPhase4ExtractionResultsCsv = (
@@ -26,7 +29,17 @@ export const buildPhase4ExtractionResultsCsv = (
   return [PHASE4_EXTRACTION_CSV_FIELDS.join(","), ...rows].join("\n");
 };
 
-const flattenCsvRow = (result: Phase4ExtractionResult) => ({
+const flattenCsvRow = (result: Phase4ExtractionResult) => {
+  const reviewSuggestions = result.reviewSuggestions ?? {
+    workIntent: null,
+    spokenDueDateText: null,
+    unsupportedDueDateReason: null,
+    spokenCompanyText: null,
+    companySuggestions: [],
+    manualReviewReasons: [],
+  };
+
+  return {
   resultId: result.resultId,
   timestamp: result.timestamp,
   phase3ResultId: result.phase3ResultId,
@@ -62,9 +75,18 @@ const flattenCsvRow = (result: Phase4ExtractionResult) => ({
   tagsStatus: result.draft.tags.status,
   impactsStatus: result.draft.impacts.status,
   notificationsValue: result.draft.notifications.value,
+  reviewWorkIntent: reviewSuggestions.workIntent,
+  reviewSpokenDueDateText: reviewSuggestions.spokenDueDateText,
+  reviewUnsupportedDueDateReason: reviewSuggestions.unsupportedDueDateReason,
+  reviewSpokenCompanyText: reviewSuggestions.spokenCompanyText,
+  reviewCompanySuggestions: reviewSuggestions.companySuggestions
+    .map((item) => `${item.displayName ?? item.companyId}:${item.matchType}:${item.confidence}`)
+    .join(" | "),
+  reviewManualReviewReasons: reviewSuggestions.manualReviewReasons.join(" | "),
   warnings: result.warnings.map((item) => `${item.fieldId}:${item.code}`).join(" | "),
   errorMessage: result.errorMessage,
-});
+  };
+};
 
 const escapeCsvValue = (
   value: string | number | boolean | null | undefined,
