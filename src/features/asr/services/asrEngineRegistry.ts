@@ -3,13 +3,15 @@ import type { whisperModels } from "@/constants/types/ModelTypes";
 import { NativeAsrEngine } from "../engines/nativeAsrEngine";
 import { ParakeetAsrEngine } from "../engines/parakeetAsrEngine";
 import { QwenAsrEngine } from "../engines/qwenAsrEngine";
-import { WhisperAsrEngine } from "../engines/whisperAsrEngine";
 import {
   ASREngine,
   ASREngineAvailabilityStatus,
   ASREngineMetadata,
   ASREngineType,
+  AudioInput,
+  TranscriptionResult,
 } from "../types/asr.types";
+import { createErrorTranscriptionResult } from "../utils/metricsHelpers";
 
 export type ASREngineRegistryOptions = {
   whisperModel?: whisperModels;
@@ -39,6 +41,42 @@ type ReadinessAwareEngine = ASREngine & {
   }>;
 };
 
+class UnavailableWhisperAsrEngine implements ASREngine {
+  id: string;
+  name = "Whisper base multilingual";
+  engineType = "whisper" as const;
+  mode = "local-model" as const;
+  languageSupport: ASREngine["languageSupport"] = ["en", "fi"];
+  supportsStreaming = false;
+  runtimeMode = "unsupported" as const;
+
+  constructor(modelName: whisperModels = "base") {
+    this.id = `whisper-${modelName}`;
+  }
+
+  async isAvailable() {
+    return false;
+  }
+
+  async initialize() {
+    throw new Error("Whisper model asset is not bundled in this build.");
+  }
+
+  async transcribe(input: AudioInput): Promise<TranscriptionResult> {
+    return createErrorTranscriptionResult(
+      this,
+      input,
+      "Whisper model asset is not bundled in this build.",
+      0,
+      "unsupported",
+    );
+  }
+
+  async dispose() {
+    return undefined;
+  }
+}
+
 export const getASREngineById = (
   id: string,
   options?: ASREngineRegistryOptions,
@@ -48,7 +86,7 @@ export const getASREngineById = (
   }
 
   if (id === "whisper") {
-    return new WhisperAsrEngine(options?.whisperModel ?? "base");
+    return new UnavailableWhisperAsrEngine(options?.whisperModel ?? "base");
   }
 
   if (id === "qwen") {

@@ -60,6 +60,23 @@ export default function SettingsScreen() {
     }
   };
 
+  if (fieldUiEnabled) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.eyebrow}>Settings</Text>
+            <Text style={styles.title}>Field mode</Text>
+          </View>
+          <FieldUiToggleCard
+            fieldUiEnabled={fieldUiEnabled}
+            onPress={toggleFieldUi}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -72,36 +89,10 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardTitleRow}>
-            <IconSymbol size={22} name="mic.fill" color={C.primary} />
-            <Text style={styles.cardTitle}>Field UI mode</Text>
-          </View>
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleTextBlock}>
-              <Text style={styles.toggleTitle}>Worker recording flow</Text>
-              <Text style={styles.bodyText}>
-                Show only the microphone-first field screen and Settings.
-              </Text>
-            </View>
-            <Pressable
-              accessibilityRole="switch"
-              accessibilityState={{ checked: fieldUiEnabled }}
-              onPress={toggleFieldUi}
-              style={[
-                styles.switchTrack,
-                fieldUiEnabled && styles.switchTrackActive,
-              ]}
-            >
-              <View
-                style={[
-                  styles.switchThumb,
-                  fieldUiEnabled && styles.switchThumbActive,
-                ]}
-              />
-            </Pressable>
-          </View>
-        </View>
+        <FieldUiToggleCard
+          fieldUiEnabled={fieldUiEnabled}
+          onPress={toggleFieldUi}
+        />
 
         <View style={styles.card}>
           <View style={styles.cardTitleRow}>
@@ -229,6 +220,47 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function FieldUiToggleCard({
+  fieldUiEnabled,
+  onPress,
+}: {
+  fieldUiEnabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTitleRow}>
+        <IconSymbol size={22} name="mic.fill" color={C.primary} />
+        <Text style={styles.cardTitle}>Field UI mode</Text>
+      </View>
+      <View style={styles.toggleRow}>
+        <View style={styles.toggleTextBlock}>
+          <Text style={styles.toggleTitle}>Worker recording flow</Text>
+          <Text style={styles.bodyText}>
+            Show only the microphone-first field screen and Settings.
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: fieldUiEnabled }}
+          onPress={onPress}
+          style={[
+            styles.switchTrack,
+            fieldUiEnabled && styles.switchTrackActive,
+          ]}
+        >
+          <View
+            style={[
+              styles.switchThumb,
+              fieldUiEnabled && styles.switchThumbActive,
+            ]}
+          />
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
