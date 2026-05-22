@@ -1,5 +1,7 @@
 # Phase 4 Data-Grounded Local LLM Extraction
 
+For the complete architecture, flow charts, local LLM connection details, validation rationale, and testing variables, see `docs/phase-4-complete-technical-report.md`.
+
 ## Purpose
 
 Phase 4 starts the transition from ASR transcript to a structured Congrid-style General Task Form draft. It is not a chatbot and it does not submit tasks automatically. It creates a partial draft for user review, editing, and confirmation.
