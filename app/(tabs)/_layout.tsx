@@ -1,12 +1,41 @@
-import { Tabs } from "expo-router";
-import React from "react";
+import { router, Tabs, usePathname } from "expo-router";
+import React, { useEffect } from "react";
 
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FieldColors } from "@/constants/theme";
+import { useAppSettingsStore } from "@/src/store/useAppSettingsStore";
 
 export default function TabLayout() {
+  const { fieldUiEnabled, hasLoaded, loadSettings } = useAppSettingsStore();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (!hasLoaded) {
+      loadSettings().catch(console.error);
+    }
+  }, [hasLoaded, loadSettings]);
+
+  useEffect(() => {
+    if (!hasLoaded) {
+      return;
+    }
+
+    if (
+      fieldUiEnabled &&
+      pathname !== "/field" &&
+      pathname !== "/settings"
+    ) {
+      router.replace("/field");
+    }
+
+    if (!fieldUiEnabled && pathname === "/field") {
+      router.replace("/");
+    }
+  }, [fieldUiEnabled, hasLoaded, pathname]);
+
   return (
     <Tabs
+      initialRouteName={fieldUiEnabled ? "field" : "index"}
       screenOptions={{
         tabBarActiveTintColor: FieldColors.primary,
         tabBarInactiveTintColor: FieldColors.textSubtle,
@@ -24,9 +53,20 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
+        name="field"
+        options={{
+          title: "Field",
+          href: fieldUiEnabled ? undefined : null,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={25} name="mic.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           title: "Home",
+          href: fieldUiEnabled ? null : undefined,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={25} name="house.fill" color={color} />
           ),
@@ -36,6 +76,7 @@ export default function TabLayout() {
         name="bench"
         options={{
           title: "ASR Test",
+          href: fieldUiEnabled ? null : undefined,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={25} name="mic.fill" color={color} />
           ),
@@ -45,6 +86,7 @@ export default function TabLayout() {
         name="phase3-native-asr"
         options={{
           title: "Phase 3",
+          href: fieldUiEnabled ? null : undefined,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={25} name="waveform" color={color} />
           ),
@@ -54,6 +96,7 @@ export default function TabLayout() {
         name="phase4-extraction"
         options={{
           title: "Phase 4",
+          href: fieldUiEnabled ? null : undefined,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={25} name="list.bullet.rectangle" color={color} />
           ),
@@ -63,6 +106,7 @@ export default function TabLayout() {
         name="history"
         options={{
           title: "Results",
+          href: fieldUiEnabled ? null : undefined,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={25} name="chart.bar.fill" color={color} />
           ),
@@ -72,6 +116,7 @@ export default function TabLayout() {
         name="datasets"
         options={{
           title: "Drafts",
+          href: fieldUiEnabled ? null : undefined,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={25} name="folder.fill" color={color} />
           ),
