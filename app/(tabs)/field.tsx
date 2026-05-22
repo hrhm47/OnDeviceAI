@@ -17,6 +17,7 @@ import type {
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -62,6 +63,9 @@ const statusIndex: Record<FieldWorkflowStatus, number> = {
   saved: 3,
   error: -1,
 };
+
+const waitForPaint = () =>
+  new Promise((resolve) => requestAnimationFrame(resolve));
 
 export default function FieldScreen() {
   const [language, setLanguage] = useState<Phase4Language>("en");
@@ -141,6 +145,7 @@ export default function FieldScreen() {
     }
 
     setWorkflowStatus("extracting");
+    await waitForPaint();
     try {
       const nextResult = await extractGeneralTaskFormDraft({
         phase3ResultId: transcriptionResult?.id ?? latestResult?.id ?? null,
@@ -183,6 +188,8 @@ export default function FieldScreen() {
   };
 
   const elapsedSeconds = Math.max(0, Math.floor(recordingDurationMs / 1000));
+  const isProcessing =
+    workflowStatus === "transcribing" || workflowStatus === "extracting";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -225,11 +232,15 @@ export default function FieldScreen() {
                   styles.micButtonDisabled,
               ]}
             >
-              <IconSymbol
-                name={isRecording ? "stop.fill" : "mic.fill"}
-                size={48}
-                color="#FFFFFF"
-              />
+              {isProcessing ? (
+                <ActivityIndicator size="large" color="#FFFFFF" />
+              ) : (
+                <IconSymbol
+                  name={isRecording ? "stop.fill" : "mic.fill"}
+                  size={48}
+                  color="#FFFFFF"
+                />
+              )}
             </Pressable>
             <Text style={styles.recorderStatus}>
               {statusLabel(workflowStatus, asrStatus)}
@@ -238,6 +249,8 @@ export default function FieldScreen() {
               <Text style={styles.timer}>{elapsedSeconds}s</Text>
             ) : null}
           </View>
+
+          {isProcessing ? <ProcessingPanel status={workflowStatus} /> : null}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Transcript</Text>
@@ -468,6 +481,25 @@ function WorkflowSteps({ status }: { status: FieldWorkflowStatus }) {
   );
 }
 
+function ProcessingPanel({ status }: { status: FieldWorkflowStatus }) {
+  const title =
+    status === "extracting" ? "Creating draft" : "Preparing transcript";
+  const body =
+    status === "extracting"
+      ? "The local LLM is extracting task details."
+      : "Finalizing the recorded speech.";
+
+  return (
+    <View style={styles.processingPanel}>
+      <ActivityIndicator size="large" color={C.primary} />
+      <View style={styles.processingTextBlock}>
+        <Text style={styles.processingTitle}>{title}</Text>
+        <Text style={styles.processingBody}>{body}</Text>
+      </View>
+    </View>
+  );
+}
+
 function ModeChip({
   label,
   selected,
@@ -659,6 +691,32 @@ const styles = StyleSheet.create({
     color: C.textSubtle,
     fontSize: 15,
     fontWeight: "800",
+  },
+  processingPanel: {
+    minHeight: 92,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    backgroundColor: C.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 16,
+  },
+  processingTextBlock: {
+    flex: 1,
+    gap: 3,
+  },
+  processingTitle: {
+    color: C.text,
+    fontSize: 17,
+    fontWeight: "900",
+  },
+  processingBody: {
+    color: C.textSubtle,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "700",
   },
   section: {
     gap: 10,
