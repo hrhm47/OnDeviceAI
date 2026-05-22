@@ -1,0 +1,256 @@
+import type {
+  Phase4AllowedDueDate,
+  Phase4Language,
+  Phase4RequiredAction,
+  Phase4TaskTag,
+} from "../types/phase4.types";
+
+export type Phase4ManualCheckCase = {
+  checkId: string;
+  language: Phase4Language;
+  transcript: string;
+  expected: {
+    companyName: string;
+    companyStatus: "suggested" | "extracted" | "manual_required";
+    descriptionContains: string;
+    areaValue: string | null;
+    requiredAction: Phase4RequiredAction | null;
+    requiredActionDueDate: Phase4AllowedDueDate | null;
+    tags: Phase4TaskTag[];
+    notifications: false;
+    reviewWorkIntent?: string | null;
+    reviewSpokenDueDateText?: string | null;
+    reviewSpokenCompanyText?: string | null;
+    reviewCompanyName?: string;
+  };
+};
+
+export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
+  {
+    checkId: "phase4_check_pipe_leak_quality_today",
+    language: "en",
+    transcript:
+      "There is a pipe leak in the bathroom. It needs to be fixed today. Mark it as quality.",
+    expected: {
+      companyName: "AquaPipe Finland Oy",
+      companyStatus: "suggested",
+      descriptionContains: "pipe leak",
+      areaValue: null,
+      requiredAction: "Korjaus",
+      requiredActionDueDate: "Now",
+      tags: ["Quality"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_wall_scratch_painting",
+    language: "en",
+    transcript:
+      "There is a scratch on the wall in Kortermaja 1. It should be painted again within a week. Mark it as quality.",
+    expected: {
+      companyName: "MaalausMestarit Oy",
+      companyStatus: "suggested",
+      descriptionContains: "scratch on the wall",
+      areaValue: "Kortermaja 1",
+      requiredAction: "Maalataan uudestaan",
+      requiredActionDueDate: "+7 days",
+      tags: ["Quality"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_missing_sealant",
+    language: "en",
+    transcript:
+      "The sealant around the window is missing. It should be sealed within three days.",
+    expected: {
+      companyName: "SealPro Finland Oy",
+      companyStatus: "suggested",
+      descriptionContains: "sealant",
+      areaValue: null,
+      requiredAction: "Kittaus ja maalaus",
+      requiredActionDueDate: "+3 days",
+      tags: ["Quality"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_electrical_safety",
+    language: "en",
+    transcript:
+      "There is an exposed cable in the corridor. This is a safety issue and should be fixed today.",
+    expected: {
+      companyName: "North Electric Oy",
+      companyStatus: "suggested",
+      descriptionContains: "exposed cable",
+      areaValue: null,
+      requiredAction: "Korjaus",
+      requiredActionDueDate: "Now",
+      tags: ["Safety"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_finnish_vesivuoto",
+    language: "fi",
+    transcript:
+      "Kylpyhuoneessa on vesivuoto. Se pitää korjata tänään ja merkitään laatuun.",
+    expected: {
+      companyName: "AquaPipe Finland Oy",
+      companyStatus: "suggested",
+      descriptionContains: "vesivuoto",
+      areaValue: null,
+      requiredAction: "Korjaus",
+      requiredActionDueDate: "Now",
+      tags: ["Quality"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_finnish_palokatko",
+    language: "fi",
+    transcript:
+      "Palokatko puuttuu läpiviennin kohdalta Kortermaja 2:ssa. Tämä on turvallisuusasia.",
+    expected: {
+      companyName: "PaloStop Oy",
+      companyStatus: "suggested",
+      descriptionContains: "Palokatko",
+      areaValue: "Kortermaja 2",
+      requiredAction: "Kuntoon",
+      requiredActionDueDate: null,
+      tags: ["Palokatko", "Safety"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_balcony_door_c204",
+    language: "en",
+    transcript:
+      "The balcony door in apartment C204 does not close properly and cold air is coming through the seal.",
+    expected: {
+      companyName: "Window and Door Service Oy",
+      companyStatus: "suggested",
+      descriptionContains: "balcony door",
+      areaValue: "Apartment C204 balcony door",
+      requiredAction: "Korjaus",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_entrance_door_d208",
+    language: "en",
+    transcript:
+      "The entrance door of apartment D208 rubs against the frame and the lock is difficult to turn.",
+    expected: {
+      companyName: "DoorFix Rakennus Oy",
+      companyStatus: "suggested",
+      descriptionContains: "entrance door",
+      areaValue: "Apartment D208 entrance door",
+      requiredAction: "Korjaus",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_paint_window_b115",
+    language: "en",
+    transcript:
+      "The kitchen wall in apartment B115 has visible paint damage near the window.",
+    expected: {
+      companyName: "MaalausMestarit Oy",
+      companyStatus: "suggested",
+      descriptionContains: "paint damage",
+      areaValue: "Apartment B115 kitchen",
+      requiredAction: "Maalataan uudestaan",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_waterproofing_b307",
+    language: "en",
+    transcript:
+      "The waterproofing membrane is visible behind the shower wall tile in apartment B307.",
+    expected: {
+      companyName: "WetRoom Shield Oy",
+      companyStatus: "suggested",
+      descriptionContains: "waterproofing membrane",
+      areaValue: "Apartment B307 shower wall",
+      requiredAction: "Korjaus",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_radiator_a105",
+    language: "en",
+    transcript:
+      "The radiator in apartment A105 bedroom is not heating properly. Check the valve and report back.",
+    expected: {
+      companyName: "NorthFlow LVI Oy",
+      companyStatus: "suggested",
+      descriptionContains: "radiator",
+      areaValue: "Apartment A105 bedroom",
+      requiredAction: "Korjaus",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_bathroom_sink_c310",
+    language: "en",
+    transcript:
+      "The bathroom sink in apartment C310 drains slowly and there is a small leak under the trap.",
+    expected: {
+      companyName: "AquaPipe Finland Oy",
+      companyStatus: "suggested",
+      descriptionContains: "bathroom sink",
+      areaValue: "Apartment C310 bathroom sink",
+      requiredAction: "Korjaus",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+    },
+  },
+  {
+    checkId: "phase4_check_gas_connection_tomorrow",
+    language: "en",
+    transcript: "There is a need of gas connection tomorrow.",
+    expected: {
+      companyName: "AquaPipe Finland Oy",
+      companyStatus: "suggested",
+      descriptionContains: "gas connection",
+      areaValue: null,
+      requiredAction: "Korjaus",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+      reviewWorkIntent: "gas_connection",
+      reviewSpokenDueDateText: "tomorrow",
+      reviewCompanyName: "AquaPipe Finland Oy",
+    },
+  },
+  {
+    checkId: "phase4_check_invented_company_preserved",
+    language: "en",
+    transcript:
+      "Ask SuperFast Builder Company to fix the leaking pipe today.",
+    expected: {
+      companyName: "AquaPipe Finland Oy",
+      companyStatus: "suggested",
+      descriptionContains: "leaking pipe",
+      areaValue: null,
+      requiredAction: "Korjaus",
+      requiredActionDueDate: "Now",
+      tags: ["Quality"],
+      notifications: false,
+      reviewSpokenCompanyText: "SuperFast Builder Company",
+    },
+  },
+];

@@ -51,6 +51,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="phase4-extraction"
+        options={{
+          title: "Phase 4",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={25} name="list.bullet.rectangle" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="history"
         options={{
           title: "Results",

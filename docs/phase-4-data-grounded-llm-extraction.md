@@ -1,0 +1,120 @@
+# Phase 4 Data-Grounded Local LLM Extraction
+
+For the complete architecture, flow charts, local LLM connection details, validation rationale, and testing variables, see `docs/phase-4-complete-technical-report.md`.
+
+## Purpose
+
+Phase 4 starts the transition from ASR transcript to a structured Congrid-style General Task Form draft. It is not a chatbot and it does not submit tasks automatically. It creates a partial draft for user review, editing, and confirmation.
+
+The pipeline is:
+
+```text
+Phase 3 transcript
+-> transcript preparation
+-> local reference data
+-> controlled LLM input and prompt
+-> LLM provider
+-> JSON parser
+-> validator
+-> General Task Form draft + review suggestions
+-> local storage / CSV export
+-> debug UI / manual checks
+```
+
+## Local-Only Scope
+
+Phase 4 v1 uses local TypeScript reference files only. It does not use cloud LLMs, the OpenAI API, Supabase, remote databases, remote storage, local SQLite, GPS/location detection, marker auto-placement, photo processing, or automatic report submission.
+
+## Selected Model
+
+The selected first local extraction model is `Qwen2.5-1.5B-Instruct-GGUF` with `Q4_K_M` quantization.
+
+- Config: `src/features/phase4/llm/phase4ModelConfig.ts`
+- Expected file: `models/llm/qwen2_5_1_5b_instruct_q4_k_m/qwen2.5-1.5b-instruct-q4_k_m.gguf`
+- Source URL: `https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/dd26da440ef0330c47919d1ecae0966d24022222/qwen2.5-1.5b-instruct-q4_k_m.gguf`
+
+The GGUF file is not committed because model binaries are large local runtime assets. The ignore rule is `models/llm/**/*.gguf`.
+
+Qwen2.5 Q4_K_M is selected as the first practical local model for the target device class, but extraction quality still needs measurement.
+
+## Form Schema And Reference Data
+
+The v1 form is `General Task Form` with schema version `v1`.
+
+Reference data lives under `src/features/phase4/referenceData` and includes:
+
+- allowed companies
+- allowed tags
+- allowed required actions
+- allowed due date options
+- allowed area options
+- extraction policy
+- compact company responsibility summaries and work intents
+
+Companies, tags, actions, due dates, and areas must come from allowed local data. Area is only filled if spoken and allowed.
+
+## AI Technique
+
+Phase 4 uses grounded local LLM structured extraction with deterministic validation. Candidate matching is local rule-based candidate retrieval over local TypeScript reference data, not embedding search, vector indexing, reranking, translation, or cloud retrieval.
+
+The LLM receives the transcript, deterministic candidates, allowed form values, company responsibility summaries, and work intents. It can suggest nearest allowed companies and preserve review-only intent, such as a spoken due date that is not available in the strict form dropdown.
+
+## Prompt And Validation
+
+The prompt version is `phase4_general_task_prompt_v1`. The LLM input package includes transcript, form schema, allowed values, extraction policy, grounded responsibility data, and a strict JSON output shape.
+
+The LLM is not trusted blindly. The parser safely handles invalid JSON, and the validator rebuilds the draft from allowed local data.
+
+Unsupported but useful LLM or user intent is preserved in `reviewSuggestions` instead of being silently deleted. For example, if the transcript says `tomorrow`, the final due-date field remains manual because v1 only allows `Now`, `+3 days`, and `+7 days`, but `tomorrow` is stored as review context for the user flow.
+
+Manual/skipped/default fields:
+
+- `list`: default `Hallo`
+- `marker`: manual only
+- `photos`: skipped
+- `impacts`: not configured
+- `notifications`: false by default
+
+## Providers
+
+The mock provider is deterministic, local-only, and used for manual checks and UI smoke testing.
+
+The local provider uses `llama.rn`, a React Native binding for `llama.cpp`, to run the selected GGUF model on device. This requires a custom native Expo development build; Expo Go cannot load this native runtime.
+
+The model file must exist inside the app document directory:
+
+```text
+<documentDirectory>/models/llm/qwen2_5_1_5b_instruct_q4_k_m/qwen2.5-1.5b-instruct-q4_k_m.gguf
+```
+
+The Phase 4 UI can check this path and download the selected GGUF file from the configured Hugging Face source URL. Inference remains local after the model file is present.
+
+## Running Phase 4
+
+Use the Phase 4 tab in the app:
+
+1. Enter or paste a transcript.
+2. Select English or Finnish.
+3. Use the mock provider for current verified behavior.
+4. For local inference, check/download the model first.
+5. Run extraction.
+6. Review extracted fields, statuses, confidence, warnings, and raw output.
+7. Review AI suggestions such as work intent, spoken unsupported due dates, and nearest allowed company candidates.
+8. Save locally or export CSV.
+
+Manual checks can be run from the Phase 4 UI. The check runner is implemented in `src/features/phase4/checks/phase4CheckRunner.ts`.
+
+## Known Limitations
+
+- Real local LLM inference requires a custom native build and a downloaded/copied GGUF file on the device.
+- Company data is dummy local thesis reference data.
+- Candidate retrieval is local rule/responsibility matching, not semantic embeddings.
+- No local database is used in v1.
+- The UI is a debug extraction screen, not a Phase 5 editable preview.
+
+Future improvements:
+
+- performance tuning for the local LLM runtime
+- optional embeddings/vector indexing only if local reference data grows beyond simple local matching
+- local database
+- Phase 5 editable preview
