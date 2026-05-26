@@ -16,6 +16,7 @@ export const buildPhase4RetrievalItems = (
   context: ProjectContextPackage,
 ): Phase4RetrievalItem[] => [
   ...context.areas.map((area): Phase4RetrievalItem => {
+    const generatedMetadata = parseGeneratedAreaMetadata(area.area_note);
     const strongAliases = compact([
       area.area_label,
       ...splitExamples(area.spoken_location_examples),
@@ -26,12 +27,16 @@ export const buildPhase4RetrievalItems = (
       itemId: `area:${area.area_id}`,
       projectId: context.project.project_id,
       itemType: "area",
-      sourceTable: "areas",
+      sourceTable: generatedMetadata ? "generated_areas" : "areas",
       sourceId: area.area_id,
       displayName: area.area_label,
       exactAliases: aliases,
-      searchText: compact([...aliases, area.area_type, area.area_note]).join(" "),
+      searchText:
+        stringValue(generatedMetadata?.searchText) ??
+        compact([...aliases, area.area_type, area.area_note]).join(" "),
       metadata: {
+        areaId: area.area_id,
+        projectId: area.project_id,
         buildingName: area.building_name,
         buildingPhase: area.building_phase,
         floorOrZone: area.floor_or_zone,
@@ -40,6 +45,7 @@ export const buildPhase4RetrievalItems = (
         strongAliases,
         weakAliases,
         specificity: areaSpecificity(area.area_type, area.area_label),
+        ...generatedMetadata,
       },
     };
   }),
@@ -200,6 +206,25 @@ const splitSemicolonText = (value: string | null | undefined) =>
 const compact = (values: (string | number | null | undefined)[]) =>
   values.map((value) => String(value ?? "").trim()).filter(Boolean);
 
+const GENERATED_AREA_NOTE_PREFIX = "generated_area_metadata:";
+
+const parseGeneratedAreaMetadata = (value: string | null | undefined) => {
+  if (!value?.startsWith(GENERATED_AREA_NOTE_PREFIX)) {
+    return null;
+  }
+  try {
+    return JSON.parse(value.slice(GENERATED_AREA_NOTE_PREFIX.length)) as Record<
+      string,
+      unknown
+    >;
+  } catch {
+    return null;
+  }
+};
+
+const stringValue = (value: unknown) =>
+  typeof value === "string" && value.trim() ? value : null;
+
 const areaSpecificity = (
   areaType: string | null | undefined,
   areaLabel: string,
@@ -209,8 +234,12 @@ const areaSpecificity = (
     text.includes("room") ||
     text.includes("bathroom") ||
     text.includes("kitchen") ||
+    text.includes("staircase") ||
     text.includes("trench") ||
     text.includes("corridor") ||
+    text.includes("crane") ||
+    text.includes("temporary power") ||
+    text.includes("slab") ||
     /[a-z]\d{3}/i.test(text)
   ) {
     return 35;

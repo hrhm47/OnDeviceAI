@@ -9,10 +9,8 @@ import {
   type Phase4SeedUser,
 } from "../data/phase4SeedData";
 import { getPhase4ReferenceData } from "../referenceData/phase4ReferenceRepository";
-import {
-  generateApartmentAreas,
-  p1AlppilaUnitStructure,
-} from "../rag/area/generateApartmentAreas";
+import type { GeneratedProjectArea } from "../rag/area/generateProjectAreas";
+import { getGeneratedAreasForProject } from "../rag/area/getGeneratedAreasForProject";
 import type {
   Phase4CompanyCategory,
   Phase4CompanyReference,
@@ -191,20 +189,33 @@ const splitKeywordText = (value: string | null | undefined) =>
   value?.split(";").map((item) => item.trim()).filter(Boolean) ?? [];
 
 const generatedProjectAreas = (projectId: string): Phase4SeedArea[] => {
-  if (projectId !== p1AlppilaUnitStructure.projectId) {
-    return [];
-  }
-
-  return generateApartmentAreas(p1AlppilaUnitStructure).map((area) => ({
+  return getGeneratedAreasForProject(projectId).map((area) => ({
     area_id: area.areaId,
     project_id: area.projectId,
     building_name: area.buildingName,
-    building_phase: "interior_finishing_handover",
-    floor_or_zone: area.floorNumber,
-    area_type: "generated_apartment_room",
+    building_phase: area.buildingPhase,
+    floor_or_zone: area.floorNumber ?? area.zoneCode,
+    area_type: `generated_${area.areaType}`,
     area_label: area.displayName,
     spoken_location_examples: area.aliases,
     parent_area_id: null,
-    area_note: `Generated apartment room area for ${area.unitCode}.`,
+    area_note: generatedAreaNote(area),
   }));
 };
+
+const GENERATED_AREA_NOTE_PREFIX = "generated_area_metadata:";
+
+const generatedAreaNote = (area: GeneratedProjectArea) =>
+  `${GENERATED_AREA_NOTE_PREFIX}${JSON.stringify({
+    areaId: area.areaId,
+    projectId: area.projectId,
+    buildingId: area.buildingId,
+    buildingName: area.buildingName,
+    buildingPhase: area.buildingPhase,
+    floorNumber: area.floorNumber,
+    unitCode: area.unitCode,
+    roomType: area.roomType,
+    zoneCode: area.zoneCode,
+    areaType: area.areaType,
+    searchText: area.searchText,
+  })}`;

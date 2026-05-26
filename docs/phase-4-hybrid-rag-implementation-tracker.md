@@ -2,7 +2,7 @@
 
 ## Current branch
 
-`phase4/compact-hybrid-rag-extraction`
+`phase4/project-area-structures`
 
 ## Goal
 
@@ -19,6 +19,7 @@ Replace old full-form Phase 4 prompting with compact project-scoped Hybrid RAG e
 - Storage/export: `src/features/phase4/storage/*`
 - UI: `src/features/phase4/ui/Phase4ExtractionScreen.tsx`
 - Manual checks: `src/features/phase4/checks/*`
+- Project area structures: `src/features/phase4/rag/area/*`
 
 ## Seed data observed
 
@@ -51,6 +52,10 @@ These files are intended to become the local project context source for Hybrid R
 - `src/features/phase4/embeddings/phase4VectorMath.ts`
 - `src/features/phase4/retrieval/phase4SemanticRetriever.ts`
 - `src/features/phase4/retrieval/phase4HybridRetriever.ts`
+- `src/features/phase4/rag/area/projectAreaStructures.ts`
+- `src/features/phase4/rag/area/generateProjectAreas.ts`
+- `src/features/phase4/rag/area/getGeneratedAreasForProject.ts`
+- `src/features/phase4/rag/area/exactAreaMatcher.ts`
 - `src/features/phase4/draft/phase4TaskDraftBuilder.ts`
 - `src/features/phase4/ui/Phase4ExtractionScreen.tsx`
 - `src/features/phase4/checks/phase4ManualCheckCases.ts`
@@ -91,8 +96,25 @@ These files are intended to become the local project context source for Hybrid R
 - Project-company context contributes directly to work-type ranking.
 - Validator/draft builder canonicalizes compact LLM selections and retrieval evidence into the final General Task Form.
 - Multi-issue transcripts are treated conservatively and require manual review rather than unsafe action autofill.
-- p1 Alppila generated apartment room areas are available at runtime for exact unit/room matching.
+- Generated project area structures are available at runtime for Alppila, Tuira, and Nallikari.
+- Generated areas include unit rooms, shared floor areas, building-level areas, foundation zones, structural zones, and site areas.
+- Exact area matching handles unit rooms, shared floor areas, foundation/site zones, and multi-building ambiguity before semantic retrieval.
 - Flexible unsupported dates are preserved for review instead of being deleted.
+
+## Generated area counts
+
+- P1 Alppila: 229 generated areas = 200 unit-room areas, 20 shared floor areas, 5 building-level areas, and 4 site areas.
+- P2 Tuira: 290 generated areas = 240 Building A unit-room areas, 24 shared floor areas, 5 building-level areas, 12 foundation zones, 2 structural zones, and 7 site areas.
+- P3 Nallikari: 842 generated areas = 800 unit-room areas across Building A studios and Building B apartments, 32 shared floor areas, and 10 building-level areas.
+
+## Area retrieval acceptance checks
+
+- `paint damage on first floor staircase` in Alppila retrieves `Suppose 1 / Floor 1 / Staircase`.
+- `cracked tile in apartment A203 bathroom` in Tuira retrieves `Building A / Floor 2 / A203 / Bathroom`.
+- `standing water near the north trench` in Tuira retrieves `Building B / North Trench`.
+- `exposed cable near temporary power area` in Tuira retrieves `Building B / Temporary Power Area`.
+- `moisture near studio S204 kitchen wall` in Nallikari retrieves `Building A / Floor 2 / S204 / Kitchen`.
+- `paint damage on first floor staircase` in Nallikari can return Building A and Building B staircase alternatives when no default building is available.
 
 ## Remaining limitations
 

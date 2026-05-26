@@ -2,11 +2,11 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 import type { Phase4EmbeddingProvider } from "../embeddings/phase4EmbeddingProvider";
 import type { ProjectContextPackage } from "../context/activeProjectContextLoader";
+import { matchAreaFromTranscript } from "../rag/area/exactAreaMatcher";
 import {
-  generateApartmentAreas,
-  p1AlppilaUnitStructure,
-} from "../rag/area/generateApartmentAreas";
-import { matchApartmentAreaFromTranscript } from "../rag/area/exactAreaMatcher";
+  getBuildingCountForProject,
+  getGeneratedAreasForProject,
+} from "../rag/area/getGeneratedAreasForProject";
 import type {
   Phase4AllowedDueDate,
   Phase4Candidate,
@@ -65,9 +65,9 @@ export const retrievePhase4HybridContext = async (input: {
     projectId: input.context.project.project_id,
     items,
   });
-  const apartmentExactHits = findApartmentExactAreaHits({
+  const projectAreaExactHits = findProjectAreaExactHits({
     transcript: input.transcript,
-    projectId: input.context.project.project_id,
+    context: input.context,
     items,
   });
   const exactMs = Date.now() - exactStartedAt;
@@ -100,7 +100,7 @@ export const retrievePhase4HybridContext = async (input: {
   }
   const semanticMs = Date.now() - semanticStartedAt;
   const hits = fuseHits([
-    ...apartmentExactHits,
+    ...projectAreaExactHits,
     ...exactHits,
     ...lexicalHits,
     ...semanticResult.hits,
@@ -122,44 +122,66 @@ export const retrievePhase4HybridContext = async (input: {
       semanticMs,
     },
     counts: {
-      exact: exactHits.length + apartmentExactHits.length,
+      exact: exactHits.length + projectAreaExactHits.length,
       lexical: lexicalHits.length,
       semantic: semanticResult.hits.length,
     },
   };
 };
 
-const findApartmentExactAreaHits = (input: {
+const findProjectAreaExactHits = (input: {
   transcript: string;
-  projectId: string;
+  context: ProjectContextPackage;
   items: Phase4RetrievalItem[];
 }): Phase4RetrievalHit[] => {
-  if (input.projectId !== p1AlppilaUnitStructure.projectId) {
-    return [];
-  }
-  const exactArea = matchApartmentAreaFromTranscript({
+  const projectId = input.context.project.project_id;
+  const exactArea = matchAreaFromTranscript({
     transcript: input.transcript,
-    generatedAreas: generateApartmentAreas(p1AlppilaUnitStructure),
+    generatedAreas: getGeneratedAreasForProject(projectId),
+    projectBuildingCount: getBuildingCountForProject(projectId),
+    userDefaultBuildingId: defaultBuildingId(input.context),
   });
-  if (!exactArea) {
-    return [];
+  return exactArea.areaCandidates.flatMap((area) => {
+    const item = input.items.find(
+      (candidate) =>
+        candidate.projectId === projectId &&
+        candidate.itemType === "area" &&
+        candidate.sourceId === area.areaId,
+    );
+    return item
+      ? [
+          {
+            item,
+            score: exactAreaScore(area.confidence),
+            matchType: "exact" as const,
+            evidence: area.evidence.join("; "),
+          },
+        ]
+      : [];
+  });
+};
+
+const defaultBuildingId = (context: ProjectContextPackage) => {
+  const defaultArea = context.activeUser.default_area_id
+    ? context.areas.find((area) => area.area_id === context.activeUser.default_area_id)
+    : null;
+  if (!defaultArea?.building_name) {
+    return null;
   }
-  const item = input.items.find(
-    (candidate) =>
-      candidate.projectId === input.projectId &&
-      candidate.itemType === "area" &&
-      candidate.sourceId === exactArea.areaId,
-  );
-  return item
-    ? [
-        {
-          item,
-          score: exactArea.confidence === "high" ? 180 : 130,
-          matchType: "exact",
-          evidence: exactArea.evidence.join("; "),
-        },
-      ]
-    : [];
+
+  return getGeneratedAreasForProject(context.project.project_id).find(
+    (area) => area.buildingName === defaultArea.building_name,
+  )?.buildingId ?? null;
+};
+
+const exactAreaScore = (confidence: Phase4CandidateConfidence) => {
+  if (confidence === "high") {
+    return 185;
+  }
+  if (confidence === "medium") {
+    return 95;
+  }
+  return 25;
 };
 
 const runLexicalRetrieval = async (
