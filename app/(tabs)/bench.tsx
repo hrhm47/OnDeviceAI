@@ -63,13 +63,13 @@ const fallbackModels = [
     detail: "Sherpa-ONNX adapter, requires model files",
     runtimeMode: "unsupported",
   },
-  {
-    id: "parakeet",
-    label: "Parakeet",
-    status: "Model files missing",
-    detail: "NVIDIA Parakeet via Sherpa-ONNX, if installed",
-    runtimeMode: "unsupported",
-  },
+  // {
+  //   id: "parakeet",
+  //   label: "Parakeet",
+  //   status: "Model files missing",
+  //   detail: "NVIDIA Parakeet via Sherpa-ONNX, if installed",
+  //   runtimeMode: "unsupported",
+  // },
 ] as const;
 
 const languages = [

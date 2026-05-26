@@ -1,5 +1,3 @@
-import { initWhisper } from "whisper.rn";
-
 import type { whisperModels } from "@/constants/types/ModelTypes";
 
 import {
@@ -15,10 +13,7 @@ import {
   nowMs,
 } from "../utils/metricsHelpers";
 
-const WHISPER_MODEL_ASSETS: Record<whisperModels, number> = {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  base: require("../../../../assets/whisper/ggml-base.bin"),
-};
+const WHISPER_MODEL_ASSETS: Partial<Record<whisperModels, number>> = {};
 
 export class WhisperAsrEngine implements ASREngine {
   id: string;
@@ -50,6 +45,7 @@ export class WhisperAsrEngine implements ASREngine {
       throw new Error(`Whisper model asset is missing: ${this.modelName}.`);
     }
 
+    const { initWhisper } = await import("whisper.rn");
     this.context = await initWhisper({
       filePath: modelAsset,
     });

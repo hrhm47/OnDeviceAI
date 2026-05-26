@@ -113,19 +113,19 @@ default list: Hallo
 
 Field handling:
 
-| Field | Phase 4 behavior |
-| --- | --- |
-| list | Always defaults to `Hallo` |
-| company | Suggested only from local allowed companies |
-| description | Extracted from transcript or LLM output, fallback to transcript |
-| area | Filled only when spoken and allowed or candidate-derived |
-| marker | Manual only |
-| photos | Skipped |
-| requiredAction | Suggested only from allowed actions |
-| requiredActionDueDate | Final value only `Now`, `+3 days`, `+7 days`, or null |
-| tags | Allowed tags only |
-| impacts | Not configured |
-| notifications | Always false |
+| Field                 | Phase 4 behavior                                                |
+| --------------------- | --------------------------------------------------------------- |
+| list                  | Always defaults to `Hallo`                                      |
+| company               | Suggested only from local allowed companies                     |
+| description           | Extracted from transcript or LLM output, fallback to transcript |
+| area                  | Filled only when spoken and allowed or candidate-derived        |
+| marker                | Manual only                                                     |
+| photos                | Skipped                                                         |
+| requiredAction        | Suggested only from allowed actions                             |
+| requiredActionDueDate | Final value only `Now`, `+3 days`, `+7 days`, or null           |
+| tags                  | Allowed tags only                                               |
+| impacts               | Not configured                                                  |
+| notifications         | Always false                                                    |
 
 ## 6. AI Technique And Terminology
 

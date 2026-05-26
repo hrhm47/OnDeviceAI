@@ -3,20 +3,14 @@ import { FieldColors as C } from "@/constants/theme";
 import { useSpeechStore } from "@/src/store/useSpeechStore";
 import { router } from "expo-router";
 import React from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const workflowSteps = [
   { label: "Record voice", status: "Ready" },
   { label: "On-device ASR", status: "Testing" },
-  { label: "Improve transcript", status: "Next" },
-  { label: "Autofill report", status: "Preview" },
+  { label: "Improve transcript", status: "Ready" },
+  { label: "Autofill report", status: "In Testing" },
 ];
 
 const recentDraft = {
@@ -99,22 +93,26 @@ export default function HomeScreen() {
             <IconSymbol size={22} name="folder.fill" color={C.primary} />
             <View style={styles.actionTextBlock}>
               <Text style={styles.secondaryButtonText}>Continue draft</Text>
-              <Text style={styles.secondaryButtonSub}>
-                {recentDraft.title}
-              </Text>
+              <Text style={styles.secondaryButtonSub}>{recentDraft.title}</Text>
             </View>
           </Pressable>
         </View>
 
         <View style={styles.grid}>
-          <Pressable style={styles.navCard} onPress={() => handleNavigate("./bench")}>
+          <Pressable
+            style={styles.navCard}
+            onPress={() => handleNavigate("./bench")}
+          >
             <IconSymbol size={24} name="waveform" color={C.teal} />
             <Text style={styles.navTitle}>ASR testing</Text>
             <Text style={styles.navCopy}>
               Compare models, language, noise level, and recording mode.
             </Text>
           </Pressable>
-          <Pressable style={styles.navCard} onPress={() => handleNavigate("./history")}>
+          <Pressable
+            style={styles.navCard}
+            onPress={() => handleNavigate("./history")}
+          >
             <IconSymbol size={24} name="chart.bar.fill" color={C.warning} />
             <Text style={styles.navTitle}>Saved results</Text>
             <Text style={styles.navCopy}>
@@ -131,7 +129,9 @@ export default function HomeScreen() {
           <View style={styles.activityTop}>
             <View>
               <Text style={styles.activityLabel}>Active model</Text>
-              <Text style={styles.activityValue}>{activeModel.toUpperCase()}</Text>
+              <Text style={styles.activityValue}>
+                {activeModel.toUpperCase()}
+              </Text>
             </View>
             <View style={styles.statusPill}>
               <View style={styles.readyDot} />
@@ -159,10 +159,7 @@ export default function HomeScreen() {
                     : "--"
               }
             />
-            <Metric
-              label="Drafts"
-              value="3"
-            />
+            <Metric label="Drafts" value="3" />
           </View>
         </View>
 

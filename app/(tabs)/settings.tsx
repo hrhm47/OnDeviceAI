@@ -1,8 +1,9 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FieldColors as C } from "@/constants/theme";
+import { useAppSettingsStore } from "@/src/store/useAppSettingsStore";
 import { useSpeechStore } from "@/src/store/useSpeechStore";
 import Constants from "expo-constants";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Platform,
@@ -22,21 +23,57 @@ const modelInfo = [
   },
   {
     name: "Whisper base",
-    state: "Available",
-    description: "Bundled multilingual model for offline full-recording transcription.",
+    state: "Not ready",
+    description:
+      "Bundled multilingual model for offline full-recording transcription.",
   },
   {
     name: "Qwen3-ASR",
-    state: "Candidate",
-    description: "Sherpa-ONNX multilingual candidate with VAD-segmented fallback.",
+    state: "Available",
+    description:
+      "Sherpa-ONNX multilingual candidate with VAD-segmented fallback.",
   },
 ];
 
 export default function SettingsScreen() {
   const { history, activeModel } = useSpeechStore();
+  const { fieldUiEnabled, hasLoaded, loadSettings, setFieldUiEnabled } =
+    useAppSettingsStore();
   const [language, setLanguage] = useState<"English" | "Finnish">("English");
 
   const appVersion = Constants.expoConfig?.version || "1.0.0";
+
+  useEffect(() => {
+    if (!hasLoaded) {
+      loadSettings().catch(console.error);
+    }
+  }, [hasLoaded, loadSettings]);
+
+  const toggleFieldUi = async () => {
+    try {
+      await setFieldUiEnabled(!fieldUiEnabled);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      Alert.alert("Settings update failed", message);
+    }
+  };
+
+  if (fieldUiEnabled) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.eyebrow}>Settings</Text>
+            <Text style={styles.title}>Field mode</Text>
+          </View>
+          <FieldUiToggleCard
+            fieldUiEnabled={fieldUiEnabled}
+            onPress={toggleFieldUi}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -49,6 +86,11 @@ export default function SettingsScreen() {
             and evaluation sessions.
           </Text>
         </View>
+
+        <FieldUiToggleCard
+          fieldUiEnabled={fieldUiEnabled}
+          onPress={toggleFieldUi}
+        />
 
         <View style={styles.card}>
           <View style={styles.cardTitleRow}>
@@ -116,8 +158,10 @@ export default function SettingsScreen() {
                   <Text
                     style={[
                       styles.modelStateText,
-                      model.state === "Candidate" && styles.modelStateTextWarning,
-                      model.state === "Optional" && styles.modelStateTextOptional,
+                      model.state === "Candidate" &&
+                        styles.modelStateTextWarning,
+                      model.state === "Optional" &&
+                        styles.modelStateTextOptional,
                     ]}
                   >
                     {model.state}
@@ -133,15 +177,22 @@ export default function SettingsScreen() {
             <IconSymbol size={22} name="iphone" color={C.primary} />
             <Text style={styles.cardTitle}>Device info</Text>
           </View>
-          <InfoRow label="Platform" value={`${Platform.OS} ${Platform.Version}`} />
+          <InfoRow
+            label="Platform"
+            value={`${Platform.OS} ${Platform.Version}`}
+          />
           <InfoRow label="Active model" value={activeModel.toUpperCase()} />
           <InfoRow label="Recorded runs" value={String(history.length)} />
           <InfoRow label="App version" value={appVersion} />
         </View>
 
-        <View style={styles.card}>
+        {/* <View style={styles.card}>
           <View style={styles.cardTitleRow}>
-            <IconSymbol size={22} name="tray.and.arrow.down.fill" color={C.primary} />
+            <IconSymbol
+              size={22}
+              name="tray.and.arrow.down.fill"
+              color={C.primary}
+            />
             <Text style={styles.cardTitle}>Export results</Text>
           </View>
           <Text style={styles.bodyText}>
@@ -159,7 +210,7 @@ export default function SettingsScreen() {
           >
             <Text style={styles.exportButtonText}>Export research results</Text>
           </Pressable>
-        </View>
+        </View> */}
 
         <View style={styles.aboutCard}>
           <View style={styles.cardTitleRow}>
@@ -176,6 +227,47 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function FieldUiToggleCard({
+  fieldUiEnabled,
+  onPress,
+}: {
+  fieldUiEnabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardTitleRow}>
+        <IconSymbol size={22} name="mic.fill" color={C.primary} />
+        <Text style={styles.cardTitle}>Field UI mode</Text>
+      </View>
+      <View style={styles.toggleRow}>
+        <View style={styles.toggleTextBlock}>
+          <Text style={styles.toggleTitle}>Worker recording flow</Text>
+          <Text style={styles.bodyText}>
+            Show only the microphone-first field screen and Settings.
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityState={{ checked: fieldUiEnabled }}
+          onPress={onPress}
+          style={[
+            styles.switchTrack,
+            fieldUiEnabled && styles.switchTrackActive,
+          ]}
+        >
+          <View
+            style={[
+              styles.switchThumb,
+              fieldUiEnabled && styles.switchThumbActive,
+            ]}
+          />
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -246,6 +338,40 @@ const styles = StyleSheet.create({
     color: C.text,
     fontSize: 19,
     fontWeight: "900",
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  toggleTextBlock: {
+    flex: 1,
+    gap: 4,
+  },
+  toggleTitle: {
+    color: C.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  switchTrack: {
+    width: 56,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: C.borderStrong,
+    padding: 3,
+    justifyContent: "center",
+  },
+  switchTrackActive: {
+    backgroundColor: C.primary,
+  },
+  switchThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: C.surface,
+  },
+  switchThumbActive: {
+    transform: [{ translateX: 24 }],
   },
   segmentRow: {
     flexDirection: "row",
