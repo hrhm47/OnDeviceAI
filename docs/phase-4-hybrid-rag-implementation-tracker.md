@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/exact-lexical-retrieval`
+`phase4/embeddinggemma-provider`
 
 ## Goal
 
-Add exact alias matching and SQLite FTS5 lexical retrieval over project-scoped retrieval items.
+Add the local EmbeddingGemma GGUF provider interface and readiness checks.
 
 ## Current Phase 4 modules
 
@@ -44,6 +44,9 @@ These files are intended to become the local project context source for Hybrid R
 - `src/features/phase4/retrieval/phase4ExactMatcher.ts`
 - `src/features/phase4/retrieval/phase4LexicalRetriever.ts`
 - `src/features/phase4/retrieval/phase4ExactLexicalRetriever.ts`
+- `src/features/phase4/embeddings/phase4EmbeddingProvider.ts`
+- `src/features/phase4/embeddings/phase4EmbeddingGemmaConfig.ts`
+- `src/features/phase4/embeddings/phase4EmbeddingGemmaProvider.ts`
 - `src/utils/sqlite/hybridRagSqliteSchema.ts`
 - `package.json`
 - `docs/phase-4-hybrid-rag-implementation-tracker.md`
@@ -57,10 +60,11 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
+- EmbeddingGemma provider exists but is disabled unless the GGUF file is present locally.
 - Project-scoped exact and lexical retrieval helpers exist, but extraction still uses the old resolver.
 - SQLite schema initialization and seed import helpers exist but are not wired into UI extraction yet.
-- EmbeddingGemma runtime is not wired yet.
+- EmbeddingGemma runtime is not wired into hybrid retrieval yet.
 
 ## Next step
 
-Create `phase4/embeddinggemma-provider` to add the local GGUF embedding provider interface.
+Create `phase4/semantic-vector-search` to add cosine search over stored vectors.
