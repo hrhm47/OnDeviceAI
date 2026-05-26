@@ -1,0 +1,173 @@
+import type { SQLiteDatabase } from "expo-sqlite";
+
+import type { Phase4EmbeddingProvider } from "../embeddings/phase4EmbeddingProvider";
+import type { ProjectContextPackage } from "../context/activeProjectContextLoader";
+import type {
+  Phase4AllowedDueDate,
+  Phase4Candidate,
+  Phase4CandidateConfidence,
+  Phase4CompanyCandidate,
+  Phase4RequiredAction,
+  Phase4TaskTag,
+} from "../types/phase4.types";
+import { findExactPhase4RetrievalHits } from "./phase4ExactMatcher";
+import { searchPhase4LexicalRetrievalItems } from "./phase4LexicalRetriever";
+import {
+  rebuildPhase4RetrievalItemsFts,
+  upsertPhase4RetrievalItems,
+} from "./phase4RetrievalItemRepository";
+import { buildPhase4RetrievalItems } from "./phase4RetrievalItems";
+import type { Phase4RetrievalHit } from "./phase4RetrievalTypes";
+import { searchPhase4SemanticRetrievalItems } from "./phase4SemanticRetriever";
+
+export type Phase4HybridRetrievalResult = {
+  areaCandidates: Phase4Candidate<string>[];
+  companyCandidates: Phase4CompanyCandidate[];
+  workTypeCandidates: Phase4Candidate<string>[];
+  actionCandidates: Phase4Candidate<Phase4RequiredAction>[];
+  tagCandidates: Phase4Candidate<Phase4TaskTag>[];
+  dateCandidates: Phase4Candidate<Phase4AllowedDueDate>[];
+  evidence: string[];
+  warnings: string[];
+  timings: {
+    totalMs: number;
+    exactMs: number;
+    lexicalMs: number;
+    semanticMs: number;
+  };
+  counts: {
+    exact: number;
+    lexical: number;
+    semantic: number;
+  };
+};
+
+export const retrievePhase4HybridContext = async (input: {
+  transcript: string;
+  context: ProjectContextPackage;
+  db?: SQLiteDatabase | null;
+  embeddingProvider?: Phase4EmbeddingProvider | null;
+}): Promise<Phase4HybridRetrievalResult> => {
+  const startedAt = Date.now();
+  const warnings: string[] = [];
+  const items = buildPhase4RetrievalItems(input.context);
+
+  const exactStartedAt = Date.now();
+  const exactHits = findExactPhase4RetrievalHits({
+    transcript: input.transcript,
+    projectId: input.context.project.project_id,
+    items,
+  });
+  const exactMs = Date.now() - exactStartedAt;
+
+  const lexicalStartedAt = Date.now();
+  const lexicalHits = input.db
+    ? await runLexicalRetrieval(input.db, input.context.project.project_id, input.transcript, items, warnings)
+    : [];
+  if (!input.db) {
+    warnings.push("Lexical retrieval skipped because SQLite DB was not supplied.");
+  }
+  const lexicalMs = Date.now() - lexicalStartedAt;
+
+  const semanticStartedAt = Date.now();
+  const semanticResult = await searchPhase4SemanticRetrievalItems({
+    transcript: input.transcript,
+    projectId: input.context.project.project_id,
+    items,
+    embeddingProvider: input.embeddingProvider,
+  });
+  if (semanticResult.disabledReason) {
+    warnings.push(semanticResult.disabledReason);
+  }
+  const semanticMs = Date.now() - semanticStartedAt;
+  const hits = fuseHits([...exactHits, ...lexicalHits, ...semanticResult.hits]);
+
+  return {
+    areaCandidates: candidatesForType(hits, "area", (hit) => hit.item.displayName),
+    companyCandidates: companyCandidates(hits),
+    workTypeCandidates: candidatesForType(hits, "work_type", (hit) => String(hit.item.metadata.workTypeCode ?? hit.item.sourceId)),
+    actionCandidates: candidatesForType(hits, "action", (hit) => hit.item.sourceId as Phase4RequiredAction),
+    tagCandidates: candidatesForType(hits, "tag", (hit) => hit.item.sourceId as Phase4TaskTag),
+    dateCandidates: candidatesForType(hits, "date_hint", (hit) => hit.item.sourceId as Phase4AllowedDueDate),
+    evidence: hits.map((hit) => `${hit.matchType}: ${hit.item.displayName} (${hit.evidence})`),
+    warnings,
+    timings: {
+      totalMs: Date.now() - startedAt,
+      exactMs,
+      lexicalMs,
+      semanticMs,
+    },
+    counts: {
+      exact: exactHits.length,
+      lexical: lexicalHits.length,
+      semantic: semanticResult.hits.length,
+    },
+  };
+};
+
+const runLexicalRetrieval = async (
+  db: SQLiteDatabase,
+  projectId: string,
+  transcript: string,
+  items: ReturnType<typeof buildPhase4RetrievalItems>,
+  warnings: string[],
+) => {
+  try {
+    await upsertPhase4RetrievalItems(db, items);
+    await rebuildPhase4RetrievalItemsFts(db);
+    return searchPhase4LexicalRetrievalItems({ db, projectId, transcript });
+  } catch (error) {
+    warnings.push(error instanceof Error ? error.message : String(error));
+    return [];
+  }
+};
+
+const fuseHits = (hits: Phase4RetrievalHit[]) => {
+  const byItemId = new Map<string, Phase4RetrievalHit>();
+  for (const hit of hits) {
+    const existing = byItemId.get(hit.item.itemId);
+    if (!existing || hit.score > existing.score) {
+      byItemId.set(hit.item.itemId, hit);
+    }
+  }
+  return Array.from(byItemId.values()).sort((first, second) => second.score - first.score);
+};
+
+const candidatesForType = <T,>(
+  hits: Phase4RetrievalHit[],
+  itemType: Phase4RetrievalHit["item"]["itemType"],
+  value: (hit: Phase4RetrievalHit) => T,
+): Phase4Candidate<T>[] =>
+  hits
+    .filter((hit) => hit.item.itemType === itemType)
+    .map((hit) => ({
+      value: value(hit),
+      confidence: confidenceFromScore(hit.score),
+      evidence: hit.evidence,
+      reason: `${hit.matchType} retrieval matched ${hit.item.displayName}.`,
+    }))
+    .slice(0, 5);
+
+const companyCandidates = (hits: Phase4RetrievalHit[]): Phase4CompanyCandidate[] =>
+  hits
+    .filter((hit) => hit.item.itemType === "company_context")
+    .map((hit) => ({
+      value: {
+        companyId: String(hit.item.metadata.companyId ?? hit.item.sourceId),
+        displayName: hit.item.displayName,
+      },
+      confidence: confidenceFromScore(hit.score),
+      evidence: hit.evidence,
+      reason: `${hit.matchType} retrieval matched project company context.`,
+    }))
+    .slice(0, 5);
+
+const confidenceFromScore = (score: number): Phase4CandidateConfidence => {
+  if (score >= 80) {
+    return "high";
+  }
+  if (score >= 30) {
+    return "medium";
+  }
+  return "low";
+};

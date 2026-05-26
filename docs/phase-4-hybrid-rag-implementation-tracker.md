@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/semantic-vector-search`
+`phase4/hybrid-fusion-confidence`
 
 ## Goal
 
-Add semantic vector retrieval over stored retrieval item vectors.
+Fuse exact, lexical, semantic, and metadata retrieval evidence into ranked candidates.
 
 ## Current Phase 4 modules
 
@@ -49,6 +49,7 @@ These files are intended to become the local project context source for Hybrid R
 - `src/features/phase4/embeddings/phase4EmbeddingGemmaProvider.ts`
 - `src/features/phase4/embeddings/phase4VectorMath.ts`
 - `src/features/phase4/retrieval/phase4SemanticRetriever.ts`
+- `src/features/phase4/retrieval/phase4HybridRetriever.ts`
 - `src/utils/sqlite/hybridRagSqliteSchema.ts`
 - `package.json`
 - `docs/phase-4-hybrid-rag-implementation-tracker.md`
@@ -62,11 +63,12 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
-- Semantic vector search exists but returns disabled/empty results until vectors and an embedding provider are available.
+- Hybrid retrieval can return candidates, evidence, warnings, timings, and source counts.
+- Semantic vector search returns disabled/empty results until vectors and an embedding provider are available.
 - Project-scoped exact and lexical retrieval helpers exist, but extraction still uses the old resolver.
 - SQLite schema initialization and seed import helpers exist but are not wired into UI extraction yet.
 - EmbeddingGemma runtime is not wired into hybrid retrieval yet.
 
 ## Next step
 
-Create `phase4/hybrid-fusion-confidence` to combine exact, lexical, semantic, and metadata evidence.
+Create `phase4/hybrid-llm-input` to feed compact hybrid candidates into the existing LLM pipeline.
