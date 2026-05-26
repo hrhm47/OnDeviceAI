@@ -16,12 +16,12 @@ export const buildPhase4RetrievalItems = (
   context: ProjectContextPackage,
 ): Phase4RetrievalItem[] => [
   ...context.areas.map((area): Phase4RetrievalItem => {
-    const aliases = compact([
+    const strongAliases = compact([
       area.area_label,
-      area.building_name,
-      String(area.floor_or_zone ?? ""),
       ...splitExamples(area.spoken_location_examples),
     ]);
+    const weakAliases = compact([area.building_name, String(area.floor_or_zone ?? "")]);
+    const aliases = Array.from(new Set([...strongAliases, ...weakAliases]));
     return {
       itemId: `area:${area.area_id}`,
       projectId: context.project.project_id,
@@ -37,6 +37,9 @@ export const buildPhase4RetrievalItems = (
         floorOrZone: area.floor_or_zone,
         areaType: area.area_type,
         parentAreaId: area.parent_area_id,
+        strongAliases,
+        weakAliases,
+        specificity: areaSpecificity(area.area_type, area.area_label),
       },
     };
   }),
@@ -160,3 +163,24 @@ const splitSemicolonText = (value: string | null | undefined) =>
 
 const compact = (values: (string | number | null | undefined)[]) =>
   values.map((value) => String(value ?? "").trim()).filter(Boolean);
+
+const areaSpecificity = (
+  areaType: string | null | undefined,
+  areaLabel: string,
+) => {
+  const text = `${areaType ?? ""} ${areaLabel}`.toLowerCase();
+  if (
+    text.includes("room") ||
+    text.includes("bathroom") ||
+    text.includes("kitchen") ||
+    text.includes("trench") ||
+    text.includes("corridor") ||
+    /[a-z]\d{3}/i.test(text)
+  ) {
+    return 35;
+  }
+  if (text.includes("floor") || text.includes("zone")) {
+    return 15;
+  }
+  return 0;
+};

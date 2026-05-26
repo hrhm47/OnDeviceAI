@@ -16,7 +16,7 @@ export const searchPhase4SemanticRetrievalItems = async (input: {
   limit?: number;
 }): Promise<Phase4SemanticRetrievalResult> => {
   if (!input.embeddingProvider) {
-    return disabled("Semantic retrieval is disabled because no embedding provider was supplied.");
+    return disabled("Semantic retrieval is disabled because the selected project runtime is not semantic-ready.");
   }
 
   const vectorItems = input.items.filter(

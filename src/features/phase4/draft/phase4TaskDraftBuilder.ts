@@ -50,6 +50,10 @@ export type Phase4ExtractionResult = {
     preparedAt: string;
     retrievalItemCount: number;
     ftsReady: boolean;
+    embeddingModelReady: boolean;
+    embeddingVectorCount: number;
+    semanticReady: boolean;
+    semanticStatusMessage: string;
     message: string;
   } | null;
 };
@@ -177,6 +181,7 @@ const resolveCandidateResolution = async (input: {
       db: runtime.db,
       items: runtime.retrievalItems,
       rebuildLexicalIndex: false,
+      embeddingProvider: runtime.embeddingProvider,
     });
     const fallback = resolvePhase4Candidates({
       transcript: input.transcript,
@@ -198,6 +203,10 @@ const resolveCandidateResolution = async (input: {
         preparedAt: runtime.status.preparedAt,
         retrievalItemCount: runtime.status.retrievalItemCount,
         ftsReady: runtime.status.ftsReady,
+        embeddingModelReady: runtime.status.embeddingModelReady,
+        embeddingVectorCount: runtime.status.embeddingVectorCount,
+        semanticReady: runtime.status.semanticReady,
+        semanticStatusMessage: runtime.status.semanticStatusMessage,
         message: runtime.status.message,
       },
       referenceData: runtime.context.referenceData,

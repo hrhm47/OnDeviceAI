@@ -94,7 +94,7 @@ export const retrievePhase4HybridContext = async (input: {
   return {
     areaCandidates: candidatesForType(hits, "area", (hit) => hit.item.displayName),
     companyCandidates: companyCandidates(hits, input.context),
-    workTypeCandidates: candidatesForType(hits, "work_type", (hit) => String(hit.item.metadata.workTypeCode ?? hit.item.sourceId)),
+    workTypeCandidates: workTypeCandidates(hits),
     actionCandidates: candidatesForType(hits, "action", (hit) => hit.item.sourceId as Phase4RequiredAction),
     tagCandidates: candidatesForType(hits, "tag", (hit) => hit.item.sourceId as Phase4TaskTag),
     dateCandidates: candidatesForType(hits, "date_hint", (hit) => hit.item.sourceId as Phase4AllowedDueDate),
@@ -160,11 +160,46 @@ const candidatesForType = <T,>(
     }))
     .slice(0, 5);
 
+const workTypeCandidates = (
+  hits: Phase4RetrievalHit[],
+): Phase4Candidate<string>[] => {
+  const byWorkType = new Map<string, Phase4Candidate<string> & { score: number }>();
+  for (const hit of hits) {
+    const workType =
+      hit.item.itemType === "company_context" || hit.item.itemType === "work_type"
+        ? stringValue(hit.item.metadata.workTypeCode) ?? hit.item.sourceId
+        : null;
+    if (!workType) {
+      continue;
+    }
+    const contextBoost = hit.item.itemType === "company_context" ? 18 : 0;
+    const score = hit.score + contextBoost;
+    const existing = byWorkType.get(workType);
+    if (existing && existing.score >= score) {
+      continue;
+    }
+    byWorkType.set(workType, {
+      value: workType,
+      confidence: confidenceFromScore(score),
+      evidence: hit.evidence,
+      reason:
+        hit.item.itemType === "company_context"
+          ? `${hit.matchType} retrieval matched project company scope for ${workType}.`
+          : `${hit.matchType} retrieval matched ${hit.item.displayName}.`,
+      score,
+    });
+  }
+  return Array.from(byWorkType.values())
+    .sort((first, second) => second.score - first.score)
+    .slice(0, 5)
+    .map(({ score: _score, ...candidate }) => candidate);
+};
+
 const companyCandidates = (
   hits: Phase4RetrievalHit[],
   context: ProjectContextPackage,
 ): Phase4CompanyCandidate[] =>
-  hits
+  dedupeHitsBySourceId(hits)
     .filter((hit) => hit.item.itemType === "company_context")
     .flatMap((hit) => {
       const allowedCompany = context.referenceData.companies.find(
@@ -185,6 +220,20 @@ const companyCandidates = (
     })
     .slice(0, 5);
 
+const dedupeHitsBySourceId = (hits: Phase4RetrievalHit[]) => {
+  const bySourceId = new Map<string, Phase4RetrievalHit>();
+  for (const hit of hits) {
+    const key = `${hit.item.itemType}:${hit.item.sourceId}`;
+    const existing = bySourceId.get(key);
+    if (!existing || existing.score < hit.score) {
+      bySourceId.set(key, hit);
+    }
+  }
+  return Array.from(bySourceId.values()).sort(
+    (first, second) => second.score - first.score,
+  );
+};
+
 const confidenceFromScore = (score: number): Phase4CandidateConfidence => {
   if (score >= 80) {
     return "high";
@@ -194,3 +243,6 @@ const confidenceFromScore = (score: number): Phase4CandidateConfidence => {
   }
   return "low";
 };
+
+const stringValue = (value: unknown) =>
+  typeof value === "string" && value.trim() ? value : null;

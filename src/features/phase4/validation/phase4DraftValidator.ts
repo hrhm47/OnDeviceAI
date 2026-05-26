@@ -41,12 +41,14 @@ export const validateAndBuildTaskFormDraft = (input: {
     companyField?.value,
   );
   const companyCandidate = input.candidateResolution?.companyCandidates[0];
-  const company =
-    llmCompany ??
+  const candidateCompany =
     input.referenceData.companies.find(
       (item) => item.companyId === companyCandidate?.value.companyId,
-    ) ??
-    null;
+    ) ?? null;
+  const company =
+    shouldPreferCandidate(companyCandidate?.confidence)
+      ? candidateCompany
+      : (llmCompany ?? candidateCompany);
   const companyNameSpoken =
     company &&
     input.transcript.toLowerCase().includes(company.displayName.toLowerCase());
@@ -64,9 +66,15 @@ export const validateAndBuildTaskFormDraft = (input: {
   const areaCandidate = input.candidateResolution?.areaCandidates[0];
   const llmArea = fields.area?.value;
   let area: string | null = areaCandidate?.value ?? null;
-  if (isAllowedArea(input.referenceData, llmArea)) {
+  if (
+    !shouldPreferCandidate(areaCandidate?.confidence) &&
+    isAllowedArea(input.referenceData, llmArea)
+  ) {
     area = llmArea;
-  } else if (isCandidateArea(areaCandidate, llmArea)) {
+  } else if (
+    !shouldPreferCandidate(areaCandidate?.confidence) &&
+    isCandidateArea(areaCandidate, llmArea)
+  ) {
     area = llmArea;
   }
   const hasAreaFromLlm =
@@ -80,12 +88,15 @@ export const validateAndBuildTaskFormDraft = (input: {
   }
 
   const actionCandidate = input.candidateResolution?.requiredActionCandidates[0];
-  const requiredAction = isAllowedRequiredAction(
-    input.referenceData,
-    fields.requiredAction?.value,
-  )
-    ? fields.requiredAction.value
-    : (actionCandidate?.value ?? null);
+  const hasMultipleIssues = detectMultiIssueTranscript(input.transcript);
+  const llmRequiredAction = fields.requiredAction?.value;
+  const requiredAction = hasMultipleIssues
+    ? null
+    : actionCandidate?.value ??
+      (isAllowedRequiredAction(input.referenceData, llmRequiredAction) &&
+      hasActionEvidence(input.transcript, llmRequiredAction)
+        ? llmRequiredAction
+        : null);
   if (
     !isAllowedRequiredAction(input.referenceData, fields.requiredAction?.value) &&
     fields.requiredAction?.value
@@ -100,12 +111,13 @@ export const validateAndBuildTaskFormDraft = (input: {
   }
 
   const dueDateCandidate = input.candidateResolution?.dueDateCandidates[0];
-  const dueDate = isAllowedDueDate(
-    input.referenceData,
-    fields.requiredActionDueDate?.value,
-  )
-    ? fields.requiredActionDueDate.value
-    : (dueDateCandidate?.value ?? null);
+  const llmDueDate = fields.requiredActionDueDate?.value;
+  const dueDate =
+    dueDateCandidate?.value ??
+    (isAllowedDueDate(input.referenceData, llmDueDate) &&
+    hasDueDateEvidence(input.transcript, llmDueDate)
+      ? llmDueDate
+      : null);
   if (
     !isAllowedDueDate(input.referenceData, fields.requiredActionDueDate?.value) &&
     fields.requiredActionDueDate?.value
@@ -165,18 +177,16 @@ export const validateAndBuildTaskFormDraft = (input: {
   const areaConfidence = hasAreaFromLlm
     ? "medium"
     : candidateConfidence(areaCandidate?.confidence);
-  const actionConfidence = isAllowedRequiredAction(
-    input.referenceData,
-    fields.requiredAction?.value,
-  )
-    ? "medium"
-    : candidateConfidence(actionCandidate?.confidence);
-  const dueDateConfidence = isAllowedDueDate(
-    input.referenceData,
-    fields.requiredActionDueDate?.value,
-  )
-    ? "medium"
-    : candidateConfidence(dueDateCandidate?.confidence);
+  const actionConfidence = actionCandidate
+    ? candidateConfidence(actionCandidate.confidence)
+    : isAllowedRequiredAction(input.referenceData, fields.requiredAction?.value)
+      ? "medium"
+      : "none";
+  const dueDateConfidence = dueDateCandidate
+    ? candidateConfidence(dueDateCandidate.confidence)
+    : isAllowedDueDate(input.referenceData, fields.requiredActionDueDate?.value)
+      ? "medium"
+      : "none";
   const tagConfidence = llmTags.length
     ? "medium"
     : candidateConfidence(input.candidateResolution?.tagCandidates[0]?.confidence);
@@ -253,6 +263,10 @@ export const validateAndBuildTaskFormDraft = (input: {
   };
 };
 
+const shouldPreferCandidate = (
+  confidence: Phase4CandidateConfidence | undefined,
+) => confidence === "high" || confidence === "medium";
+
 const buildReviewSuggestions = (input: {
   parsedOutput: Phase4RawLLMOutput | null;
   transcript: string;
@@ -284,6 +298,11 @@ const buildReviewSuggestions = (input: {
   if (spokenCompanyText) {
     manualReviewReasons.push(
       `${spokenCompanyText} was spoken or suggested but is not an exact allowed company match.`,
+    );
+  }
+  if (detectMultiIssueTranscript(input.transcript)) {
+    manualReviewReasons.push(
+      "Multiple separate issues were spoken; review the draft before creating a task.",
     );
   }
 
@@ -412,6 +431,73 @@ const detectUnsupportedCompanyText = (
   );
   return isAllowed ? null : spoken;
 };
+
+const detectMultiIssueTranscript = (transcript: string) => {
+  const normalized = normalizeText(transcript);
+  const signals = [
+    ["paint", "scratch", "wall finish", "maal"],
+    ["silicone", "sealant", "waterproofing", "moisture"],
+    ["door", "lock", "frame", "does not close"],
+    ["cable", "wire", "electrical"],
+    ["pipe", "sink", "leak", "radiator"],
+  ];
+  const matchedGroups = signals.filter((group) =>
+    group.some((signal) => normalized.includes(signal)),
+  ).length;
+  return matchedGroups >= 2 && /\b(and|also|sekä|ja)\b/.test(normalized);
+};
+
+const hasActionEvidence = (
+  transcript: string,
+  action: unknown,
+) => {
+  const normalized = normalizeText(transcript);
+  if (action === "Maalataan uudestaan") {
+    return matchesAny(normalized, ["paint", "scratch", "wall finish", "maala"]);
+  }
+  if (action === "Kittaus ja maalaus") {
+    return matchesAny(normalized, ["sealant", "sauma", "kittaus"]);
+  }
+  if (action === "Korjaus") {
+    return matchesAny(normalized, [
+      "fix",
+      "repair",
+      "does not close",
+      "leak",
+      "exposed cable",
+      "exposed wire",
+      "cable",
+      "waterproofing",
+      "moisture",
+      "gas connection",
+      "korja",
+    ]);
+  }
+  if (action === "Kuntoon") {
+    return matchesAny(normalized, ["missing", "puuttuu"]);
+  }
+  return false;
+};
+
+const hasDueDateEvidence = (
+  transcript: string,
+  dueDate: unknown,
+) => {
+  const normalized = normalizeText(transcript);
+  if (dueDate === "Now") {
+    return matchesAny(normalized, ["today", "tanaan", "now"]);
+  }
+  if (dueDate === "+3 days") {
+    return matchesAny(normalized, ["three days", "within three days", "kolme paivaa"]);
+  }
+  if (dueDate === "+7 days") {
+    return matchesAny(normalized, ["week", "within a week", "viikko"]);
+  }
+  return false;
+};
+
+const matchesAny = (normalized: string, needles: string[]) =>
+  needles.some((needle) => normalized.includes(normalizeText(needle)));
 
 const isCandidateArea = (
   candidate: Phase4CandidateResolution["areaCandidates"][number] | undefined,

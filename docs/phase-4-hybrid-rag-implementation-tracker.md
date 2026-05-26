@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/manual-check-repair`
+`phase4/hybrid-rag-completion`
 
 ## Goal
 
-Repair manual checks for project-scoped Hybrid RAG and make failure summaries actionable.
+Complete the project-scoped Hybrid RAG runtime path so selected users load their active project context, SQLite/FTS retrieval, optional EmbeddingGemma vectors, and validator-safe candidates.
 
 ## Current Phase 4 modules
 
@@ -82,11 +82,22 @@ These files are intended to become the local project context source for Hybrid R
 - Extraction returns active project/user context and Hybrid RAG diagnostics for the UI.
 - Existing Phase 4 UI shows retrieval counts, timing, top candidates, and warnings.
 - Hybrid retrieval can return candidates, evidence, warnings, timings, and source counts.
-- Semantic vector search returns disabled/empty results until vectors and an embedding provider are available.
-- Project-scoped exact and lexical retrieval helpers exist, but extraction still uses the old resolver.
-- SQLite schema initialization and seed import helpers exist but are not wired into UI extraction yet.
-- EmbeddingGemma runtime is not wired into hybrid retrieval yet.
+- Semantic vector search is enabled only when the EmbeddingGemma GGUF is present and selected-project retrieval item vectors are stored.
+- Selecting a Phase 4 user in the UI automatically prepares that user's active project package for RAG.
+- Downloading EmbeddingGemma clears the runtime cache and prepares selected-project vectors.
+- Hybrid RAG now passes a ready embedding provider into retrieval when vectors are available.
+- Exact area ranking prefers specific rooms, trenches, bathrooms, and corridors over broad building/site aliases.
+- Project-company context contributes directly to work-type ranking.
+- Validator policy prefers medium/high retrieval candidates over mock/LLM guesses for safety-sensitive fields.
+- Multi-issue transcripts are treated conservatively and require manual review rather than unsafe action autofill.
+
+## Remaining limitations
+
+- GGUF embedding loading and vector generation require the native app runtime; Node-based checks cannot execute `llama.rn` or `expo-sqlite`.
+- Semantic retrieval is optional and exact/lexical retrieval remains the fallback when the model is missing or vector indexing fails.
+- Manual checks still run through the in-app button because the extraction path depends on Expo runtime modules.
+- Phase 4 still creates an editable draft only; final task editing/submission remains outside this phase.
 
 ## Next step
 
-Run manual checks in the app and tune only if device/runtime behavior differs from static expectations.
+Run manual checks in the app after selecting Timmo, Leena, and a Nallikari user, then verify that downloaded EmbeddingGemma moves the debug state from model-missing/model-ready to semantic-ready after vectors are generated.

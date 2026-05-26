@@ -20,14 +20,17 @@ import {
 } from "@/src/features/phase4/llm/phase4LocalLLMProvider";
 import { phase4MockLLMProvider } from "@/src/features/phase4/llm/phase4MockLLMProvider";
 import { PHASE4_SELECTED_LLM_MODEL } from "@/src/features/phase4/llm/phase4ModelConfig";
-import { preparePhase4HybridRagRuntime } from "@/src/features/phase4/storage/phase4HybridRagRuntime";
+import {
+  clearPhase4HybridRagRuntimeCache,
+  preparePhase4HybridRagRuntime,
+} from "@/src/features/phase4/storage/phase4HybridRagRuntime";
 import {
   exportPhase4ExtractionResultsCsv,
   savePhase4ExtractionResult,
 } from "@/src/features/phase4/storage/phase4ExtractionStorage";
 import type { Phase4Language } from "@/src/features/phase4/types/phase4.types";
 import * as Sharing from "expo-sharing";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -56,6 +59,9 @@ export default function Phase4ExtractionScreen() {
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const [embeddingDownloadProgress, setEmbeddingDownloadProgress] = useState<
     number | null
+  >(null);
+  const [embeddingIndexProgress, setEmbeddingIndexProgress] = useState<
+    string | null
   >(null);
   const [retrievalStatus, setRetrievalStatus] = useState<string | null>(null);
   const selectedUser = phase4SeedBundle.users.find(
@@ -93,22 +99,35 @@ export default function Phase4ExtractionScreen() {
     );
   };
 
-  const prepareRetrieval = async () => {
+  const prepareRetrieval = useCallback(async (forceRefresh = false) => {
     try {
       setMessage("Preparing Phase 4 retrieval...");
+      setEmbeddingIndexProgress(null);
       const runtime = await preparePhase4HybridRagRuntime({
         userId: selectedUserId,
-        forceRefresh: true,
+        forceRefresh,
+        embeddingMode: "ifReady",
+        onEmbeddingProgress: (progress) => {
+          setEmbeddingIndexProgress(
+            `Indexing embeddings: ${progress.completed}/${progress.total}`,
+          );
+        },
       });
-      const status = `${runtime.status.message} ${runtime.status.retrievalItemCount} retrieval items. FTS5 ${runtime.status.ftsReady ? "ready" : "unavailable"}.`;
+      const status = `${runtime.status.message} ${runtime.status.retrievalItemCount} retrieval items. FTS5 ${runtime.status.ftsReady ? "ready" : "unavailable"}. Vectors ${runtime.status.embeddingVectorCount}.`;
       setRetrievalStatus(status);
       setMessage(status);
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
       setRetrievalStatus(`Retrieval preparation failed: ${text}`);
       setMessage(`Retrieval preparation failed: ${text}`);
+    } finally {
+      setEmbeddingIndexProgress(null);
     }
-  };
+  }, [selectedUserId]);
+
+  useEffect(() => {
+    void prepareRetrieval(false);
+  }, [prepareRetrieval]);
 
   const saveResult = async () => {
     if (!result) {
@@ -174,6 +193,8 @@ export default function Phase4ExtractionScreen() {
         setEmbeddingDownloadProgress,
       );
       setMessage(`EmbeddingGemma model downloaded to ${uri}`);
+      clearPhase4HybridRagRuntimeCache();
+      await prepareRetrieval(true);
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
       setMessage(`EmbeddingGemma download failed: ${text}`);
@@ -270,7 +291,7 @@ export default function Phase4ExtractionScreen() {
           <Button
             label="Prepare retrieval"
             icon="checkmark.circle"
-            onPress={prepareRetrieval}
+            onPress={() => prepareRetrieval(true)}
           />
           <Button
             label="Save result"
@@ -323,6 +344,9 @@ export default function Phase4ExtractionScreen() {
           <Text style={styles.note}>
             Downloading embeddings: {Math.round(embeddingDownloadProgress)}%
           </Text>
+        ) : null}
+        {embeddingIndexProgress ? (
+          <Text style={styles.note}>{embeddingIndexProgress}</Text>
         ) : null}
         {checkSummary ? <Text style={styles.note}>{checkSummary}</Text> : null}
 
@@ -584,6 +608,17 @@ const HybridRetrievalDebug = ({
           label="SQLite / FTS"
           value={`${result.retrievalRuntime.retrievalItemCount} items / ${result.retrievalRuntime.ftsReady ? "FTS ready" : "FTS unavailable"}`}
         />
+      ) : null}
+      {result.retrievalRuntime ? (
+        <Metric
+          label="Embeddings"
+          value={`${result.retrievalRuntime.embeddingVectorCount} vectors / ${result.retrievalRuntime.semanticReady ? "semantic ready" : result.retrievalRuntime.embeddingModelReady ? "model ready" : "model missing"}`}
+        />
+      ) : null}
+      {result.retrievalRuntime?.semanticStatusMessage ? (
+        <Text style={styles.note}>
+          {result.retrievalRuntime.semanticStatusMessage}
+        </Text>
       ) : null}
       <Text style={styles.note}>
         Companies:{" "}

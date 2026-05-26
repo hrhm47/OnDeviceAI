@@ -8,9 +8,20 @@ export const upsertPhase4RetrievalItems = async (
 ) => {
   for (const item of items) {
     await db.runAsync(
-      `INSERT OR REPLACE INTO retrieval_items
+      `INSERT INTO retrieval_items
         (item_id, project_id, item_type, source_table, source_id, display_name, exact_aliases_json, search_text, metadata_json, embedding_dim, embedding_vector_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(item_id) DO UPDATE SET
+         project_id = excluded.project_id,
+         item_type = excluded.item_type,
+         source_table = excluded.source_table,
+         source_id = excluded.source_id,
+         display_name = excluded.display_name,
+         exact_aliases_json = excluded.exact_aliases_json,
+         search_text = excluded.search_text,
+         metadata_json = excluded.metadata_json,
+         embedding_dim = COALESCE(excluded.embedding_dim, retrieval_items.embedding_dim),
+         embedding_vector_json = COALESCE(excluded.embedding_vector_json, retrieval_items.embedding_vector_json)`,
       item.itemId,
       item.projectId,
       item.itemType,
@@ -37,6 +48,19 @@ export const getPhase4RetrievalItemCount = async (
   return rows[0]?.count ?? 0;
 };
 
+export const getPhase4EmbeddingVectorCount = async (
+  db: SQLiteDatabase,
+  projectId: string,
+) => {
+  const rows = await db.getAllAsync<{ count: number }>(
+    `SELECT COUNT(*) as count
+     FROM retrieval_items
+     WHERE project_id = ? AND embedding_vector_json IS NOT NULL`,
+    projectId,
+  );
+  return rows[0]?.count ?? 0;
+};
+
 export const rebuildPhase4RetrievalItemsFts = async (db: SQLiteDatabase) => {
   await db.runAsync("INSERT INTO retrieval_items_fts(retrieval_items_fts) VALUES('delete-all')");
   const items = await getAllPhase4RetrievalItems(db);
@@ -58,6 +82,17 @@ export const rebuildPhase4RetrievalItemsFts = async (db: SQLiteDatabase) => {
 export const getAllPhase4RetrievalItems = async (db: SQLiteDatabase) => {
   const rows = await db.getAllAsync<RetrievalItemRow>(
     "SELECT * FROM retrieval_items",
+  );
+  return rows.map(rowToRetrievalItem);
+};
+
+export const getPhase4RetrievalItemsByProject = async (
+  db: SQLiteDatabase,
+  projectId: string,
+) => {
+  const rows = await db.getAllAsync<RetrievalItemRow>(
+    "SELECT * FROM retrieval_items WHERE project_id = ?",
+    projectId,
   );
   return rows.map(rowToRetrievalItem);
 };

@@ -387,7 +387,7 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
       companyStatus: "suggested",
       descriptionContains: "Paint is damaged",
       areaValue: "A305 living room",
-      requiredAction: "Korjaus",
+      requiredAction: null,
       requiredActionDueDate: null,
       tags: ["Quality"],
       notifications: false,
