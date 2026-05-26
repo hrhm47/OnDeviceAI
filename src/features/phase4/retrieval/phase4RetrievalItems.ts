@@ -116,8 +116,8 @@ export const buildPhase4RetrievalItems = (
     sourceTable: "required_actions",
     sourceId: action,
     displayName: action,
-    exactAliases: [action],
-    searchText: action,
+    exactAliases: actionAliases[action] ?? [action],
+    searchText: compact([action, ...(actionAliases[action] ?? [])]).join(" "),
     metadata: {},
   })),
   ...context.referenceData.tags.map((tag): Phase4RetrievalItem => ({
@@ -127,8 +127,8 @@ export const buildPhase4RetrievalItems = (
     sourceTable: "tags",
     sourceId: tag,
     displayName: tag,
-    exactAliases: [tag],
-    searchText: tag,
+    exactAliases: tagAliases[tag] ?? [tag],
+    searchText: compact([tag, ...(tagAliases[tag] ?? [])]).join(" "),
     metadata: {},
   })),
   ...context.referenceData.dueDates.map((dueDate): Phase4RetrievalItem => ({
@@ -148,6 +148,42 @@ const dueDateAliases: Record<string, string[]> = {
   Now: ["today", "tänään", "now"],
   "+3 days": ["three days", "within three days", "kolme päivää"],
   "+7 days": ["week", "within a week", "viikko"],
+};
+
+const actionAliases: Record<string, string[]> = {
+  Korjaus: [
+    "fix",
+    "fixed",
+    "repair",
+    "needs to be fixed",
+    "should be fixed",
+    "korjaa",
+    "korjaus",
+  ],
+  "Maalataan uudestaan": [
+    "repaint",
+    "paint again",
+    "paint damage",
+    "wall scratch",
+    "maalataan uudestaan",
+    "maalivaurio",
+  ],
+  "Kittaus ja maalaus": [
+    "seal",
+    "silicone",
+    "caulk",
+    "missing silicone",
+    "kittaus",
+    "silikoni",
+  ],
+  Kuntoon: ["missing", "complete", "make complete", "puuttuu", "kuntoon"],
+};
+
+const tagAliases: Record<string, string[]> = {
+  Quality: ["quality", "defect", "inspection", "laatu", "virhe"],
+  Safety: ["safety", "danger", "hazard", "urgent safety", "turvallisuus", "vaara"],
+  Palokatko: ["palokatko", "fire stop", "fire stopping"],
+  Environment: ["environment", "waste", "dust", "debris", "ymparisto"],
 };
 
 const keywordGroups = () =>

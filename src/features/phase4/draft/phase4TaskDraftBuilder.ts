@@ -1,9 +1,7 @@
-import { resolvePhase4Candidates } from "../candidates/phase4CandidateResolver";
-import { buildPhase4LLMInput } from "../llm/phase4LLMInputBuilder";
-import { parsePhase4LLMOutput } from "../llm/phase4LLMOutputParser";
+import { buildPhase4HybridLLMInput } from "../llm/phase4HybridLLMInputBuilder";
+import { parsePhase4HybridLLMOutput } from "../llm/phase4HybridLLMOutputParser";
 import type { Phase4LLMProvider } from "../llm/phase4LLMProvider";
 import { phase4MockLLMProvider } from "../llm/phase4MockLLMProvider";
-import { getPhase4ReferenceData } from "../referenceData/phase4ReferenceRepository";
 import { retrievePhase4HybridContext, type Phase4HybridRetrievalResult } from "../retrieval/phase4HybridRetriever";
 import { preparePhase4HybridRagRuntime } from "../storage/phase4HybridRagRuntime";
 import type {
@@ -12,14 +10,10 @@ import type {
   Phase4CompanyCandidate,
   Phase4CandidateResolution,
   Phase4Language,
-  Phase4ReferenceData,
   Phase4ReviewSuggestions,
 } from "../types/phase4.types";
-import {
-  validateAndBuildTaskFormDraft,
-  type Phase4ValidationResult,
-} from "../validation/phase4DraftValidator";
 import type { Phase4ValidationWarning } from "../validation/phase4Warnings";
+import { buildHybridGeneralTaskDraft, type Phase4HybridDraftBuildResult } from "./buildHybridGeneralTaskDraft";
 import { preparePhase4Transcript } from "./phase4TranscriptPreparation";
 
 export type Phase4ExtractionResult = {
@@ -32,7 +26,7 @@ export type Phase4ExtractionResult = {
   reviewSuggestions: Phase4ReviewSuggestions;
   llmProviderId: string;
   method: Phase4LLMProvider["method"];
-  promptVersion: "phase4_general_task_prompt_v1";
+  promptVersion: "phase4_hybrid_rag_minimal_prompt_v1";
   extractionTimeMs: number;
   rawLlmOutput: string;
   parseSuccess: boolean;
@@ -68,23 +62,26 @@ export const extractGeneralTaskFormDraft = async (input: {
   provider?: Phase4LLMProvider;
 }): Promise<Phase4ExtractionResult> => {
   const transcript = preparePhase4Transcript(input);
-  const baseReferenceData = getPhase4ReferenceData();
-  const { candidateResolution, hybridRetrieval, projectContext, retrievalRuntime, referenceData } =
-    await resolveCandidateResolution({
+  const {
+    candidateResolution,
+    hybridRetrieval,
+    projectContext,
+    retrievalRuntime,
+    runtimeContext,
+  } = await resolveHybridCandidateResolution({
       transcript,
-      referenceData: baseReferenceData,
       userId: input.phase4UserId ?? undefined,
     });
-  const llmInput = buildPhase4LLMInput({
+  const llmInput = buildPhase4HybridLLMInput({
     transcript,
     language: input.language,
-    referenceData,
-    candidateResolution,
+    context: runtimeContext,
+    hybridRetrieval,
   });
   console.log("Phase 4 LLM input summary:", {
     providerLanguage: input.language,
     transcriptLength: transcript.length,
-    allowedCompaniesCount: llmInput.allowedCompanies.length,
+    allowedCompaniesCount: llmInput.retrieval.companyCandidates?.length ?? 0,
     companyCandidatesCount: candidateResolution.companyCandidates.length,
     areaCandidatesCount: candidateResolution.areaCandidates.length,
     actionCandidatesCount: candidateResolution.requiredActionCandidates.length,
@@ -112,7 +109,7 @@ export const extractGeneralTaskFormDraft = async (input: {
   }
 
   const parseResult = rawLlmOutput
-    ? parsePhase4LLMOutput(rawLlmOutput)
+    ? parsePhase4HybridLLMOutput(rawLlmOutput)
     : { success: false, output: null, normalizedText: "", errorMessage: providerError };
   console.log("Phase 4 LLM parse summary:", {
     success: parseResult.success,
@@ -120,10 +117,9 @@ export const extractGeneralTaskFormDraft = async (input: {
     normalizedTextLength: parseResult.normalizedText.length,
   });
   const validationStartedAt = Date.now();
-  const validation: Phase4ValidationResult = validateAndBuildTaskFormDraft({
-    parsedOutput: parseResult.output,
+  const validation: Phase4HybridDraftBuildResult = buildHybridGeneralTaskDraft({
+    llmOutput: parseResult.output,
     transcript,
-    referenceData,
     candidateResolution,
   });
 
@@ -162,85 +158,57 @@ export const extractGeneralTaskFormDraft = async (input: {
   };
 };
 
-const resolveCandidateResolution = async (input: {
+const resolveHybridCandidateResolution = async (input: {
   transcript: string;
-  referenceData: Phase4ReferenceData;
   userId?: string;
 }): Promise<{
   candidateResolution: Phase4CandidateResolution;
-  hybridRetrieval: Phase4HybridRetrievalResult | null;
+  hybridRetrieval: Phase4HybridRetrievalResult;
   projectContext: Phase4ExtractionResult["projectContext"];
   retrievalRuntime: Phase4ExtractionResult["retrievalRuntime"];
-  referenceData: Phase4ReferenceData;
+  runtimeContext: Awaited<ReturnType<typeof preparePhase4HybridRagRuntime>>["context"];
 }> => {
-  try {
-    const runtime = await preparePhase4HybridRagRuntime({ userId: input.userId });
-    const hybridRetrieval = await retrievePhase4HybridContext({
-      transcript: input.transcript,
-      context: runtime.context,
-      db: runtime.db,
-      items: runtime.retrievalItems,
-      rebuildLexicalIndex: false,
-      embeddingProvider: runtime.embeddingProvider,
-    });
-    const fallback = resolvePhase4Candidates({
-      transcript: input.transcript,
-      referenceData: input.referenceData,
-    });
-    return {
-      candidateResolution: mergeHybridCandidates(
-        hybridRetrieval,
-        fallback,
-      ),
-      hybridRetrieval,
-      projectContext: {
-        activeUserId: runtime.context.activeUser.user_id,
-        activeUserName: runtime.context.activeUser.display_name,
-        projectId: runtime.context.project.project_id,
-        projectName: runtime.context.project.project_name,
-      },
-      retrievalRuntime: {
-        preparedAt: runtime.status.preparedAt,
-        retrievalItemCount: runtime.status.retrievalItemCount,
-        ftsReady: runtime.status.ftsReady,
-        embeddingModelReady: runtime.status.embeddingModelReady,
-        embeddingVectorCount: runtime.status.embeddingVectorCount,
-        semanticReady: runtime.status.semanticReady,
-        semanticStatusMessage: runtime.status.semanticStatusMessage,
-        message: runtime.status.message,
-      },
-      referenceData: runtime.context.referenceData,
-    };
-  } catch (error) {
-    console.warn("Phase 4 Hybrid RAG unavailable; using deterministic fallback resolver", error);
-    return {
-      candidateResolution: resolvePhase4Candidates({
-        transcript: input.transcript,
-        referenceData: input.referenceData,
-      }),
-      hybridRetrieval: null,
-      projectContext: null,
-      retrievalRuntime: null,
-      referenceData: input.referenceData,
-    };
-  }
+  const runtime = await preparePhase4HybridRagRuntime({ userId: input.userId });
+  const hybridRetrieval = await retrievePhase4HybridContext({
+    transcript: input.transcript,
+    context: runtime.context,
+    db: runtime.db,
+    items: runtime.retrievalItems,
+    rebuildLexicalIndex: false,
+    embeddingProvider: runtime.embeddingProvider,
+  });
+  return {
+    candidateResolution: hybridOnlyCandidates(hybridRetrieval),
+    hybridRetrieval,
+    projectContext: {
+      activeUserId: runtime.context.activeUser.user_id,
+      activeUserName: runtime.context.activeUser.display_name,
+      projectId: runtime.context.project.project_id,
+      projectName: runtime.context.project.project_name,
+    },
+    retrievalRuntime: {
+      preparedAt: runtime.status.preparedAt,
+      retrievalItemCount: runtime.status.retrievalItemCount,
+      ftsReady: runtime.status.ftsReady,
+      embeddingModelReady: runtime.status.embeddingModelReady,
+      embeddingVectorCount: runtime.status.embeddingVectorCount,
+      semanticReady: runtime.status.semanticReady,
+      semanticStatusMessage: runtime.status.semanticStatusMessage,
+      message: runtime.status.message,
+    },
+    runtimeContext: runtime.context,
+  };
 };
 
-const mergeHybridCandidates = (
+const hybridOnlyCandidates = (
   hybrid: Phase4HybridRetrievalResult,
-  fallback: Phase4CandidateResolution,
 ): Phase4CandidateResolution => ({
   companyCandidates: confidentCompanyCandidates(hybrid.companyCandidates),
   areaCandidates: confidentCandidates(hybrid.areaCandidates),
-  requiredActionCandidates: hybrid.actionCandidates.length
-    ? hybrid.actionCandidates
-    : fallback.requiredActionCandidates,
-  dueDateCandidates: hybrid.dateCandidates.length
-    ? hybrid.dateCandidates
-    : fallback.dueDateCandidates,
-  tagCandidates: hybrid.tagCandidates.length
-    ? hybrid.tagCandidates
-    : fallback.tagCandidates,
+  workTypeCandidates: confidentCandidates(hybrid.workTypeCandidates),
+  requiredActionCandidates: confidentCandidates(hybrid.actionCandidates),
+  dueDateCandidates: confidentCandidates(hybrid.dateCandidates),
+  tagCandidates: confidentCandidates(hybrid.tagCandidates),
 });
 
 const confidentCompanyCandidates = (candidates: Phase4CompanyCandidate[]) =>

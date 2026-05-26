@@ -50,6 +50,7 @@ const runCase = async (
     checkProjectScopedFields
       ? compare("company", expected.companyName, draft.company.value)
       : null,
+    compare("companyId", expected.companyId, draft.company.companyId),
     checkProjectScopedFields
       ? compare("companyStatus", expected.companyStatus, draft.company.status)
       : null,
@@ -57,7 +58,10 @@ const runCase = async (
     checkProjectScopedFields
       ? compare("area", expected.areaValue, draft.area.value)
       : null,
+    compare("areaId", expected.areaId, draft.area.areaId),
+    compare("requiredActionCode", expected.requiredActionCode, draft.requiredAction.code),
     compare("requiredAction", expected.requiredAction, draft.requiredAction.value),
+    compare("dueDateCode", expected.dueDateCode, draft.requiredActionDueDate.code),
     compare("dueDate", expected.requiredActionDueDate, draft.requiredActionDueDate.value),
     includesAll("tags", expected.tags, draft.tags.value),
     compare("notifications", expected.notifications, draft.notifications.value),

@@ -1,9 +1,9 @@
 import * as FileSystem from "expo-file-system/legacy";
 import type { LlamaContext } from "llama.rn";
 
-import { PHASE4_SELECTED_LLM_MODEL } from "./phase4ModelConfig";
 import type { Phase4LLMProvider } from "./phase4LLMProvider";
-import { buildPhase4ExtractionPrompt } from "./phase4PromptTemplates";
+import { PHASE4_SELECTED_LLM_MODEL } from "./phase4ModelConfig";
+import { buildPhase4HybridExtractionPrompt } from "./buildPhase4HybridExtractionPrompt";
 
 const MODEL_DIR = `models/llm/${PHASE4_SELECTED_LLM_MODEL.modelId}`;
 const MODEL_PATH = `${MODEL_DIR}/${PHASE4_SELECTED_LLM_MODEL.filename}`;
@@ -44,10 +44,10 @@ export const phase4LocalLLMProvider: Phase4LLMProvider = {
           content:
             "You are a controlled extraction engine. Return one valid JSON object only.",
         },
-        { role: "user", content: buildPhase4ExtractionPrompt(input) },
+        { role: "user", content: buildPhase4HybridExtractionPrompt(input) },
       ],
       response_format: { type: "json_object" },
-      n_predict: 700,
+      n_predict: 256,
       temperature: 0,
       top_p: 1,
       stop: STOP_WORDS,
@@ -76,8 +76,9 @@ const getPhase4LlamaContext = async (modelUri: string) => {
   cachedContext = await initLlama({
     model: modelUri,
     use_mlock: true,
-    n_ctx: 4096,
+    n_ctx: 1024,
     n_gpu_layers: 99,
+    cache_type_k: "q4_1",
   });
   cachedContextModelUri = modelUri;
   return cachedContext;

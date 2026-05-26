@@ -2,6 +2,11 @@ import type { SQLiteDatabase } from "expo-sqlite";
 
 import type { Phase4EmbeddingProvider } from "../embeddings/phase4EmbeddingProvider";
 import type { ProjectContextPackage } from "../context/activeProjectContextLoader";
+import {
+  generateApartmentAreas,
+  p1AlppilaUnitStructure,
+} from "../rag/area/generateApartmentAreas";
+import { matchApartmentAreaFromTranscript } from "../rag/area/exactAreaMatcher";
 import type {
   Phase4AllowedDueDate,
   Phase4Candidate,
@@ -60,6 +65,11 @@ export const retrievePhase4HybridContext = async (input: {
     projectId: input.context.project.project_id,
     items,
   });
+  const apartmentExactHits = findApartmentExactAreaHits({
+    transcript: input.transcript,
+    projectId: input.context.project.project_id,
+    items,
+  });
   const exactMs = Date.now() - exactStartedAt;
 
   const lexicalStartedAt = Date.now();
@@ -89,15 +99,20 @@ export const retrievePhase4HybridContext = async (input: {
     warnings.push(semanticResult.disabledReason);
   }
   const semanticMs = Date.now() - semanticStartedAt;
-  const hits = fuseHits([...exactHits, ...lexicalHits, ...semanticResult.hits]);
+  const hits = fuseHits([
+    ...apartmentExactHits,
+    ...exactHits,
+    ...lexicalHits,
+    ...semanticResult.hits,
+  ]);
 
   return {
     areaCandidates: candidatesForType(hits, "area", (hit) => hit.item.displayName),
     companyCandidates: companyCandidates(hits, input.context),
     workTypeCandidates: workTypeCandidates(hits),
-    actionCandidates: candidatesForType(hits, "action", (hit) => hit.item.sourceId as Phase4RequiredAction),
-    tagCandidates: candidatesForType(hits, "tag", (hit) => hit.item.sourceId as Phase4TaskTag),
-    dateCandidates: candidatesForType(hits, "date_hint", (hit) => hit.item.sourceId as Phase4AllowedDueDate),
+    actionCandidates: candidatesForType(hits, "action", (hit) => hit.item.displayName as Phase4RequiredAction),
+    tagCandidates: candidatesForType(hits, "tag", (hit) => hit.item.displayName as Phase4TaskTag),
+    dateCandidates: candidatesForType(hits, "date_hint", (hit) => hit.item.displayName as Phase4AllowedDueDate),
     evidence: hits.map((hit) => `${hit.matchType}: ${hit.item.displayName} (${hit.evidence})`),
     warnings,
     timings: {
@@ -107,11 +122,44 @@ export const retrievePhase4HybridContext = async (input: {
       semanticMs,
     },
     counts: {
-      exact: exactHits.length,
+      exact: exactHits.length + apartmentExactHits.length,
       lexical: lexicalHits.length,
       semantic: semanticResult.hits.length,
     },
   };
+};
+
+const findApartmentExactAreaHits = (input: {
+  transcript: string;
+  projectId: string;
+  items: Phase4RetrievalItem[];
+}): Phase4RetrievalHit[] => {
+  if (input.projectId !== p1AlppilaUnitStructure.projectId) {
+    return [];
+  }
+  const exactArea = matchApartmentAreaFromTranscript({
+    transcript: input.transcript,
+    generatedAreas: generateApartmentAreas(p1AlppilaUnitStructure),
+  });
+  if (!exactArea) {
+    return [];
+  }
+  const item = input.items.find(
+    (candidate) =>
+      candidate.projectId === input.projectId &&
+      candidate.itemType === "area" &&
+      candidate.sourceId === exactArea.areaId,
+  );
+  return item
+    ? [
+        {
+          item,
+          score: exactArea.confidence === "high" ? 180 : 130,
+          matchType: "exact",
+          evidence: exactArea.evidence.join("; "),
+        },
+      ]
+    : [];
 };
 
 const runLexicalRetrieval = async (
@@ -157,6 +205,10 @@ const candidatesForType = <T,>(
       confidence: confidenceFromScore(hit.score),
       evidence: hit.evidence,
       reason: `${hit.matchType} retrieval matched ${hit.item.displayName}.`,
+      id: candidateId(hit),
+      label: hit.item.displayName,
+      matchType: hit.matchType,
+      score: hit.score,
     }))
     .slice(0, 5);
 
@@ -187,6 +239,9 @@ const workTypeCandidates = (
           ? `${hit.matchType} retrieval matched project company scope for ${workType}.`
           : `${hit.matchType} retrieval matched ${hit.item.displayName}.`,
       score,
+      id: workType,
+      label: workType,
+      matchType: hit.matchType,
     });
   }
   return Array.from(byWorkType.values())
@@ -216,6 +271,10 @@ const companyCandidates = (
         confidence: confidenceFromScore(hit.score),
         evidence: hit.evidence,
         reason: `${hit.matchType} retrieval matched project company context.`,
+        id: allowedCompany.companyId,
+        label: allowedCompany.displayName,
+        matchType: hit.matchType,
+        score: hit.score,
       }];
     })
     .slice(0, 5);
@@ -246,3 +305,36 @@ const confidenceFromScore = (score: number): Phase4CandidateConfidence => {
 
 const stringValue = (value: unknown) =>
   typeof value === "string" && value.trim() ? value : null;
+
+const candidateId = (hit: Phase4RetrievalHit) => {
+  if (hit.item.itemType === "action") {
+    return actionCode(hit.item.displayName);
+  }
+  if (hit.item.itemType === "date_hint") {
+    return dueDateCode(hit.item.displayName);
+  }
+  if (hit.item.itemType === "tag") {
+    return tagCode(hit.item.displayName);
+  }
+  return hit.item.sourceId;
+};
+
+const actionCode = (displayName: string) => {
+  if (displayName === "Korjaus" || displayName === "Fixed") return "repair";
+  if (displayName === "Maalataan uudestaan" || displayName === "Maalataan") {
+    return "repaint";
+  }
+  if (displayName === "Kittaus ja maalaus") return "seal";
+  if (displayName === "Kuntoon") return "complete";
+  return displayName.toLowerCase().replace(/\s+/g, "_");
+};
+
+const dueDateCode = (displayName: string) => {
+  if (displayName === "Now") return "now";
+  if (displayName === "+3 days") return "plus_3_days";
+  if (displayName === "+7 days") return "plus_7_days";
+  return displayName.toLowerCase().replace(/\s+/g, "_");
+};
+
+const tagCode = (displayName: string) =>
+  displayName.toLowerCase().replace(/\s+/g, "_");

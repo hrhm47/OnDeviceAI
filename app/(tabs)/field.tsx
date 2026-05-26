@@ -6,7 +6,7 @@ import {
   type Phase4ExtractionResult,
 } from "@/src/features/phase4/draft/phase4TaskDraftBuilder";
 import { phase4LocalLLMProvider } from "@/src/features/phase4/llm/phase4LocalLLMProvider";
-import { getPhase4ReferenceData } from "@/src/features/phase4/referenceData/phase4ReferenceRepository";
+import { loadActiveProjectContext } from "@/src/features/phase4/context/activeProjectContextLoader";
 import { savePhase4ExtractionResult } from "@/src/features/phase4/storage/phase4ExtractionStorage";
 import type {
   Phase4AllowedDueDate,
@@ -76,7 +76,13 @@ export default function FieldScreen() {
   const [editableDraft, setEditableDraft] = useState<EditableDraft | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const referenceData = useMemo(() => getPhase4ReferenceData(), []);
+  const referenceData = useMemo(() => {
+    const context = loadActiveProjectContext();
+    if (!context.ok) {
+      return { companies: [] };
+    }
+    return context.context.referenceData;
+  }, []);
   const {
     status: asrStatus,
     isRecording,
@@ -362,7 +368,7 @@ const createEditableDraft = (result: Phase4ExtractionResult): EditableDraft => (
 const applyEditsToResult = (
   result: Phase4ExtractionResult,
   editableDraft: EditableDraft,
-  companies: ReturnType<typeof getPhase4ReferenceData>["companies"],
+  companies: readonly { displayName: string; companyId: string }[],
 ): Phase4ExtractionResult => {
   const companyName = editableDraft.company.trim();
   const matchedCompany = companies.find(

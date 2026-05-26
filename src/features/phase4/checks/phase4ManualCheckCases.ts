@@ -12,11 +12,15 @@ export type Phase4ManualCheckCase = {
   transcript: string;
   expected: {
     companyName?: string | null;
+    companyId?: string | null;
     companyStatus?: "suggested" | "extracted" | "manual_required";
     descriptionContains: string;
     areaValue?: string | null;
+    areaId?: string | null;
+    requiredActionCode?: string | null;
     requiredAction: Phase4RequiredAction | null;
-    requiredActionDueDate: Phase4AllowedDueDate | null;
+    dueDateCode?: "now" | "plus_3_days" | "plus_7_days" | null;
+    requiredActionDueDate: Phase4AllowedDueDate | string | null;
     tags: Phase4TaskTag[];
     notifications: false;
     reviewWorkIntent?: string | null;
@@ -31,6 +35,31 @@ export type Phase4ManualCheckCase = {
 };
 
 export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
+  {
+    checkId: "phase4_hybrid_check_a201_bathroom_pipe_leak",
+    userId: "u_timmo",
+    language: "en",
+    transcript:
+      "There is a pipe leak in the bathroom apartment A201. It needs to be fixed today. Mark it as quality.",
+    expected: {
+      companyId: "c_aquapipe",
+      companyName: "AquaPipe Finland Oy",
+      companyStatus: "suggested",
+      descriptionContains: "pipe leak",
+      areaValue: "A201 bathroom",
+      areaId: "area_p1_alppila_a201_bathroom",
+      requiredActionCode: "repair",
+      requiredAction: "Korjaus",
+      dueDateCode: "now",
+      requiredActionDueDate: "Now",
+      tags: ["Quality"],
+      notifications: false,
+      hybridProjectId: "p1_alppila",
+      hybridMinExactCount: 1,
+      hybridAreaCandidate: "A201 bathroom",
+      hybridWorkTypeCandidate: "plumbing",
+    },
+  },
   {
     checkId: "phase4_check_pipe_leak_quality_today",
     language: "en",
@@ -138,7 +167,7 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
       descriptionContains: "balcony door",
       areaValue: "Apartment C204 balcony door",
       requiredAction: "Korjaus",
-      requiredActionDueDate: null,
+      requiredActionDueDate: "tomorrow",
       tags: ["Quality"],
       notifications: false,
     },

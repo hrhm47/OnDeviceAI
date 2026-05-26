@@ -1,8 +1,8 @@
-import type { Phase4LLMInput } from "../types/phase4.types";
+import type { Phase4HybridLLMInput } from "../types/phase4HybridLLM.types";
 import type { Phase4LLMProvider } from "./phase4LLMProvider";
 
 export const phase4MockLLMProvider: Phase4LLMProvider = {
-  providerId: "phase4_mock_llm_provider_v1",
+  providerId: "phase4_mock_llm_provider_v2_compact_hybrid",
   method: "mock_llm_with_validation",
   async extractTaskForm(input) {
     const startedAt = Date.now();
@@ -13,140 +13,118 @@ export const phase4MockLLMProvider: Phase4LLMProvider = {
   },
 };
 
-const buildMockOutput = (input: Phase4LLMInput) => {
-  const text = input.transcript.toLowerCase();
-  const company = pickCompany(input, text);
-  const action = text.includes("paint") || text.includes("scratch") || text.includes("naarmu")
-    ? "Maalataan uudestaan"
-    : text.includes("sealant") || text.includes("sauma")
-      ? "Kittaus ja maalaus"
-      : text.includes("fix") || text.includes("repair") || text.includes("korjata") || text.includes("fixed")
-        ? "Korjaus"
-        : null;
-  const dueDate = text.includes("today") || text.includes("tänään") || text.includes("safety")
-    ? "Now"
-    : text.includes("three days") || text.includes("kolme")
-      ? "+3 days"
-      : text.includes("week") || text.includes("viikko")
-        ? "+7 days"
-        : null;
-  const tags = [
-    ...(text.includes("palokatko") || text.includes("fire stop") ? ["Palokatko", "Safety"] : []),
-    ...(text.includes("safety") || text.includes("turvallisuus") ? ["Safety"] : []),
-    ...(!text.includes("safety") && !text.includes("turvallisuus") ? ["Quality"] : []),
-  ];
+const buildMockOutput = (input: Phase4HybridLLMInput) => {
+  const normalized = normalize(input.transcript);
+  const dateCandidate = input.retrieval.dateCandidates?.find((candidate) =>
+    dateEvidenceMatches(normalized, candidate.id),
+  );
+  const actionCandidate = input.retrieval.actionCandidates?.find((candidate) =>
+    actionEvidenceMatches(normalized, candidate.id),
+  );
+  const tagCandidates =
+    input.retrieval.tagCandidates
+      ?.filter((candidate) => tagEvidenceMatches(normalized, candidate.id))
+      .map((candidate) => candidate.id) ?? [];
 
   return {
-    formId: "general_task_form",
-    schemaVersion: "v1",
-    fields: {
-      list: field("Hallo", "defaulted", "high", null, "Default list for Phase 4."),
-      company: {
-        ...field(company?.displayName ?? null, company ? "suggested" : "manual_required", company ? "medium" : "none", company?.displayName ?? null, company ? "Matched transcript keywords to local company reference data." : "No local company match found."),
-        companyId: company?.companyId ?? null,
-      },
-      description: field(input.transcript, "extracted", "medium", input.transcript, "Description is based on the transcript."),
-      area: field(pickArea(input, text), pickArea(input, text) ? "extracted" : "manual_required", pickArea(input, text) ? "medium" : "none", pickArea(input, text), "Area is filled only when an allowed area is spoken."),
-      marker: field(null, "manual_required", "none", null, "Marker must be selected manually."),
-      photos: field([], "skipped", "none", null, "Photos are outside Phase 4 extraction."),
-      requiredAction: field(action, action ? "suggested" : "manual_required", action ? "medium" : "none", action ? input.transcript : null, "Suggested from transcript and company hints."),
-      requiredActionDueDate: field(dueDate, dueDate ? "suggested" : "manual_required", dueDate ? "medium" : "none", dueDate, "Due date must be one of the allowed options."),
-      tags: field(Array.from(new Set(tags)), "suggested", "medium", input.transcript, "Tags are limited to allowed local tags."),
-      impacts: field([], "not_configured", "none", null, "Impacts are not configured."),
-      notifications: field(false, "defaulted", "high", null, "Notifications default to false."),
-    },
-    reviewSuggestions: {
-      workIntent: pickWorkIntent(text),
-      spokenDueDateText: text.includes("tomorrow") || text.includes("huomenna")
-        ? text.includes("huomenna")
-          ? "huomenna"
-          : "tomorrow"
-        : null,
-      unsupportedDueDateReason: text.includes("tomorrow") || text.includes("huomenna")
-        ? "The spoken due date is useful for review but is not an allowed final due date option."
-        : null,
-      spokenCompanyText: text.includes("superfast builder")
-        ? "SuperFast Builder Company"
-        : null,
-      suggestedCompanyIds: company ? [company.companyId] : [],
-      manualReviewReasons: [],
-    },
+    description: buildDescription(input.transcript),
+    multiIssueDetected: detectMultiIssue(normalized),
+    issueSummaries: detectMultiIssue(normalized)
+      ? input.transcript.split(/\s*,\s*|\s+and\s+/i).map((item) => item.trim()).filter(Boolean)
+      : [],
+    selectedCompanyId: input.retrieval.companyCandidates?.[0]?.id ?? null,
+    selectedAreaId: input.retrieval.areaCandidates?.[0]?.id ?? null,
+    requiredActionCode: actionCandidate?.id ?? null,
+    dueDateCode: dateCandidate?.id ?? null,
+    tagCodes: tagCandidates.length
+      ? tagCandidates
+      : input.retrieval.tagCandidates?.[0]?.id
+        ? [input.retrieval.tagCandidates[0].id]
+        : [],
+    reviewNotes: unsupportedDueDateNotes(normalized),
   };
 };
 
-const pickCompany = (input: Phase4LLMInput, text: string) =>
-  input.allowedCompanies.find((company) => company.companyId === priorityCompanyId(text)) ??
-  input.allowedCompanies.find((company) =>
-    [...company.serviceKeywords.en, ...company.serviceKeywords.fi].some((keyword) =>
-      text.includes(keyword.toLowerCase()),
-    ),
-  ) ?? null;
+const buildDescription = (transcript: string) =>
+  transcript.replace(/\s+/g, " ").trim();
 
-const priorityCompanyId = (text: string) => {
-  if (text.includes("paint") || text.includes("painting") || text.includes("wall scratch") || text.includes("maalaus")) {
-    return "company_maalausmestarit";
-  }
-  if (text.includes("waterproofing membrane") || text.includes("shower wall")) {
-    return "company_wetroom_shield";
-  }
-  if (text.includes("sealant") || text.includes("sauma")) {
-    return "company_sealpro";
-  }
-  if (text.includes("balcony door") || text.includes("window") || text.includes("cold air") || text.includes("door seal") || text.includes("parvekkeen ovi") || text.includes("tiiviste")) {
-    return "company_window_door_service";
-  }
-  if (text.includes("entrance door") || text.includes("lock") || text.includes("frame") || text.includes("rubs") || text.includes("ulko-ovi") || text.includes("lukko") || text.includes("karmi")) {
-    return "company_doorfix_rakennus";
-  }
-  if (text.includes("radiator") || text.includes("heating") || text.includes("valve")) {
-    return "company_northflow_lvi";
-  }
-  if (text.includes("gas connection") || text.includes("gas pipe") || text.includes("kaasuliitäntä")) {
-    return "company_aquapipe_finland";
-  }
-  if (text.includes("ceiling")) {
-    return "company_ceilingpro";
-  }
-  if (text.includes("scaffold")) {
-    return "company_scaffoldsafe";
-  }
-  if (text.includes("concrete") || text.includes("parking garage ramp")) {
-    return "company_concretecare";
-  }
-  if (text.includes("electrical") || text.includes("sähkö")) {
-    return "company_north_electric";
-  }
-  if (text.includes("palokatko") || text.includes("fire stop")) {
-    return "company_palostop";
-  }
-  return null;
+const detectMultiIssue = (normalized: string) => {
+  const groups = [
+    ["paint", "scratch", "wall finish"],
+    ["silicone", "sealant", "waterproofing", "moisture"],
+    ["door", "lock", "does not close"],
+    ["cable", "wire", "electrical"],
+    ["pipe", "sink", "leak", "radiator"],
+  ];
+  return (
+    groups.filter((group) => group.some((item) => normalized.includes(item))).length >=
+      2 && /\b(and|also|ja|seka)\b/.test(normalized)
+  );
 };
 
-const pickWorkIntent = (text: string) => {
-  if (text.includes("gas connection") || text.includes("kaasuliitäntä")) {
-    return "gas_connection";
+const actionEvidenceMatches = (normalized: string, code: string) => {
+  if (code === "repair") {
+    return matchesAny(normalized, [
+      "fix",
+      "fixed",
+      "repair",
+      "needs to be fixed",
+      "should be fixed",
+      "leak",
+      "does not close",
+      "korja",
+    ]);
   }
-  if (text.includes("pipe") || text.includes("putki")) {
-    return "pipe_connection";
+  if (code === "repaint") {
+    return matchesAny(normalized, ["paint", "repaint", "scratch", "wall finish"]);
   }
-  if (text.includes("balcony door") || text.includes("door seal")) {
-    return "door_seal_repair";
+  if (code === "seal") {
+    return matchesAny(normalized, ["seal", "silicone", "caulk", "kittaus"]);
   }
-  if (text.includes("appliance") || text.includes("fridge")) {
-    return "appliance_installation";
-  }
-  return null;
+  return false;
 };
 
-const pickArea = (input: Phase4LLMInput, text: string) =>
-  input.formSchema.allowedAreaOptions.find((area) =>
-    text.includes(area.toLowerCase()),
-  ) ?? null;
+const dateEvidenceMatches = (normalized: string, code: string) => {
+  if (code === "now") {
+    return matchesAny(normalized, ["today", "now", "urgent", "tanaan"]);
+  }
+  if (code === "plus_3_days") {
+    return matchesAny(normalized, ["three days", "3 days", "kolme"]);
+  }
+  if (code === "plus_7_days") {
+    return matchesAny(normalized, ["week", "7 days", "viikko"]);
+  }
+  return false;
+};
 
-const field = (
-  value: unknown,
-  status: string,
-  confidence: string,
-  evidence: string | null,
-  reason: string,
-) => ({ value, status, confidence, evidence, reason });
+const tagEvidenceMatches = (normalized: string, code: string) => {
+  if (code === "quality") {
+    return matchesAny(normalized, ["quality", "defect", "inspection", "laatu"]);
+  }
+  if (code === "safety") {
+    return matchesAny(normalized, ["safety", "danger", "hazard", "turvallisuus"]);
+  }
+  if (code === "palokatko") {
+    return normalized.includes("palokatko") || normalized.includes("fire stop");
+  }
+  return false;
+};
+
+const unsupportedDueDateNotes = (normalized: string) => {
+  if (normalized.includes("tomorrow") || normalized.includes("huomenna")) {
+    return ["Unsupported due date spoken: tomorrow"];
+  }
+  return [];
+};
+
+const matchesAny = (normalized: string, needles: string[]) =>
+  needles.some((needle) => normalized.includes(normalize(needle)));
+
+const normalize = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();

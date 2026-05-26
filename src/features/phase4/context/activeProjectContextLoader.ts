@@ -9,6 +9,10 @@ import {
   type Phase4SeedUser,
 } from "../data/phase4SeedData";
 import { getPhase4ReferenceData } from "../referenceData/phase4ReferenceRepository";
+import {
+  generateApartmentAreas,
+  p1AlppilaUnitStructure,
+} from "../rag/area/generateApartmentAreas";
 import type {
   Phase4CompanyCategory,
   Phase4CompanyReference,
@@ -57,22 +61,25 @@ export const loadActiveProjectContext = (input?: {
     ...projectCompanyContext.map((context) => context.company_id),
     activeUser.employer_company_id,
   ]);
+  const projectAreas = [
+    ...bundle.areas.filter((area) => area.project_id === project.project_id),
+    ...generatedProjectAreas(project.project_id),
+  ];
+  const projectCompanies = bundle.companies.filter((company) =>
+    projectCompanyIds.has(company.company_id),
+  );
 
   return {
     ok: true,
     context: {
       activeUser,
       project,
-      areas: bundle.areas.filter((area) => area.project_id === project.project_id),
-      companies: bundle.companies.filter((company) =>
-        projectCompanyIds.has(company.company_id),
-      ),
+      areas: projectAreas,
+      companies: projectCompanies,
       projectCompanyContext,
       referenceData: buildProjectReferenceData({
-        companies: bundle.companies.filter((company) =>
-          projectCompanyIds.has(company.company_id),
-        ),
-        areas: bundle.areas.filter((area) => area.project_id === project.project_id),
+        companies: projectCompanies,
+        areas: projectAreas,
         projectCompanyContext,
       }),
     },
@@ -182,3 +189,22 @@ const inferTagHints = (
 
 const splitKeywordText = (value: string | null | undefined) =>
   value?.split(";").map((item) => item.trim()).filter(Boolean) ?? [];
+
+const generatedProjectAreas = (projectId: string): Phase4SeedArea[] => {
+  if (projectId !== p1AlppilaUnitStructure.projectId) {
+    return [];
+  }
+
+  return generateApartmentAreas(p1AlppilaUnitStructure).map((area) => ({
+    area_id: area.areaId,
+    project_id: area.projectId,
+    building_name: area.buildingName,
+    building_phase: "interior_finishing_handover",
+    floor_or_zone: area.floorNumber,
+    area_type: "generated_apartment_room",
+    area_label: area.displayName,
+    spoken_location_examples: area.aliases,
+    parent_area_id: null,
+    area_note: `Generated apartment room area for ${area.unitCode}.`,
+  }));
+};

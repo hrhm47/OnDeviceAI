@@ -2,19 +2,19 @@
 
 ## Current branch
 
-`phase4/hybrid-rag-completion`
+`phase4/compact-hybrid-rag-extraction`
 
 ## Goal
 
-Complete the project-scoped Hybrid RAG runtime path so selected users load their active project context, SQLite/FTS retrieval, optional EmbeddingGemma vectors, and validator-safe candidates.
+Replace old full-form Phase 4 prompting with compact project-scoped Hybrid RAG extraction.
 
 ## Current Phase 4 modules
 
-- Reference data: `src/features/phase4/referenceData/*`
-- Candidate resolver: `src/features/phase4/candidates/phase4CandidateResolver.ts`
-- LLM input and prompts: `src/features/phase4/llm/phase4LLMInputBuilder.ts`, `src/features/phase4/llm/phase4PromptTemplates.ts`
+- Reference constants: `src/features/phase4/referenceData/*`
+- Hybrid retriever: `src/features/phase4/retrieval/phase4HybridRetriever.ts`
+- Compact LLM input and prompts: `src/features/phase4/llm/phase4HybridLLMInputBuilder.ts`, `src/features/phase4/llm/buildPhase4HybridExtractionPrompt.ts`
 - LLM providers: `src/features/phase4/llm/phase4MockLLMProvider.ts`, `src/features/phase4/llm/phase4LocalLLMProvider.ts`
-- Parser and validator: `src/features/phase4/llm/phase4LLMOutputParser.ts`, `src/features/phase4/validation/phase4DraftValidator.ts`
+- Compact parser and draft resolvers: `src/features/phase4/llm/phase4HybridLLMOutputParser.ts`, `src/features/phase4/validation/resolve*.ts`
 - Draft builder and transcript preparation: `src/features/phase4/draft/*`
 - Storage/export: `src/features/phase4/storage/*`
 - UI: `src/features/phase4/ui/Phase4ExtractionScreen.tsx`
@@ -66,13 +66,14 @@ These files are intended to become the local project context source for Hybrid R
 
 ## Known limitations
 
-- Hybrid RAG is not implemented yet.
-- Seed JSON is typed and can be validated, but it is not wired into extraction yet.
+- The old full-form LLM prompt is no longer active.
+- The old deterministic candidate resolver, full-form parser, full-form validator, and dummy company data were removed from the active code path.
+- Seed JSON is typed, validated, imported into SQLite, and used as selected-project context.
 - Selected project companies and areas are now used as Phase 4 reference data for validation.
 - Manual check summaries include failed field details instead of only pass count.
 - Hybrid checks cover Alppila, Tuira, and Nallikari selected-user scenarios.
 - Hybrid RAG is the primary source for company and area candidates.
-- The old deterministic resolver is fallback on Hybrid RAG failure and gap-fill for action/date/tag.
+- Hybrid RAG is the only extraction authority; the old deterministic resolver is not used as fallback.
 - Low-confidence Hybrid RAG company/area candidates are not autofilled.
 - EmbeddingGemma can be checked/downloaded from the Phase 4 screen, but semantic retrieval still needs vectors.
 - SQLite/FTS retrieval can be prepared from the UI and is cached per selected user/project.
@@ -88,8 +89,10 @@ These files are intended to become the local project context source for Hybrid R
 - Hybrid RAG now passes a ready embedding provider into retrieval when vectors are available.
 - Exact area ranking prefers specific rooms, trenches, bathrooms, and corridors over broad building/site aliases.
 - Project-company context contributes directly to work-type ranking.
-- Validator policy prefers medium/high retrieval candidates over mock/LLM guesses for safety-sensitive fields.
+- Validator/draft builder canonicalizes compact LLM selections and retrieval evidence into the final General Task Form.
 - Multi-issue transcripts are treated conservatively and require manual review rather than unsafe action autofill.
+- p1 Alppila generated apartment room areas are available at runtime for exact unit/room matching.
+- Flexible unsupported dates are preserved for review instead of being deleted.
 
 ## Remaining limitations
 

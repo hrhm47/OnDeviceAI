@@ -102,6 +102,10 @@ export type Phase4Candidate<T> = {
   confidence: Phase4CandidateConfidence;
   evidence: string;
   reason: string;
+  id?: string;
+  label?: string;
+  matchType?: "exact" | "lexical" | "semantic" | "metadata";
+  score?: number;
 };
 
 export type Phase4CompanyCandidate = Phase4Candidate<{
@@ -112,22 +116,10 @@ export type Phase4CompanyCandidate = Phase4Candidate<{
 export type Phase4CandidateResolution = {
   companyCandidates: Phase4CompanyCandidate[];
   areaCandidates: Phase4Candidate<string>[];
+  workTypeCandidates?: Phase4Candidate<string>[];
   requiredActionCandidates: Phase4Candidate<Phase4RequiredAction>[];
   dueDateCandidates: Phase4Candidate<Phase4AllowedDueDate>[];
   tagCandidates: Phase4Candidate<Phase4TaskTag>[];
-};
-
-export type Phase4LLMInput = {
-  promptVersion: "phase4_general_task_prompt_v1";
-  language: Phase4Language;
-  transcript: string;
-  formSchema: Phase4GeneralTaskFormSchema;
-  allowedCompanies: readonly Phase4CompanyReference[];
-  allowedTags: readonly Phase4TaskTag[];
-  allowedRequiredActions: readonly Phase4RequiredAction[];
-  allowedDueDates: readonly Phase4AllowedDueDate[];
-  extractionPolicy: Phase4ExtractionPolicy;
-  candidateResolution?: Phase4CandidateResolution;
 };
 
 export type Phase4LLMField<T> = {
@@ -162,12 +154,17 @@ export type GeneralTaskFormDraft = {
   list: Phase4LLMField<"Hallo">;
   company: Phase4LLMField<string | null> & { companyId: string | null };
   description: Phase4LLMField<string>;
-  area: Phase4LLMField<string | null>;
+  area: Phase4LLMField<string | null> & { areaId?: string | null };
   marker: Phase4LLMField<null>;
   photos: Phase4LLMField<[]>;
-  requiredAction: Phase4LLMField<Phase4RequiredAction | null>;
-  requiredActionDueDate: Phase4LLMField<Phase4AllowedDueDate | null>;
-  tags: Phase4LLMField<Phase4TaskTag[]>;
+  requiredAction: Phase4LLMField<Phase4RequiredAction | null> & {
+    code?: string | null;
+  };
+  requiredActionDueDate: Phase4LLMField<Phase4AllowedDueDate | string | null> & {
+    code?: "now" | "plus_3_days" | "plus_7_days" | null;
+    rawText?: string | null;
+  };
+  tags: Phase4LLMField<Phase4TaskTag[]> & { tagCodes?: string[] };
   impacts: Phase4LLMField<[]>;
   notifications: Phase4LLMField<false>;
 };
