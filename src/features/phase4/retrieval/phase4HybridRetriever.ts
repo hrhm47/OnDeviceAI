@@ -84,7 +84,7 @@ export const retrievePhase4HybridContext = async (input: {
 
   return {
     areaCandidates: candidatesForType(hits, "area", (hit) => hit.item.displayName),
-    companyCandidates: companyCandidates(hits),
+    companyCandidates: companyCandidates(hits, input.context),
     workTypeCandidates: candidatesForType(hits, "work_type", (hit) => String(hit.item.metadata.workTypeCode ?? hit.item.sourceId)),
     actionCandidates: candidatesForType(hits, "action", (hit) => hit.item.sourceId as Phase4RequiredAction),
     tagCandidates: candidatesForType(hits, "tag", (hit) => hit.item.sourceId as Phase4TaskTag),
@@ -148,18 +148,29 @@ const candidatesForType = <T,>(
     }))
     .slice(0, 5);
 
-const companyCandidates = (hits: Phase4RetrievalHit[]): Phase4CompanyCandidate[] =>
+const companyCandidates = (
+  hits: Phase4RetrievalHit[],
+  context: ProjectContextPackage,
+): Phase4CompanyCandidate[] =>
   hits
     .filter((hit) => hit.item.itemType === "company_context")
-    .map((hit) => ({
-      value: {
-        companyId: String(hit.item.metadata.companyId ?? hit.item.sourceId),
-        displayName: hit.item.displayName,
-      },
-      confidence: confidenceFromScore(hit.score),
-      evidence: hit.evidence,
-      reason: `${hit.matchType} retrieval matched project company context.`,
-    }))
+    .flatMap((hit) => {
+      const allowedCompany = context.referenceData.companies.find(
+        (company) => company.displayName === hit.item.displayName,
+      );
+      if (!allowedCompany) {
+        return [];
+      }
+      return [{
+        value: {
+          companyId: allowedCompany.companyId,
+          displayName: allowedCompany.displayName,
+        },
+        confidence: confidenceFromScore(hit.score),
+        evidence: hit.evidence,
+        reason: `${hit.matchType} retrieval matched project company context.`,
+      }];
+    })
     .slice(0, 5);
 
 const confidenceFromScore = (score: number): Phase4CandidateConfidence => {

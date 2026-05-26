@@ -1,11 +1,18 @@
 import { resolvePhase4Candidates } from "../candidates/phase4CandidateResolver";
+import { loadActiveProjectContext } from "../context/activeProjectContextLoader";
 import { buildPhase4LLMInput } from "../llm/phase4LLMInputBuilder";
 import { parsePhase4LLMOutput } from "../llm/phase4LLMOutputParser";
 import type { Phase4LLMProvider } from "../llm/phase4LLMProvider";
 import { phase4MockLLMProvider } from "../llm/phase4MockLLMProvider";
 import { getPhase4ReferenceData } from "../referenceData/phase4ReferenceRepository";
+import { retrievePhase4HybridContext, type Phase4HybridRetrievalResult } from "../retrieval/phase4HybridRetriever";
+import {
+  importPhase4SeedBundle,
+  initializePhase4HybridRagDatabase,
+} from "../storage/phase4HybridRagDb";
 import type {
   GeneralTaskFormDraft,
+  Phase4CandidateResolution,
   Phase4Language,
   Phase4ReviewSuggestions,
 } from "../types/phase4.types";
@@ -33,6 +40,7 @@ export type Phase4ExtractionResult = {
   validationPassed: boolean;
   warnings: Phase4ValidationWarning[];
   errorMessage?: string | null;
+  hybridRetrieval?: Phase4HybridRetrievalResult | null;
 };
 
 export const extractGeneralTaskFormDraft = async (input: {
@@ -45,10 +53,15 @@ export const extractGeneralTaskFormDraft = async (input: {
 }): Promise<Phase4ExtractionResult> => {
   const transcript = preparePhase4Transcript(input);
   const referenceData = getPhase4ReferenceData();
-  const candidateResolution = resolvePhase4Candidates({
+  const deterministicCandidateResolution = resolvePhase4Candidates({
     transcript,
     referenceData,
   });
+  const { candidateResolution, hybridRetrieval } =
+    await resolveHybridCandidateResolution({
+      transcript,
+      deterministicCandidateResolution,
+    });
   const llmInput = buildPhase4LLMInput({
     transcript,
     language: input.language,
@@ -130,5 +143,66 @@ export const extractGeneralTaskFormDraft = async (input: {
     validationPassed: validation.validationPassed && parseResult.success,
     warnings: validation.warnings,
     errorMessage: providerError ?? parseResult.errorMessage,
+    hybridRetrieval,
   };
 };
+
+const resolveHybridCandidateResolution = async (input: {
+  transcript: string;
+  deterministicCandidateResolution: Phase4CandidateResolution;
+}): Promise<{
+  candidateResolution: Phase4CandidateResolution;
+  hybridRetrieval: Phase4HybridRetrievalResult | null;
+}> => {
+  const contextResult = loadActiveProjectContext();
+  if (!contextResult.ok) {
+    return {
+      candidateResolution: input.deterministicCandidateResolution,
+      hybridRetrieval: null,
+    };
+  }
+
+  try {
+    const db = await initializePhase4HybridRagDatabase();
+    await importPhase4SeedBundle(db);
+    const hybridRetrieval = await retrievePhase4HybridContext({
+      transcript: input.transcript,
+      context: contextResult.context,
+      db,
+    });
+    return {
+      candidateResolution: mergeHybridCandidates(
+        hybridRetrieval,
+        input.deterministicCandidateResolution,
+      ),
+      hybridRetrieval,
+    };
+  } catch (error) {
+    console.warn("Phase 4 Hybrid RAG fallback to deterministic resolver", error);
+    return {
+      candidateResolution: input.deterministicCandidateResolution,
+      hybridRetrieval: null,
+    };
+  }
+};
+
+const mergeHybridCandidates = (
+  hybrid: Phase4HybridRetrievalResult,
+  fallback: Phase4CandidateResolution,
+): Phase4CandidateResolution => ({
+  companyCandidates: hybrid.companyCandidates.length
+    ? hybrid.companyCandidates
+    : fallback.companyCandidates,
+  areaCandidates: hybrid.areaCandidates.length
+    ? hybrid.areaCandidates
+    : fallback.areaCandidates,
+  requiredActionCandidates: hybrid.actionCandidates.length
+    ? hybrid.actionCandidates
+    : fallback.requiredActionCandidates,
+  dueDateCandidates: hybrid.dateCandidates.length
+    ? hybrid.dateCandidates
+    : fallback.dueDateCandidates,
+  tagCandidates: hybrid.tagCandidates.length
+    ? hybrid.tagCandidates
+    : fallback.tagCandidates,
+});
