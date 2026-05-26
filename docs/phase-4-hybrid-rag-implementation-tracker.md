@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/hybrid-primary-resolver`
+`phase4/manual-check-repair`
 
 ## Goal
 
-Make Hybrid RAG the primary candidate source and use the old resolver only as fallback/gap-fill.
+Repair manual checks for project-scoped Hybrid RAG and make failure summaries actionable.
 
 ## Current Phase 4 modules
 
@@ -68,6 +68,9 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
+- Selected project companies and areas are now used as Phase 4 reference data for validation.
+- Manual check summaries include failed field details instead of only pass count.
+- Hybrid checks cover Alppila, Tuira, and Nallikari selected-user scenarios.
 - Hybrid RAG is the primary source for company and area candidates.
 - The old deterministic resolver is fallback on Hybrid RAG failure and gap-fill for action/date/tag.
 - Low-confidence Hybrid RAG company/area candidates are not autofilled.
@@ -86,4 +89,4 @@ These files are intended to become the local project context source for Hybrid R
 
 ## Next step
 
-Create `phase4/manual-check-repair` to align manual checks with project-scoped Hybrid RAG behavior.
+Run manual checks in the app and tune only if device/runtime behavior differs from static expectations.

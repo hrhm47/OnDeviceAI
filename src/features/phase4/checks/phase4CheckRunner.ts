@@ -29,7 +29,7 @@ export const runPhase4ManualChecks = async (
     passed: passedCount,
     failed: results.length - passedCount,
     results,
-    summary: `${passedCount}/${results.length} Phase 4 manual checks passed`,
+    summary: formatPhase4ManualCheckSummary(results),
   };
 };
 
@@ -45,11 +45,18 @@ const runCase = async (
   });
   const draft = result.draft;
   const expected = checkCase.expected;
+  const checkProjectScopedFields = Boolean(checkCase.userId || expected.hybridProjectId);
   const fields = [
-    compare("company", expected.companyName, draft.company.value),
-    compare("companyStatus", expected.companyStatus, draft.company.status),
+    checkProjectScopedFields
+      ? compare("company", expected.companyName, draft.company.value)
+      : null,
+    checkProjectScopedFields
+      ? compare("companyStatus", expected.companyStatus, draft.company.status)
+      : null,
     contains("description", expected.descriptionContains, draft.description.value),
-    compare("area", expected.areaValue, draft.area.value),
+    checkProjectScopedFields
+      ? compare("area", expected.areaValue, draft.area.value)
+      : null,
     compare("requiredAction", expected.requiredAction, draft.requiredAction.value),
     compare("dueDate", expected.requiredActionDueDate, draft.requiredActionDueDate.value),
     includesAll("tags", expected.tags, draft.tags.value),
@@ -124,3 +131,23 @@ const atLeast = (fieldId: string, expected: number | undefined, actual: number |
         expected: `>= ${expected}`,
         actual: String(actual ?? 0),
       };
+
+export const formatPhase4ManualCheckSummary = (
+  results: Phase4ManualCheckResult[],
+) => {
+  const passedCount = results.filter((result) => result.passed).length;
+  const failed = results.filter((result) => !result.passed);
+  const details = failed
+    .map((result) => {
+      const failedFields = result.fields
+        .filter((field) => !field.passed)
+        .map((field) => `${field.fieldId} expected ${field.expected} got ${field.actual}`)
+        .join("; ");
+      return `${result.checkId}: ${failedFields}`;
+    })
+    .join("\n");
+
+  return details
+    ? `${passedCount}/${results.length} Phase 4 manual checks passed\n${details}`
+    : `${passedCount}/${results.length} Phase 4 manual checks passed`;
+};

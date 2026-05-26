@@ -64,11 +64,11 @@ export const extractGeneralTaskFormDraft = async (input: {
   provider?: Phase4LLMProvider;
 }): Promise<Phase4ExtractionResult> => {
   const transcript = preparePhase4Transcript(input);
-  const referenceData = getPhase4ReferenceData();
-  const { candidateResolution, hybridRetrieval, projectContext, retrievalRuntime } =
+  const baseReferenceData = getPhase4ReferenceData();
+  const { candidateResolution, hybridRetrieval, projectContext, retrievalRuntime, referenceData } =
     await resolveCandidateResolution({
       transcript,
-      referenceData,
+      referenceData: baseReferenceData,
       userId: input.phase4UserId ?? undefined,
     });
   const llmInput = buildPhase4LLMInput({
@@ -167,6 +167,7 @@ const resolveCandidateResolution = async (input: {
   hybridRetrieval: Phase4HybridRetrievalResult | null;
   projectContext: Phase4ExtractionResult["projectContext"];
   retrievalRuntime: Phase4ExtractionResult["retrievalRuntime"];
+  referenceData: Phase4ReferenceData;
 }> => {
   try {
     const runtime = await preparePhase4HybridRagRuntime({ userId: input.userId });
@@ -199,6 +200,7 @@ const resolveCandidateResolution = async (input: {
         ftsReady: runtime.status.ftsReady,
         message: runtime.status.message,
       },
+      referenceData: runtime.context.referenceData,
     };
   } catch (error) {
     console.warn("Phase 4 Hybrid RAG unavailable; using deterministic fallback resolver", error);
@@ -210,6 +212,7 @@ const resolveCandidateResolution = async (input: {
       hybridRetrieval: null,
       projectContext: null,
       retrievalRuntime: null,
+      referenceData: input.referenceData,
     };
   }
 };

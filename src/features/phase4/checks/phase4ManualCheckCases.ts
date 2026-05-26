@@ -11,10 +11,10 @@ export type Phase4ManualCheckCase = {
   language: Phase4Language;
   transcript: string;
   expected: {
-    companyName: string | null;
-    companyStatus: "suggested" | "extracted" | "manual_required";
+    companyName?: string | null;
+    companyStatus?: "suggested" | "extracted" | "manual_required";
     descriptionContains: string;
-    areaValue: string | null;
+    areaValue?: string | null;
     requiredAction: Phase4RequiredAction | null;
     requiredActionDueDate: Phase4AllowedDueDate | null;
     tags: Phase4TaskTag[];
@@ -53,7 +53,7 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
     transcript:
       "There is a scratch on the wall in Kortermaja 1. It should be painted again within a week. Mark it as quality.",
     expected: {
-      companyName: "MaalausMestarit Oy",
+      companyName: "PintaFix Oy",
       companyStatus: "suggested",
       descriptionContains: "scratch on the wall",
       areaValue: "Kortermaja 1",
@@ -165,7 +165,7 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
     transcript:
       "The kitchen wall in apartment B115 has visible paint damage near the window.",
     expected: {
-      companyName: "MaalausMestarit Oy",
+      companyName: "Alppila Paint Masters Oy",
       companyStatus: "suggested",
       descriptionContains: "paint damage",
       areaValue: "Apartment B115 kitchen",
@@ -264,7 +264,7 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
     language: "en",
     transcript: "There is paint damage in apartment A305 living room near the window.",
     expected: {
-      companyName: "MaalausMestarit Oy",
+      companyName: "Alppila Paint Masters Oy",
       companyStatus: "suggested",
       descriptionContains: "paint damage",
       areaValue: "A305 living room",
@@ -284,7 +284,7 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
     language: "en",
     transcript: "The wall finish looks bad near the window in apartment A305 living room.",
     expected: {
-      companyName: "SurfaceFix Oy",
+      companyName: "PintaFix Oy",
       companyStatus: "suggested",
       descriptionContains: "wall finish",
       areaValue: "A305 living room",
@@ -304,8 +304,8 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
     language: "en",
     transcript: "There is standing water near the north trench in Building B.",
     expected: {
-      companyName: null,
-      companyStatus: "manual_required",
+      companyName: "Oulu Excavation Oy",
+      companyStatus: "suggested",
       descriptionContains: "standing water",
       areaValue: "Building B / North trench",
       requiredAction: null,
@@ -324,7 +324,7 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
     language: "en",
     transcript: "There is an exposed cable in the corridor. This is a safety issue.",
     expected: {
-      companyName: "North Electric Oy",
+      companyName: "NorthVolt Electrical Oy",
       companyStatus: "suggested",
       descriptionContains: "exposed cable",
       areaValue: "Suppose 1 corridor",
@@ -356,13 +356,34 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
     },
   },
   {
+    checkId: "phase4_hybrid_check_nallikari_moisture",
+    userId: "u_elisa",
+    language: "en",
+    transcript:
+      "There is moisture on the wall in apartment B205 bathroom and waterproofing needs inspection.",
+    expected: {
+      companyName: "MoistureSafe Oy",
+      companyStatus: "suggested",
+      descriptionContains: "moisture",
+      areaValue: "Building B / B205 bathroom",
+      requiredAction: "Korjaus",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+      hybridProjectId: "p3_nallikari",
+      hybridMinExactCount: 1,
+      hybridAreaCandidate: "Building B / B205 bathroom",
+      hybridWorkTypeCandidate: "plumbing_moisture",
+    },
+  },
+  {
     checkId: "phase4_hybrid_check_multi_issue",
     userId: "u_timmo",
     language: "en",
     transcript:
       "Paint is damaged in apartment A305 living room, bathroom silicone is missing, and the balcony door does not close.",
     expected: {
-      companyName: "Window and Door Service Oy",
+      companyName: "PintaFix Oy",
       companyStatus: "suggested",
       descriptionContains: "Paint is damaged",
       areaValue: "A305 living room",
