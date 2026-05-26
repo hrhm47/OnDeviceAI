@@ -41,6 +41,12 @@ export type Phase4ExtractionResult = {
   warnings: Phase4ValidationWarning[];
   errorMessage?: string | null;
   hybridRetrieval?: Phase4HybridRetrievalResult | null;
+  projectContext?: {
+    activeUserId: string;
+    activeUserName: string;
+    projectId: string;
+    projectName: string;
+  } | null;
 };
 
 export const extractGeneralTaskFormDraft = async (input: {
@@ -57,7 +63,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     transcript,
     referenceData,
   });
-  const { candidateResolution, hybridRetrieval } =
+  const { candidateResolution, hybridRetrieval, projectContext } =
     await resolveHybridCandidateResolution({
       transcript,
       deterministicCandidateResolution,
@@ -144,6 +150,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     warnings: validation.warnings,
     errorMessage: providerError ?? parseResult.errorMessage,
     hybridRetrieval,
+    projectContext,
   };
 };
 
@@ -153,12 +160,14 @@ const resolveHybridCandidateResolution = async (input: {
 }): Promise<{
   candidateResolution: Phase4CandidateResolution;
   hybridRetrieval: Phase4HybridRetrievalResult | null;
+  projectContext: Phase4ExtractionResult["projectContext"];
 }> => {
   const contextResult = loadActiveProjectContext();
   if (!contextResult.ok) {
     return {
       candidateResolution: input.deterministicCandidateResolution,
       hybridRetrieval: null,
+      projectContext: null,
     };
   }
 
@@ -176,12 +185,19 @@ const resolveHybridCandidateResolution = async (input: {
         input.deterministicCandidateResolution,
       ),
       hybridRetrieval,
+      projectContext: {
+        activeUserId: contextResult.context.activeUser.user_id,
+        activeUserName: contextResult.context.activeUser.display_name,
+        projectId: contextResult.context.project.project_id,
+        projectName: contextResult.context.project.project_name,
+      },
     };
   } catch (error) {
     console.warn("Phase 4 Hybrid RAG fallback to deterministic resolver", error);
     return {
       candidateResolution: input.deterministicCandidateResolution,
       hybridRetrieval: null,
+      projectContext: null,
     };
   }
 };

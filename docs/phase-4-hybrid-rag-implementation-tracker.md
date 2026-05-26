@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/hybrid-llm-input`
+`phase4/retrieval-debug-ui`
 
 ## Goal
 
-Feed compact Hybrid RAG candidates into the existing LLM and validator pipeline.
+Expose compact Hybrid RAG diagnostics in the existing Phase 4 screen.
 
 ## Current Phase 4 modules
 
@@ -51,6 +51,7 @@ These files are intended to become the local project context source for Hybrid R
 - `src/features/phase4/retrieval/phase4SemanticRetriever.ts`
 - `src/features/phase4/retrieval/phase4HybridRetriever.ts`
 - `src/features/phase4/draft/phase4TaskDraftBuilder.ts`
+- `src/features/phase4/ui/Phase4ExtractionScreen.tsx`
 - `src/utils/sqlite/hybridRagSqliteSchema.ts`
 - `package.json`
 - `docs/phase-4-hybrid-rag-implementation-tracker.md`
@@ -64,7 +65,8 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
-- Extraction now attempts Hybrid RAG first and falls back to the deterministic resolver on setup/runtime errors.
+- Extraction returns active project/user context and Hybrid RAG diagnostics for the UI.
+- Existing Phase 4 UI shows retrieval counts, timing, top candidates, and warnings.
 - Hybrid retrieval can return candidates, evidence, warnings, timings, and source counts.
 - Semantic vector search returns disabled/empty results until vectors and an embedding provider are available.
 - Project-scoped exact and lexical retrieval helpers exist, but extraction still uses the old resolver.
@@ -73,4 +75,4 @@ These files are intended to become the local project context source for Hybrid R
 
 ## Next step
 
-Create `phase4/retrieval-debug-ui` to expose retrieval diagnostics in the existing Phase 4 screen.
+Create `phase4/hybrid-manual-checks` to add Hybrid RAG-focused manual checks.

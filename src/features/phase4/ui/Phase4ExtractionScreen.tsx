@@ -290,6 +290,7 @@ export default function Phase4ExtractionScreen() {
               </Text>
             ))}
             <ReviewSuggestions result={result} />
+            <HybridRetrievalDebug result={result} />
             <Pressable
               style={styles.debugToggle}
               onPress={() => setRawVisible((value) => !value)}
@@ -441,6 +442,60 @@ const ReviewSuggestions = ({
       {suggestions.manualReviewReasons.map((reason) => (
         <Text key={reason} style={styles.note}>
           {reason}
+        </Text>
+      ))}
+    </View>
+  );
+};
+
+const HybridRetrievalDebug = ({
+  result,
+}: {
+  result: Phase4ExtractionResult;
+}) => {
+  const retrieval = result.hybridRetrieval;
+  if (!retrieval) {
+    return null;
+  }
+
+  return (
+    <View style={styles.suggestionBox}>
+      <Text style={styles.suggestionTitle}>Retrieval debug</Text>
+      {result.projectContext ? (
+        <Text style={styles.note}>
+          {result.projectContext.activeUserName} /{" "}
+          {result.projectContext.projectName}
+        </Text>
+      ) : null}
+      <Metric
+        label="Retrieval counts"
+        value={`exact ${retrieval.counts.exact} / lexical ${retrieval.counts.lexical} / semantic ${retrieval.counts.semantic}`}
+      />
+      <Metric
+        label="Retrieval time"
+        value={`${retrieval.timings.totalMs} ms`}
+      />
+      <Text style={styles.note}>
+        Companies:{" "}
+        {retrieval.companyCandidates
+          .map((item) => `${item.value.displayName} (${item.confidence})`)
+          .join(", ") || "none"}
+      </Text>
+      <Text style={styles.note}>
+        Areas:{" "}
+        {retrieval.areaCandidates
+          .map((item) => `${item.value} (${item.confidence})`)
+          .join(", ") || "none"}
+      </Text>
+      <Text style={styles.note}>
+        Work types:{" "}
+        {retrieval.workTypeCandidates
+          .map((item) => `${item.value} (${item.confidence})`)
+          .join(", ") || "none"}
+      </Text>
+      {retrieval.warnings.map((warning) => (
+        <Text key={warning} style={styles.warning}>
+          {warning}
         </Text>
       ))}
     </View>
