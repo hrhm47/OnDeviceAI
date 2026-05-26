@@ -34,6 +34,43 @@ export const resolvePhase4EmbeddingGemmaModelUri = async () => {
   return modelInfo.exists ? modelUri : null;
 };
 
+export const downloadPhase4EmbeddingGemmaModel = async (
+  onProgress?: (percent: number) => void,
+) => {
+  const documentDirectory = FileSystem.documentDirectory;
+  if (!documentDirectory) {
+    throw new Error("Document directory is unavailable for EmbeddingGemma.");
+  }
+
+  const modelDirUri = `${documentDirectory}${PHASE4_EMBEDDINGGEMMA_MODEL.documentSubdirectory}/`;
+  await FileSystem.makeDirectoryAsync(modelDirUri, { intermediates: true }).catch(
+    async (error) => {
+      const info = await FileSystem.getInfoAsync(modelDirUri);
+      if (!info.exists) {
+        throw error;
+      }
+    },
+  );
+
+  const modelUri = getPhase4EmbeddingGemmaDocumentModelUri();
+  const download = FileSystem.createDownloadResumable(
+    PHASE4_EMBEDDINGGEMMA_MODEL.sourceUrl,
+    modelUri,
+    {},
+    ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
+      if (totalBytesExpectedToWrite > 0) {
+        onProgress?.((totalBytesWritten / totalBytesExpectedToWrite) * 100);
+      }
+    },
+  );
+  const result = await download.downloadAsync();
+  if (!result?.uri) {
+    throw new Error("EmbeddingGemma model download did not complete.");
+  }
+
+  return result.uri;
+};
+
 export async function getPhase4EmbeddingGemmaReadiness() {
   try {
     const modelUri = await resolvePhase4EmbeddingGemmaModelUri();

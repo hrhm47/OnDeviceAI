@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/sqlite-rag-runtime-wiring`
+`phase4/embeddinggemma-download-ui`
 
 ## Goal
 
-Add runtime preparation for SQLite, seed import, retrieval items, and FTS for the selected user/project.
+Add EmbeddingGemma GGUF readiness and download support in the existing Phase 4 UI.
 
 ## Current Phase 4 modules
 
@@ -68,6 +68,7 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
+- EmbeddingGemma can be checked/downloaded from the Phase 4 screen, but semantic retrieval still needs vectors.
 - SQLite/FTS retrieval can be prepared from the UI and is cached per selected user/project.
 - Extraction uses the prepared runtime instead of rebuilding retrieval items/FTS every time.
 - The Phase 4 screen can select a seed user/persona and passes that user into extraction.
@@ -82,4 +83,4 @@ These files are intended to become the local project context source for Hybrid R
 
 ## Next step
 
-Create `phase4/embeddinggemma-download-ui` to add EmbeddingGemma GGUF check/download controls.
+Create `phase4/hybrid-primary-resolver` to make Hybrid RAG the primary candidate source.

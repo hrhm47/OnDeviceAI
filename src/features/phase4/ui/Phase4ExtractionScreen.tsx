@@ -6,6 +6,10 @@ import {
   PHASE4_DEFAULT_USER_ID,
 } from "@/src/features/phase4/data/phase4SeedData";
 import {
+  downloadPhase4EmbeddingGemmaModel,
+  getPhase4EmbeddingGemmaReadiness,
+} from "@/src/features/phase4/embeddings/phase4EmbeddingGemmaProvider";
+import {
   extractGeneralTaskFormDraft,
   type Phase4ExtractionResult,
 } from "@/src/features/phase4/draft/phase4TaskDraftBuilder";
@@ -50,6 +54,9 @@ export default function Phase4ExtractionScreen() {
   const [rawVisible, setRawVisible] = useState(false);
   const [checkSummary, setCheckSummary] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  const [embeddingDownloadProgress, setEmbeddingDownloadProgress] = useState<
+    number | null
+  >(null);
   const [retrievalStatus, setRetrievalStatus] = useState<string | null>(null);
   const selectedUser = phase4SeedBundle.users.find(
     (user) => user.user_id === selectedUserId,
@@ -152,6 +159,27 @@ export default function Phase4ExtractionScreen() {
       Alert.alert("Model download failed", text);
     } finally {
       setDownloadProgress(null);
+    }
+  };
+
+  const checkEmbeddingModel = async () => {
+    const readiness = await getPhase4EmbeddingGemmaReadiness();
+    setMessage(readiness.message);
+  };
+
+  const downloadEmbeddingModel = async () => {
+    try {
+      setEmbeddingDownloadProgress(0);
+      const uri = await downloadPhase4EmbeddingGemmaModel(
+        setEmbeddingDownloadProgress,
+      );
+      setMessage(`EmbeddingGemma model downloaded to ${uri}`);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      setMessage(`EmbeddingGemma download failed: ${text}`);
+      Alert.alert("EmbeddingGemma download failed", text);
+    } finally {
+      setEmbeddingDownloadProgress(null);
     }
   };
 
@@ -270,6 +298,16 @@ export default function Phase4ExtractionScreen() {
             icon="icloud.and.arrow.down"
             onPress={downloadLocalModel}
           />
+          <Button
+            label="Check embeddings"
+            icon="info.circle.fill"
+            onPress={checkEmbeddingModel}
+          />
+          <Button
+            label="Download embeddings"
+            icon="icloud.and.arrow.down"
+            onPress={downloadEmbeddingModel}
+          />
         </View>
 
         {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -279,6 +317,11 @@ export default function Phase4ExtractionScreen() {
         {downloadProgress !== null ? (
           <Text style={styles.note}>
             Downloading model: {Math.round(downloadProgress)}%
+          </Text>
+        ) : null}
+        {embeddingDownloadProgress !== null ? (
+          <Text style={styles.note}>
+            Downloading embeddings: {Math.round(embeddingDownloadProgress)}%
           </Text>
         ) : null}
         {checkSummary ? <Text style={styles.note}>{checkSummary}</Text> : null}
