@@ -23,24 +23,22 @@ const modelInfo = [
   },
   {
     name: "Whisper base",
-    state: "Available",
-    description: "Bundled multilingual model for offline full-recording transcription.",
+    state: "Not ready",
+    description:
+      "Bundled multilingual model for offline full-recording transcription.",
   },
   {
     name: "Qwen3-ASR",
-    state: "Candidate",
-    description: "Sherpa-ONNX multilingual candidate with VAD-segmented fallback.",
+    state: "Available",
+    description:
+      "Sherpa-ONNX multilingual candidate with VAD-segmented fallback.",
   },
 ];
 
 export default function SettingsScreen() {
   const { history, activeModel } = useSpeechStore();
-  const {
-    fieldUiEnabled,
-    hasLoaded,
-    loadSettings,
-    setFieldUiEnabled,
-  } = useAppSettingsStore();
+  const { fieldUiEnabled, hasLoaded, loadSettings, setFieldUiEnabled } =
+    useAppSettingsStore();
   const [language, setLanguage] = useState<"English" | "Finnish">("English");
 
   const appVersion = Constants.expoConfig?.version || "1.0.0";
@@ -160,8 +158,10 @@ export default function SettingsScreen() {
                   <Text
                     style={[
                       styles.modelStateText,
-                      model.state === "Candidate" && styles.modelStateTextWarning,
-                      model.state === "Optional" && styles.modelStateTextOptional,
+                      model.state === "Candidate" &&
+                        styles.modelStateTextWarning,
+                      model.state === "Optional" &&
+                        styles.modelStateTextOptional,
                     ]}
                   >
                     {model.state}
@@ -177,15 +177,22 @@ export default function SettingsScreen() {
             <IconSymbol size={22} name="iphone" color={C.primary} />
             <Text style={styles.cardTitle}>Device info</Text>
           </View>
-          <InfoRow label="Platform" value={`${Platform.OS} ${Platform.Version}`} />
+          <InfoRow
+            label="Platform"
+            value={`${Platform.OS} ${Platform.Version}`}
+          />
           <InfoRow label="Active model" value={activeModel.toUpperCase()} />
           <InfoRow label="Recorded runs" value={String(history.length)} />
           <InfoRow label="App version" value={appVersion} />
         </View>
 
-        <View style={styles.card}>
+        {/* <View style={styles.card}>
           <View style={styles.cardTitleRow}>
-            <IconSymbol size={22} name="tray.and.arrow.down.fill" color={C.primary} />
+            <IconSymbol
+              size={22}
+              name="tray.and.arrow.down.fill"
+              color={C.primary}
+            />
             <Text style={styles.cardTitle}>Export results</Text>
           </View>
           <Text style={styles.bodyText}>
@@ -203,7 +210,7 @@ export default function SettingsScreen() {
           >
             <Text style={styles.exportButtonText}>Export research results</Text>
           </Pressable>
-        </View>
+        </View> */}
 
         <View style={styles.aboutCard}>
           <View style={styles.cardTitleRow}>

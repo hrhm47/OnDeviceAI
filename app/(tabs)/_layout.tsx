@@ -20,11 +20,7 @@ export default function TabLayout() {
       return;
     }
 
-    if (
-      fieldUiEnabled &&
-      pathname !== "/field" &&
-      pathname !== "/settings"
-    ) {
+    if (fieldUiEnabled && pathname !== "/field" && pathname !== "/settings") {
       router.replace("/field");
     }
 
@@ -112,7 +108,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="datasets"
         options={{
           title: "Drafts",
@@ -121,7 +117,7 @@ export default function TabLayout() {
             <IconSymbol size={25} name="folder.fill" color={color} />
           ),
         }}
-      />
+      /> */}
       <Tabs.Screen
         name="settings"
         options={{
