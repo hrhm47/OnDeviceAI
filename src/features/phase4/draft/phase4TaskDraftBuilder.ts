@@ -54,6 +54,7 @@ export const extractGeneralTaskFormDraft = async (input: {
   rawTranscript?: string | null;
   improvedTranscript?: string | null;
   transcript?: string | null;
+  phase4UserId?: string | null;
   language: Phase4Language;
   provider?: Phase4LLMProvider;
 }): Promise<Phase4ExtractionResult> => {
@@ -67,6 +68,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     await resolveHybridCandidateResolution({
       transcript,
       deterministicCandidateResolution,
+      userId: input.phase4UserId ?? undefined,
     });
   const llmInput = buildPhase4LLMInput({
     transcript,
@@ -157,12 +159,13 @@ export const extractGeneralTaskFormDraft = async (input: {
 const resolveHybridCandidateResolution = async (input: {
   transcript: string;
   deterministicCandidateResolution: Phase4CandidateResolution;
+  userId?: string;
 }): Promise<{
   candidateResolution: Phase4CandidateResolution;
   hybridRetrieval: Phase4HybridRetrievalResult | null;
   projectContext: Phase4ExtractionResult["projectContext"];
 }> => {
-  const contextResult = loadActiveProjectContext();
+  const contextResult = loadActiveProjectContext({ userId: input.userId });
   if (!contextResult.ok) {
     return {
       candidateResolution: input.deterministicCandidateResolution,

@@ -7,10 +7,11 @@ import type {
 
 export type Phase4ManualCheckCase = {
   checkId: string;
+  userId?: string;
   language: Phase4Language;
   transcript: string;
   expected: {
-    companyName: string;
+    companyName: string | null;
     companyStatus: "suggested" | "extracted" | "manual_required";
     descriptionContains: string;
     areaValue: string | null;
@@ -22,6 +23,10 @@ export type Phase4ManualCheckCase = {
     reviewSpokenDueDateText?: string | null;
     reviewSpokenCompanyText?: string | null;
     reviewCompanyName?: string;
+    hybridProjectId?: string;
+    hybridMinExactCount?: number;
+    hybridAreaCandidate?: string;
+    hybridWorkTypeCandidate?: string;
   };
 };
 
@@ -251,6 +256,124 @@ export const PHASE4_MANUAL_CHECK_CASES: readonly Phase4ManualCheckCase[] = [
       tags: ["Quality"],
       notifications: false,
       reviewSpokenCompanyText: "SuperFast Builder Company",
+    },
+  },
+  {
+    checkId: "phase4_hybrid_check_a305_paint_damage",
+    userId: "u_timmo",
+    language: "en",
+    transcript: "There is paint damage in apartment A305 living room near the window.",
+    expected: {
+      companyName: "MaalausMestarit Oy",
+      companyStatus: "suggested",
+      descriptionContains: "paint damage",
+      areaValue: "A305 living room",
+      requiredAction: "Maalataan uudestaan",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+      hybridProjectId: "p1_alppila",
+      hybridMinExactCount: 1,
+      hybridAreaCandidate: "A305 living room",
+      hybridWorkTypeCandidate: "interior_finishing",
+    },
+  },
+  {
+    checkId: "phase4_hybrid_check_a305_wall_finish_semantic_wording",
+    userId: "u_timmo",
+    language: "en",
+    transcript: "The wall finish looks bad near the window in apartment A305 living room.",
+    expected: {
+      companyName: "SurfaceFix Oy",
+      companyStatus: "suggested",
+      descriptionContains: "wall finish",
+      areaValue: "A305 living room",
+      requiredAction: null,
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+      hybridProjectId: "p1_alppila",
+      hybridMinExactCount: 1,
+      hybridAreaCandidate: "A305 living room",
+      hybridWorkTypeCandidate: "interior_finishing",
+    },
+  },
+  {
+    checkId: "phase4_hybrid_check_north_trench_water",
+    userId: "u_leena",
+    language: "en",
+    transcript: "There is standing water near the north trench in Building B.",
+    expected: {
+      companyName: null,
+      companyStatus: "manual_required",
+      descriptionContains: "standing water",
+      areaValue: "Building B / North trench",
+      requiredAction: null,
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+      hybridProjectId: "p2_tuira",
+      hybridMinExactCount: 1,
+      hybridAreaCandidate: "Building B / North trench",
+      hybridWorkTypeCandidate: "foundation_groundworks",
+    },
+  },
+  {
+    checkId: "phase4_hybrid_check_corridor_exposed_cable",
+    userId: "u_timmo",
+    language: "en",
+    transcript: "There is an exposed cable in the corridor. This is a safety issue.",
+    expected: {
+      companyName: "North Electric Oy",
+      companyStatus: "suggested",
+      descriptionContains: "exposed cable",
+      areaValue: "Suppose 1 corridor",
+      requiredAction: "Korjaus",
+      requiredActionDueDate: null,
+      tags: ["Safety"],
+      notifications: false,
+      hybridProjectId: "p1_alppila",
+      hybridMinExactCount: 1,
+      hybridAreaCandidate: "Suppose 1 corridor",
+      hybridWorkTypeCandidate: "electrical",
+    },
+  },
+  {
+    checkId: "phase4_hybrid_check_vague_input",
+    userId: "u_timmo",
+    language: "en",
+    transcript: "Something is wrong here.",
+    expected: {
+      companyName: null,
+      companyStatus: "manual_required",
+      descriptionContains: "Something is wrong",
+      areaValue: null,
+      requiredAction: null,
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+      hybridProjectId: "p1_alppila",
+    },
+  },
+  {
+    checkId: "phase4_hybrid_check_multi_issue",
+    userId: "u_timmo",
+    language: "en",
+    transcript:
+      "Paint is damaged in apartment A305 living room, bathroom silicone is missing, and the balcony door does not close.",
+    expected: {
+      companyName: "Window and Door Service Oy",
+      companyStatus: "suggested",
+      descriptionContains: "Paint is damaged",
+      areaValue: "A305 living room",
+      requiredAction: "Korjaus",
+      requiredActionDueDate: null,
+      tags: ["Quality"],
+      notifications: false,
+      hybridProjectId: "p1_alppila",
+      hybridMinExactCount: 1,
+      hybridAreaCandidate: "A305 living room",
+      hybridWorkTypeCandidate: "interior_finishing",
     },
   },
 ];

@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/retrieval-debug-ui`
+`phase4/hybrid-manual-checks`
 
 ## Goal
 
-Expose compact Hybrid RAG diagnostics in the existing Phase 4 screen.
+Add Hybrid RAG-focused manual checks across project-scoped retrieval scenarios.
 
 ## Current Phase 4 modules
 
@@ -52,6 +52,8 @@ These files are intended to become the local project context source for Hybrid R
 - `src/features/phase4/retrieval/phase4HybridRetriever.ts`
 - `src/features/phase4/draft/phase4TaskDraftBuilder.ts`
 - `src/features/phase4/ui/Phase4ExtractionScreen.tsx`
+- `src/features/phase4/checks/phase4ManualCheckCases.ts`
+- `src/features/phase4/checks/phase4CheckRunner.ts`
 - `src/utils/sqlite/hybridRagSqliteSchema.ts`
 - `package.json`
 - `docs/phase-4-hybrid-rag-implementation-tracker.md`
@@ -65,6 +67,7 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
+- Manual checks can specify a Phase 4 user/persona to exercise different active projects.
 - Extraction returns active project/user context and Hybrid RAG diagnostics for the UI.
 - Existing Phase 4 UI shows retrieval counts, timing, top candidates, and warnings.
 - Hybrid retrieval can return candidates, evidence, warnings, timings, and source counts.
@@ -75,4 +78,4 @@ These files are intended to become the local project context source for Hybrid R
 
 ## Next step
 
-Create `phase4/hybrid-manual-checks` to add Hybrid RAG-focused manual checks.
+Run manual checks in the app and tune project seed data or expectations as needed.

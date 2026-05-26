@@ -34,6 +34,7 @@ const runCase = async (checkCase: Phase4ManualCheckCase) => {
   const result = await extractGeneralTaskFormDraft({
     transcript: checkCase.transcript,
     language: checkCase.language,
+    phase4UserId: checkCase.userId,
     provider: phase4MockLLMProvider,
   });
   const draft = result.draft;
@@ -51,6 +52,10 @@ const runCase = async (checkCase: Phase4ManualCheckCase) => {
     compare("reviewSpokenDueDateText", expected.reviewSpokenDueDateText, result.reviewSuggestions.spokenDueDateText),
     compare("reviewSpokenCompanyText", expected.reviewSpokenCompanyText, result.reviewSuggestions.spokenCompanyText),
     includesSuggestion("reviewCompany", expected.reviewCompanyName, result.reviewSuggestions.companySuggestions.map((item) => item.displayName ?? "")),
+    compare("hybridProjectId", expected.hybridProjectId, result.projectContext?.projectId),
+    atLeast("hybridExactCount", expected.hybridMinExactCount, result.hybridRetrieval?.counts.exact),
+    includesSuggestion("hybridArea", expected.hybridAreaCandidate, result.hybridRetrieval?.areaCandidates.map((item) => item.value) ?? []),
+    includesSuggestion("hybridWorkType", expected.hybridWorkTypeCandidate, result.hybridRetrieval?.workTypeCandidates.map((item) => item.value) ?? []),
   ].filter((field): field is Phase4FieldCheckResult => Boolean(field));
 
   return {
@@ -103,3 +108,13 @@ const includesSuggestion = (
         actual: actual.join(" | "),
       }
     : null;
+
+const atLeast = (fieldId: string, expected: number | undefined, actual: number | undefined) =>
+  expected === undefined
+    ? null
+    : {
+        fieldId,
+        passed: (actual ?? 0) >= expected,
+        expected: `>= ${expected}`,
+        actual: String(actual ?? 0),
+      };
