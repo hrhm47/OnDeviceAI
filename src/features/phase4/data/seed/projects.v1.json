@@ -1,0 +1,35 @@
+[
+  {
+    "project_id": "p1_alppila",
+    "project_name": "Alppila Apartment Project",
+    "city_area": "Alppila",
+    "project_type": "single_building_apartment",
+    "project_status": "active",
+    "active_phase": "interior_finishing_handover",
+    "building_count": 1,
+    "default_form_id": "general_task_form",
+    "project_context_note": "Single building used to test finishing, handover defects, and overlapping painting responsibility."
+  },
+  {
+    "project_id": "p2_tuira",
+    "project_name": "Tuira Mixed Construction Project",
+    "city_area": "Tuira",
+    "project_type": "multi_building_mixed_phase",
+    "project_status": "active",
+    "active_phase": "mixed_by_building",
+    "building_count": 2,
+    "default_form_id": "general_task_form",
+    "project_context_note": "Building A is in finishing/handover; Building B is in foundation/early structural work."
+  },
+  {
+    "project_id": "p3_nallikari",
+    "project_name": "Nallikari Renovation and Quality Inspection",
+    "city_area": "Nallikari",
+    "project_type": "renovation_quality_inspection",
+    "project_status": "active",
+    "active_phase": "renovation_inspection",
+    "building_count": 2,
+    "default_form_id": "general_task_form",
+    "project_context_note": "Renovation and inspection project with studios, apartments, moisture defects, and cross-trade observations."
+  }
+]

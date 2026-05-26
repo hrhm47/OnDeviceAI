@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/current-state-audit`
+`phase4/seed-data-audit`
 
 ## Goal
 
-Audit the existing Phase 4 implementation before adding project-scoped Hybrid RAG behavior. This branch does not change runtime behavior.
+Add a typed loader and consistency validator for the existing Phase 4 project seed JSON.
 
 ## Current Phase 4 modules
 
@@ -31,6 +31,12 @@ Audit the existing Phase 4 implementation before adding project-scoped Hybrid RA
 
 These files are intended to become the local project context source for Hybrid RAG.
 
+## Files changed
+
+- `src/features/phase4/data/phase4SeedData.ts`
+- `src/features/phase4/data/seed/*.json`
+- `docs/phase-4-hybrid-rag-implementation-tracker.md`
+
 ## Verification commands
 
 - `npx tsc --noEmit`
@@ -39,9 +45,9 @@ These files are intended to become the local project context source for Hybrid R
 ## Known limitations
 
 - Hybrid RAG is not implemented yet.
-- Seed JSON is present locally but not audited or wired yet.
+- Seed JSON is typed and can be validated, but it is not wired into extraction yet.
 - SQLite, FTS5, and EmbeddingGemma runtime are not wired yet.
 
 ## Next step
 
-Create `phase4/seed-data-audit` to add typed seed loading and consistency checks.
+Create `phase4/sqlite-schema` to add local SQLite initialization and seed import scaffolding.

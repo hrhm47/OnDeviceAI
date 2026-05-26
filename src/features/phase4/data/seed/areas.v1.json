@@ -1,0 +1,296 @@
+[
+  {
+    "area_id": "p1_site",
+    "project_id": "p1_alppila",
+    "building_name": "Suppose 1",
+    "building_phase": "interior_finishing_handover",
+    "floor_or_zone": "all",
+    "area_type": "building",
+    "area_label": "Suppose 1",
+    "spoken_location_examples": [
+      "suppose one; building; the building"
+    ],
+    "parent_area_id": null,
+    "area_note": "Top-level building for Alppila."
+  },
+  {
+    "area_id": "p1_suppose1_floor3",
+    "project_id": "p1_alppila",
+    "building_name": "Suppose 1",
+    "building_phase": "interior_finishing_handover",
+    "floor_or_zone": 3,
+    "area_type": "floor",
+    "area_label": "Suppose 1 / Floor 3",
+    "spoken_location_examples": [
+      "floor three; third floor"
+    ],
+    "parent_area_id": "p1_site",
+    "area_note": "Default context for Floor 3 handover defects."
+  },
+  {
+    "area_id": "p1_a305_living",
+    "project_id": "p1_alppila",
+    "building_name": "Suppose 1",
+    "building_phase": "interior_finishing_handover",
+    "floor_or_zone": 3,
+    "area_type": "room",
+    "area_label": "A305 living room",
+    "spoken_location_examples": [
+      "A305 living room; apartment A305; A three zero five living room"
+    ],
+    "parent_area_id": "p1_suppose1_floor3",
+    "area_note": "Paint and finishing example area."
+  },
+  {
+    "area_id": "p1_a305_bathroom",
+    "project_id": "p1_alppila",
+    "building_name": "Suppose 1",
+    "building_phase": "interior_finishing_handover",
+    "floor_or_zone": 3,
+    "area_type": "room",
+    "area_label": "A305 bathroom",
+    "spoken_location_examples": [
+      "A305 bathroom; apartment A305 bathroom"
+    ],
+    "parent_area_id": "p1_suppose1_floor3",
+    "area_note": "Plumbing/sealing/tile example area."
+  },
+  {
+    "area_id": "p1_suppose1_floor5",
+    "project_id": "p1_alppila",
+    "building_name": "Suppose 1",
+    "building_phase": "interior_finishing_handover",
+    "floor_or_zone": 5,
+    "area_type": "floor",
+    "area_label": "Suppose 1 / Floor 5",
+    "spoken_location_examples": [
+      "floor five; fifth floor"
+    ],
+    "parent_area_id": "p1_site",
+    "area_note": "Cleaning supervisor default context."
+  },
+  {
+    "area_id": "p1_corridor",
+    "project_id": "p1_alppila",
+    "building_name": "Suppose 1",
+    "building_phase": "interior_finishing_handover",
+    "floor_or_zone": "all",
+    "area_type": "shared_area",
+    "area_label": "Suppose 1 corridor",
+    "spoken_location_examples": [
+      "corridor; hallway; shared corridor"
+    ],
+    "parent_area_id": "p1_site",
+    "area_note": "Shared area for electrical/safety observations."
+  },
+  {
+    "area_id": "p2_site_general",
+    "project_id": "p2_tuira",
+    "building_name": "Project site",
+    "building_phase": "mixed_by_building",
+    "floor_or_zone": "all",
+    "area_type": "site",
+    "area_label": "Tuira site general",
+    "spoken_location_examples": [
+      "site; Tuira site; project area"
+    ],
+    "parent_area_id": null,
+    "area_note": "General site-level context for supervisor."
+  },
+  {
+    "area_id": "p2_bldg_a",
+    "project_id": "p2_tuira",
+    "building_name": "Building A",
+    "building_phase": "interior_finishing_handover",
+    "floor_or_zone": "all",
+    "area_type": "building",
+    "area_label": "Building A",
+    "spoken_location_examples": [
+      "building A; A building"
+    ],
+    "parent_area_id": "p2_site_general",
+    "area_note": "Building A is in finishing/handover."
+  },
+  {
+    "area_id": "p2_bldg_a_floor2",
+    "project_id": "p2_tuira",
+    "building_name": "Building A",
+    "building_phase": "interior_finishing_handover",
+    "floor_or_zone": 2,
+    "area_type": "floor",
+    "area_label": "Building A / Floor 2",
+    "spoken_location_examples": [
+      "floor two; second floor; A floor two"
+    ],
+    "parent_area_id": "p2_bldg_a",
+    "area_note": "Finishing area for A203 example."
+  },
+  {
+    "area_id": "p2_bldg_a_a203_bathroom",
+    "project_id": "p2_tuira",
+    "building_name": "Building A",
+    "building_phase": "interior_finishing_handover",
+    "floor_or_zone": 2,
+    "area_type": "room",
+    "area_label": "Building A / A203 bathroom",
+    "spoken_location_examples": [
+      "A203 bathroom; apartment A203 bathroom"
+    ],
+    "parent_area_id": "p2_bldg_a_floor2",
+    "area_note": "Tile/plumbing finishing example."
+  },
+  {
+    "area_id": "p2_bldg_b",
+    "project_id": "p2_tuira",
+    "building_name": "Building B",
+    "building_phase": "foundation",
+    "floor_or_zone": "all",
+    "area_type": "building",
+    "area_label": "Building B",
+    "spoken_location_examples": [
+      "building B; B building"
+    ],
+    "parent_area_id": "p2_site_general",
+    "area_note": "Building B is in foundation phase."
+  },
+  {
+    "area_id": "p2_bldg_b_north_trench",
+    "project_id": "p2_tuira",
+    "building_name": "Building B",
+    "building_phase": "foundation",
+    "floor_or_zone": "north trench",
+    "area_type": "foundation_zone",
+    "area_label": "Building B / North trench",
+    "spoken_location_examples": [
+      "north trench; foundation trench; trench on north side"
+    ],
+    "parent_area_id": "p2_bldg_b",
+    "area_note": "Groundworks/water near trench example."
+  },
+  {
+    "area_id": "p2_bldg_b_crane_zone",
+    "project_id": "p2_tuira",
+    "building_name": "Building B",
+    "building_phase": "foundation",
+    "floor_or_zone": "crane zone",
+    "area_type": "site_zone",
+    "area_label": "Building B / Crane zone",
+    "spoken_location_examples": [
+      "crane zone; lifting area"
+    ],
+    "parent_area_id": "p2_bldg_b",
+    "area_note": "Crane/lifting context."
+  },
+  {
+    "area_id": "p2_bldg_b_temp_power",
+    "project_id": "p2_tuira",
+    "building_name": "Building B",
+    "building_phase": "foundation",
+    "floor_or_zone": "temporary power area",
+    "area_type": "site_zone",
+    "area_label": "Building B / Temporary power area",
+    "spoken_location_examples": [
+      "temporary power; site cable area"
+    ],
+    "parent_area_id": "p2_bldg_b",
+    "area_note": "Temporary electrical/safety context."
+  },
+  {
+    "area_id": "p3_site_general",
+    "project_id": "p3_nallikari",
+    "building_name": "Project site",
+    "building_phase": "renovation_inspection",
+    "floor_or_zone": "all",
+    "area_type": "site",
+    "area_label": "Nallikari site general",
+    "spoken_location_examples": [
+      "site; Nallikari project"
+    ],
+    "parent_area_id": null,
+    "area_note": "Renovation site-level context."
+  },
+  {
+    "area_id": "p3_bldg_a",
+    "project_id": "p3_nallikari",
+    "building_name": "Building A",
+    "building_phase": "renovation_inspection",
+    "floor_or_zone": "all",
+    "area_type": "building",
+    "area_label": "Building A",
+    "spoken_location_examples": [
+      "building A; studio building"
+    ],
+    "parent_area_id": "p3_site_general",
+    "area_note": "Building A contains studios."
+  },
+  {
+    "area_id": "p3_bldg_a_studio_s204",
+    "project_id": "p3_nallikari",
+    "building_name": "Building A",
+    "building_phase": "renovation_inspection",
+    "floor_or_zone": 2,
+    "area_type": "studio",
+    "area_label": "Building A / Studio S204",
+    "spoken_location_examples": [
+      "studio S204; S204; studio two zero four"
+    ],
+    "parent_area_id": "p3_bldg_a",
+    "area_note": "Moisture/paint mixed example."
+  },
+  {
+    "area_id": "p3_bldg_b",
+    "project_id": "p3_nallikari",
+    "building_name": "Building B",
+    "building_phase": "renovation_inspection",
+    "floor_or_zone": "all",
+    "area_type": "building",
+    "area_label": "Building B",
+    "spoken_location_examples": [
+      "building B; apartment building B"
+    ],
+    "parent_area_id": "p3_site_general",
+    "area_note": "Building B contains apartments."
+  },
+  {
+    "area_id": "p3_bldg_b_floor2",
+    "project_id": "p3_nallikari",
+    "building_name": "Building B",
+    "building_phase": "renovation_inspection",
+    "floor_or_zone": 2,
+    "area_type": "floor",
+    "area_label": "Building B / Floor 2",
+    "spoken_location_examples": [
+      "floor two; second floor; B floor two"
+    ],
+    "parent_area_id": "p3_bldg_b",
+    "area_note": "Default floor for Nora."
+  },
+  {
+    "area_id": "p3_bldg_b_b205_kitchen",
+    "project_id": "p3_nallikari",
+    "building_name": "Building B",
+    "building_phase": "renovation_inspection",
+    "floor_or_zone": 2,
+    "area_type": "room",
+    "area_label": "Building B / B205 kitchen",
+    "spoken_location_examples": [
+      "B205 kitchen; apartment B205 kitchen"
+    ],
+    "parent_area_id": "p3_bldg_b_floor2",
+    "area_note": "Kitchen leak/plumbing example."
+  },
+  {
+    "area_id": "p3_bldg_b_b205_bathroom",
+    "project_id": "p3_nallikari",
+    "building_name": "Building B",
+    "building_phase": "renovation_inspection",
+    "floor_or_zone": 2,
+    "area_type": "room",
+    "area_label": "Building B / B205 bathroom",
+    "spoken_location_examples": [
+      "B205 bathroom; apartment B205 bathroom"
+    ],
+    "parent_area_id": "p3_bldg_b_floor2",
+    "area_note": "Moisture/waterproofing example."
+  }
+]
