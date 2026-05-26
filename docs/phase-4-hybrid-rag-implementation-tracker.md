@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/sqlite-schema`
+`phase4/project-context-loader`
 
 ## Goal
 
-Add local SQLite support, apply the Hybrid RAG schema, and scaffold seed import.
+Load the active Phase 4 user/persona and resolve the project-scoped context package.
 
 ## Current Phase 4 modules
 
@@ -36,6 +36,7 @@ These files are intended to become the local project context source for Hybrid R
 - `src/features/phase4/data/phase4SeedData.ts`
 - `src/features/phase4/data/seed/*.json`
 - `src/features/phase4/storage/phase4HybridRagDb.ts`
+- `src/features/phase4/context/activeProjectContextLoader.ts`
 - `src/utils/sqlite/hybridRagSqliteSchema.ts`
 - `package.json`
 - `docs/phase-4-hybrid-rag-implementation-tracker.md`
@@ -49,9 +50,10 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
+- Active project context can be loaded from seed data, but extraction still uses the old resolver.
 - SQLite schema initialization and seed import helpers exist but are not wired into UI extraction yet.
 - EmbeddingGemma runtime is not wired yet.
 
 ## Next step
 
-Create `phase4/project-context-loader` to resolve active user/project context from seed data.
+Create `phase4/retrieval-items` to generate project-scoped searchable retrieval items.
