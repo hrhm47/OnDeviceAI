@@ -8,8 +8,11 @@ import { retrievePhase4HybridContext, type Phase4HybridRetrievalResult } from ".
 import { preparePhase4HybridRagRuntime } from "../storage/phase4HybridRagRuntime";
 import type {
   GeneralTaskFormDraft,
+  Phase4Candidate,
+  Phase4CompanyCandidate,
   Phase4CandidateResolution,
   Phase4Language,
+  Phase4ReferenceData,
   Phase4ReviewSuggestions,
 } from "../types/phase4.types";
 import {
@@ -62,14 +65,10 @@ export const extractGeneralTaskFormDraft = async (input: {
 }): Promise<Phase4ExtractionResult> => {
   const transcript = preparePhase4Transcript(input);
   const referenceData = getPhase4ReferenceData();
-  const deterministicCandidateResolution = resolvePhase4Candidates({
-    transcript,
-    referenceData,
-  });
   const { candidateResolution, hybridRetrieval, projectContext, retrievalRuntime } =
-    await resolveHybridCandidateResolution({
+    await resolveCandidateResolution({
       transcript,
-      deterministicCandidateResolution,
+      referenceData,
       userId: input.phase4UserId ?? undefined,
     });
   const llmInput = buildPhase4LLMInput({
@@ -159,9 +158,9 @@ export const extractGeneralTaskFormDraft = async (input: {
   };
 };
 
-const resolveHybridCandidateResolution = async (input: {
+const resolveCandidateResolution = async (input: {
   transcript: string;
-  deterministicCandidateResolution: Phase4CandidateResolution;
+  referenceData: Phase4ReferenceData;
   userId?: string;
 }): Promise<{
   candidateResolution: Phase4CandidateResolution;
@@ -178,10 +177,14 @@ const resolveHybridCandidateResolution = async (input: {
       items: runtime.retrievalItems,
       rebuildLexicalIndex: false,
     });
+    const fallback = resolvePhase4Candidates({
+      transcript: input.transcript,
+      referenceData: input.referenceData,
+    });
     return {
       candidateResolution: mergeHybridCandidates(
         hybridRetrieval,
-        input.deterministicCandidateResolution,
+        fallback,
       ),
       hybridRetrieval,
       projectContext: {
@@ -198,9 +201,12 @@ const resolveHybridCandidateResolution = async (input: {
       },
     };
   } catch (error) {
-    console.warn("Phase 4 Hybrid RAG fallback to deterministic resolver", error);
+    console.warn("Phase 4 Hybrid RAG unavailable; using deterministic fallback resolver", error);
     return {
-      candidateResolution: input.deterministicCandidateResolution,
+      candidateResolution: resolvePhase4Candidates({
+        transcript: input.transcript,
+        referenceData: input.referenceData,
+      }),
       hybridRetrieval: null,
       projectContext: null,
       retrievalRuntime: null,
@@ -212,12 +218,8 @@ const mergeHybridCandidates = (
   hybrid: Phase4HybridRetrievalResult,
   fallback: Phase4CandidateResolution,
 ): Phase4CandidateResolution => ({
-  companyCandidates: hybrid.companyCandidates.length
-    ? hybrid.companyCandidates
-    : fallback.companyCandidates,
-  areaCandidates: hybrid.areaCandidates.length
-    ? hybrid.areaCandidates
-    : fallback.areaCandidates,
+  companyCandidates: confidentCompanyCandidates(hybrid.companyCandidates),
+  areaCandidates: confidentCandidates(hybrid.areaCandidates),
   requiredActionCandidates: hybrid.actionCandidates.length
     ? hybrid.actionCandidates
     : fallback.requiredActionCandidates,
@@ -228,3 +230,9 @@ const mergeHybridCandidates = (
     ? hybrid.tagCandidates
     : fallback.tagCandidates,
 });
+
+const confidentCompanyCandidates = (candidates: Phase4CompanyCandidate[]) =>
+  candidates.filter((candidate) => candidate.confidence !== "low");
+
+const confidentCandidates = <T,>(candidates: Phase4Candidate<T>[]) =>
+  candidates.filter((candidate) => candidate.confidence !== "low");

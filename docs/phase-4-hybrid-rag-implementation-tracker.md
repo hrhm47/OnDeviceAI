@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/embeddinggemma-download-ui`
+`phase4/hybrid-primary-resolver`
 
 ## Goal
 
-Add EmbeddingGemma GGUF readiness and download support in the existing Phase 4 UI.
+Make Hybrid RAG the primary candidate source and use the old resolver only as fallback/gap-fill.
 
 ## Current Phase 4 modules
 
@@ -68,6 +68,9 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
+- Hybrid RAG is the primary source for company and area candidates.
+- The old deterministic resolver is fallback on Hybrid RAG failure and gap-fill for action/date/tag.
+- Low-confidence Hybrid RAG company/area candidates are not autofilled.
 - EmbeddingGemma can be checked/downloaded from the Phase 4 screen, but semantic retrieval still needs vectors.
 - SQLite/FTS retrieval can be prepared from the UI and is cached per selected user/project.
 - Extraction uses the prepared runtime instead of rebuilding retrieval items/FTS every time.
@@ -83,4 +86,4 @@ These files are intended to become the local project context source for Hybrid R
 
 ## Next step
 
-Create `phase4/hybrid-primary-resolver` to make Hybrid RAG the primary candidate source.
+Create `phase4/manual-check-repair` to align manual checks with project-scoped Hybrid RAG behavior.
