@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/seed-data-audit`
+`phase4/sqlite-schema`
 
 ## Goal
 
-Add a typed loader and consistency validator for the existing Phase 4 project seed JSON.
+Add local SQLite support, apply the Hybrid RAG schema, and scaffold seed import.
 
 ## Current Phase 4 modules
 
@@ -35,6 +35,9 @@ These files are intended to become the local project context source for Hybrid R
 
 - `src/features/phase4/data/phase4SeedData.ts`
 - `src/features/phase4/data/seed/*.json`
+- `src/features/phase4/storage/phase4HybridRagDb.ts`
+- `src/utils/sqlite/hybridRagSqliteSchema.ts`
+- `package.json`
 - `docs/phase-4-hybrid-rag-implementation-tracker.md`
 
 ## Verification commands
@@ -46,8 +49,9 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
-- SQLite, FTS5, and EmbeddingGemma runtime are not wired yet.
+- SQLite schema initialization and seed import helpers exist but are not wired into UI extraction yet.
+- EmbeddingGemma runtime is not wired yet.
 
 ## Next step
 
-Create `phase4/sqlite-schema` to add local SQLite initialization and seed import scaffolding.
+Create `phase4/project-context-loader` to resolve active user/project context from seed data.

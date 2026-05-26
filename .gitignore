@@ -53,3 +53,8 @@ package-lock.json
 # ai models
 assets/whisper/*
 models/llm/**/*.gguf
+
+# generated local databases
+*.db
+*.sqlite
+*.sqlite3

@@ -86,7 +86,8 @@
           "forceCxx20": true,
           "enableOpenCLAndHexagon": false
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,
