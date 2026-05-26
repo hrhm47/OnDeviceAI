@@ -1,15 +1,11 @@
 import { resolvePhase4Candidates } from "../candidates/phase4CandidateResolver";
-import { loadActiveProjectContext } from "../context/activeProjectContextLoader";
 import { buildPhase4LLMInput } from "../llm/phase4LLMInputBuilder";
 import { parsePhase4LLMOutput } from "../llm/phase4LLMOutputParser";
 import type { Phase4LLMProvider } from "../llm/phase4LLMProvider";
 import { phase4MockLLMProvider } from "../llm/phase4MockLLMProvider";
 import { getPhase4ReferenceData } from "../referenceData/phase4ReferenceRepository";
 import { retrievePhase4HybridContext, type Phase4HybridRetrievalResult } from "../retrieval/phase4HybridRetriever";
-import {
-  importPhase4SeedBundle,
-  initializePhase4HybridRagDatabase,
-} from "../storage/phase4HybridRagDb";
+import { preparePhase4HybridRagRuntime } from "../storage/phase4HybridRagRuntime";
 import type {
   GeneralTaskFormDraft,
   Phase4CandidateResolution,
@@ -47,6 +43,12 @@ export type Phase4ExtractionResult = {
     projectId: string;
     projectName: string;
   } | null;
+  retrievalRuntime?: {
+    preparedAt: string;
+    retrievalItemCount: number;
+    ftsReady: boolean;
+    message: string;
+  } | null;
 };
 
 export const extractGeneralTaskFormDraft = async (input: {
@@ -64,7 +66,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     transcript,
     referenceData,
   });
-  const { candidateResolution, hybridRetrieval, projectContext } =
+  const { candidateResolution, hybridRetrieval, projectContext, retrievalRuntime } =
     await resolveHybridCandidateResolution({
       transcript,
       deterministicCandidateResolution,
@@ -153,6 +155,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     errorMessage: providerError ?? parseResult.errorMessage,
     hybridRetrieval,
     projectContext,
+    retrievalRuntime,
   };
 };
 
@@ -164,23 +167,16 @@ const resolveHybridCandidateResolution = async (input: {
   candidateResolution: Phase4CandidateResolution;
   hybridRetrieval: Phase4HybridRetrievalResult | null;
   projectContext: Phase4ExtractionResult["projectContext"];
+  retrievalRuntime: Phase4ExtractionResult["retrievalRuntime"];
 }> => {
-  const contextResult = loadActiveProjectContext({ userId: input.userId });
-  if (!contextResult.ok) {
-    return {
-      candidateResolution: input.deterministicCandidateResolution,
-      hybridRetrieval: null,
-      projectContext: null,
-    };
-  }
-
   try {
-    const db = await initializePhase4HybridRagDatabase();
-    await importPhase4SeedBundle(db);
+    const runtime = await preparePhase4HybridRagRuntime({ userId: input.userId });
     const hybridRetrieval = await retrievePhase4HybridContext({
       transcript: input.transcript,
-      context: contextResult.context,
-      db,
+      context: runtime.context,
+      db: runtime.db,
+      items: runtime.retrievalItems,
+      rebuildLexicalIndex: false,
     });
     return {
       candidateResolution: mergeHybridCandidates(
@@ -189,10 +185,16 @@ const resolveHybridCandidateResolution = async (input: {
       ),
       hybridRetrieval,
       projectContext: {
-        activeUserId: contextResult.context.activeUser.user_id,
-        activeUserName: contextResult.context.activeUser.display_name,
-        projectId: contextResult.context.project.project_id,
-        projectName: contextResult.context.project.project_name,
+        activeUserId: runtime.context.activeUser.user_id,
+        activeUserName: runtime.context.activeUser.display_name,
+        projectId: runtime.context.project.project_id,
+        projectName: runtime.context.project.project_name,
+      },
+      retrievalRuntime: {
+        preparedAt: runtime.status.preparedAt,
+        retrievalItemCount: runtime.status.retrievalItemCount,
+        ftsReady: runtime.status.ftsReady,
+        message: runtime.status.message,
       },
     };
   } catch (error) {
@@ -201,6 +203,7 @@ const resolveHybridCandidateResolution = async (input: {
       candidateResolution: input.deterministicCandidateResolution,
       hybridRetrieval: null,
       projectContext: null,
+      retrievalRuntime: null,
     };
   }
 };

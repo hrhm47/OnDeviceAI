@@ -16,6 +16,7 @@ import {
 } from "@/src/features/phase4/llm/phase4LocalLLMProvider";
 import { phase4MockLLMProvider } from "@/src/features/phase4/llm/phase4MockLLMProvider";
 import { PHASE4_SELECTED_LLM_MODEL } from "@/src/features/phase4/llm/phase4ModelConfig";
+import { preparePhase4HybridRagRuntime } from "@/src/features/phase4/storage/phase4HybridRagRuntime";
 import {
   exportPhase4ExtractionResultsCsv,
   savePhase4ExtractionResult,
@@ -49,6 +50,7 @@ export default function Phase4ExtractionScreen() {
   const [rawVisible, setRawVisible] = useState(false);
   const [checkSummary, setCheckSummary] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  const [retrievalStatus, setRetrievalStatus] = useState<string | null>(null);
   const selectedUser = phase4SeedBundle.users.find(
     (user) => user.user_id === selectedUserId,
   );
@@ -82,6 +84,23 @@ export default function Phase4ExtractionScreen() {
         ? `Extraction completed with warning: ${nextResult.errorMessage}`
         : "Phase 4 extraction completed.",
     );
+  };
+
+  const prepareRetrieval = async () => {
+    try {
+      setMessage("Preparing Phase 4 retrieval...");
+      const runtime = await preparePhase4HybridRagRuntime({
+        userId: selectedUserId,
+        forceRefresh: true,
+      });
+      const status = `${runtime.status.message} ${runtime.status.retrievalItemCount} retrieval items. FTS5 ${runtime.status.ftsReady ? "ready" : "unavailable"}.`;
+      setRetrievalStatus(status);
+      setMessage(status);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      setRetrievalStatus(`Retrieval preparation failed: ${text}`);
+      setMessage(`Retrieval preparation failed: ${text}`);
+    }
   };
 
   const saveResult = async () => {
@@ -221,6 +240,11 @@ export default function Phase4ExtractionScreen() {
             onPress={runExtraction}
           />
           <Button
+            label="Prepare retrieval"
+            icon="checkmark.circle"
+            onPress={prepareRetrieval}
+          />
+          <Button
             label="Save result"
             icon="tray.and.arrow.down.fill"
             onPress={saveResult}
@@ -249,6 +273,9 @@ export default function Phase4ExtractionScreen() {
         </View>
 
         {message ? <Text style={styles.message}>{message}</Text> : null}
+        {retrievalStatus ? (
+          <Text style={styles.note}>{retrievalStatus}</Text>
+        ) : null}
         {downloadProgress !== null ? (
           <Text style={styles.note}>
             Downloading model: {Math.round(downloadProgress)}%
@@ -509,6 +536,12 @@ const HybridRetrievalDebug = ({
         label="Retrieval time"
         value={`${retrieval.timings.totalMs} ms`}
       />
+      {result.retrievalRuntime ? (
+        <Metric
+          label="SQLite / FTS"
+          value={`${result.retrievalRuntime.retrievalItemCount} items / ${result.retrievalRuntime.ftsReady ? "FTS ready" : "FTS unavailable"}`}
+        />
+      ) : null}
       <Text style={styles.note}>
         Companies:{" "}
         {retrieval.companyCandidates

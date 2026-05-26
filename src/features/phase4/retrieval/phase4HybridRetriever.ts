@@ -17,7 +17,7 @@ import {
   upsertPhase4RetrievalItems,
 } from "./phase4RetrievalItemRepository";
 import { buildPhase4RetrievalItems } from "./phase4RetrievalItems";
-import type { Phase4RetrievalHit } from "./phase4RetrievalTypes";
+import type { Phase4RetrievalHit, Phase4RetrievalItem } from "./phase4RetrievalTypes";
 import { searchPhase4SemanticRetrievalItems } from "./phase4SemanticRetriever";
 
 export type Phase4HybridRetrievalResult = {
@@ -46,11 +46,13 @@ export const retrievePhase4HybridContext = async (input: {
   transcript: string;
   context: ProjectContextPackage;
   db?: SQLiteDatabase | null;
+  items?: Phase4RetrievalItem[];
+  rebuildLexicalIndex?: boolean;
   embeddingProvider?: Phase4EmbeddingProvider | null;
 }): Promise<Phase4HybridRetrievalResult> => {
   const startedAt = Date.now();
   const warnings: string[] = [];
-  const items = buildPhase4RetrievalItems(input.context);
+  const items = input.items ?? buildPhase4RetrievalItems(input.context);
 
   const exactStartedAt = Date.now();
   const exactHits = findExactPhase4RetrievalHits({
@@ -62,7 +64,14 @@ export const retrievePhase4HybridContext = async (input: {
 
   const lexicalStartedAt = Date.now();
   const lexicalHits = input.db
-    ? await runLexicalRetrieval(input.db, input.context.project.project_id, input.transcript, items, warnings)
+    ? await runLexicalRetrieval(
+        input.db,
+        input.context.project.project_id,
+        input.transcript,
+        items,
+        input.rebuildLexicalIndex ?? true,
+        warnings,
+      )
     : [];
   if (!input.db) {
     warnings.push("Lexical retrieval skipped because SQLite DB was not supplied.");
@@ -110,11 +119,14 @@ const runLexicalRetrieval = async (
   projectId: string,
   transcript: string,
   items: ReturnType<typeof buildPhase4RetrievalItems>,
+  rebuildLexicalIndex: boolean,
   warnings: string[],
 ) => {
   try {
-    await upsertPhase4RetrievalItems(db, items);
-    await rebuildPhase4RetrievalItemsFts(db);
+    if (rebuildLexicalIndex) {
+      await upsertPhase4RetrievalItems(db, items);
+      await rebuildPhase4RetrievalItemsFts(db);
+    }
     return searchPhase4LexicalRetrievalItems({ db, projectId, transcript });
   } catch (error) {
     warnings.push(error instanceof Error ? error.message : String(error));

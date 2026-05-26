@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/user-selection-ui`
+`phase4/sqlite-rag-runtime-wiring`
 
 ## Goal
 
-Add screen-local Phase 4 user selection so extraction loads the selected user's active project context.
+Add runtime preparation for SQLite, seed import, retrieval items, and FTS for the selected user/project.
 
 ## Current Phase 4 modules
 
@@ -36,6 +36,7 @@ These files are intended to become the local project context source for Hybrid R
 - `src/features/phase4/data/phase4SeedData.ts`
 - `src/features/phase4/data/seed/*.json`
 - `src/features/phase4/storage/phase4HybridRagDb.ts`
+- `src/features/phase4/storage/phase4HybridRagRuntime.ts`
 - `src/features/phase4/context/activeProjectContextLoader.ts`
 - `src/features/phase4/retrieval/phase4RetrievalTypes.ts`
 - `src/features/phase4/retrieval/phase4RetrievalItems.ts`
@@ -67,6 +68,8 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
+- SQLite/FTS retrieval can be prepared from the UI and is cached per selected user/project.
+- Extraction uses the prepared runtime instead of rebuilding retrieval items/FTS every time.
 - The Phase 4 screen can select a seed user/persona and passes that user into extraction.
 - Manual checks can use the selected screen user as their default persona.
 - Extraction returns active project/user context and Hybrid RAG diagnostics for the UI.
@@ -79,4 +82,4 @@ These files are intended to become the local project context source for Hybrid R
 
 ## Next step
 
-Create `phase4/sqlite-rag-runtime-wiring` to prepare SQLite/FTS retrieval state for the selected user/project.
+Create `phase4/embeddinggemma-download-ui` to add EmbeddingGemma GGUF check/download controls.
