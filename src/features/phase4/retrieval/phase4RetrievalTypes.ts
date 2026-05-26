@@ -18,3 +18,10 @@ export type Phase4RetrievalItem = {
   metadata: Record<string, unknown>;
   embeddingVector?: number[];
 };
+
+export type Phase4RetrievalHit = {
+  item: Phase4RetrievalItem;
+  score: number;
+  matchType: "exact" | "lexical" | "semantic" | "metadata";
+  evidence: string;
+};

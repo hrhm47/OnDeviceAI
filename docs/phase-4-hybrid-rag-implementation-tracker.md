@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/retrieval-items`
+`phase4/exact-lexical-retrieval`
 
 ## Goal
 
-Generate and store project-scoped retrieval items from active project context.
+Add exact alias matching and SQLite FTS5 lexical retrieval over project-scoped retrieval items.
 
 ## Current Phase 4 modules
 
@@ -40,6 +40,10 @@ These files are intended to become the local project context source for Hybrid R
 - `src/features/phase4/retrieval/phase4RetrievalTypes.ts`
 - `src/features/phase4/retrieval/phase4RetrievalItems.ts`
 - `src/features/phase4/retrieval/phase4RetrievalItemRepository.ts`
+- `src/features/phase4/retrieval/phase4TranscriptNormalizer.ts`
+- `src/features/phase4/retrieval/phase4ExactMatcher.ts`
+- `src/features/phase4/retrieval/phase4LexicalRetriever.ts`
+- `src/features/phase4/retrieval/phase4ExactLexicalRetriever.ts`
 - `src/utils/sqlite/hybridRagSqliteSchema.ts`
 - `package.json`
 - `docs/phase-4-hybrid-rag-implementation-tracker.md`
@@ -53,10 +57,10 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
-- Project-scoped retrieval items can be generated and stored, but extraction still uses the old resolver.
+- Project-scoped exact and lexical retrieval helpers exist, but extraction still uses the old resolver.
 - SQLite schema initialization and seed import helpers exist but are not wired into UI extraction yet.
 - EmbeddingGemma runtime is not wired yet.
 
 ## Next step
 
-Create `phase4/exact-lexical-retrieval` to search retrieval items with exact and lexical matching.
+Create `phase4/embeddinggemma-provider` to add the local GGUF embedding provider interface.
