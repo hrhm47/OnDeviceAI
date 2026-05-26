@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/project-context-loader`
+`phase4/retrieval-items`
 
 ## Goal
 
-Load the active Phase 4 user/persona and resolve the project-scoped context package.
+Generate and store project-scoped retrieval items from active project context.
 
 ## Current Phase 4 modules
 
@@ -37,6 +37,9 @@ These files are intended to become the local project context source for Hybrid R
 - `src/features/phase4/data/seed/*.json`
 - `src/features/phase4/storage/phase4HybridRagDb.ts`
 - `src/features/phase4/context/activeProjectContextLoader.ts`
+- `src/features/phase4/retrieval/phase4RetrievalTypes.ts`
+- `src/features/phase4/retrieval/phase4RetrievalItems.ts`
+- `src/features/phase4/retrieval/phase4RetrievalItemRepository.ts`
 - `src/utils/sqlite/hybridRagSqliteSchema.ts`
 - `package.json`
 - `docs/phase-4-hybrid-rag-implementation-tracker.md`
@@ -50,10 +53,10 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
-- Active project context can be loaded from seed data, but extraction still uses the old resolver.
+- Project-scoped retrieval items can be generated and stored, but extraction still uses the old resolver.
 - SQLite schema initialization and seed import helpers exist but are not wired into UI extraction yet.
 - EmbeddingGemma runtime is not wired yet.
 
 ## Next step
 
-Create `phase4/retrieval-items` to generate project-scoped searchable retrieval items.
+Create `phase4/exact-lexical-retrieval` to search retrieval items with exact and lexical matching.
