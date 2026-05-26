@@ -2,6 +2,10 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FieldColors as C } from "@/constants/theme";
 import { runPhase4ManualChecks } from "@/src/features/phase4/checks/phase4CheckRunner";
 import {
+  getPhase4SeedBundle,
+  PHASE4_DEFAULT_USER_ID,
+} from "@/src/features/phase4/data/phase4SeedData";
+import {
   extractGeneralTaskFormDraft,
   type Phase4ExtractionResult,
 } from "@/src/features/phase4/draft/phase4TaskDraftBuilder";
@@ -31,6 +35,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ProviderChoice = "mock" | "local";
+const phase4SeedBundle = getPhase4SeedBundle();
 
 export default function Phase4ExtractionScreen() {
   const [transcript, setTranscript] = useState(
@@ -38,17 +43,25 @@ export default function Phase4ExtractionScreen() {
   );
   const [language, setLanguage] = useState<Phase4Language>("en");
   const [providerChoice, setProviderChoice] = useState<ProviderChoice>("mock");
+  const [selectedUserId, setSelectedUserId] = useState(PHASE4_DEFAULT_USER_ID);
   const [result, setResult] = useState<Phase4ExtractionResult | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [rawVisible, setRawVisible] = useState(false);
   const [checkSummary, setCheckSummary] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  const selectedUser = phase4SeedBundle.users.find(
+    (user) => user.user_id === selectedUserId,
+  );
+  const selectedProject = phase4SeedBundle.projects.find(
+    (project) => project.project_id === selectedUser?.active_project_id,
+  );
 
   const runExtraction = async () => {
     console.log("Running extraction with input:", {
       transcript,
       language,
       provider: providerChoice,
+      userId: selectedUserId,
     });
     setMessage("Running Phase 4 extraction...");
     const provider =
@@ -58,6 +71,7 @@ export default function Phase4ExtractionScreen() {
     const nextResult = await extractGeneralTaskFormDraft({
       transcript,
       language,
+      phase4UserId: selectedUserId,
       provider,
     });
 
@@ -96,7 +110,9 @@ export default function Phase4ExtractionScreen() {
   };
 
   const runChecks = async () => {
-    const summary = await runPhase4ManualChecks();
+    const summary = await runPhase4ManualChecks(undefined, {
+      defaultUserId: selectedUserId,
+    });
     setCheckSummary(summary.summary);
     setMessage(summary.summary);
   };
@@ -132,6 +148,24 @@ export default function Phase4ExtractionScreen() {
         </View>
 
         <Section title="Input">
+          <View style={styles.row}>
+            {phase4SeedBundle.users.map((user) => (
+              <Chip
+                key={user.user_id}
+                selected={selectedUserId === user.user_id}
+                label={user.display_name}
+                onPress={() => {
+                  setSelectedUserId(user.user_id);
+                  setLanguage(user.default_language === "fi" ? "fi" : "en");
+                  setResult(null);
+                }}
+              />
+            ))}
+          </View>
+          <Text style={styles.note}>
+            {selectedUser?.display_name ?? "Unknown user"} /{" "}
+            {selectedProject?.project_name ?? "Unknown project"}
+          </Text>
           <TextInput
             value={transcript}
             onChangeText={setTranscript}

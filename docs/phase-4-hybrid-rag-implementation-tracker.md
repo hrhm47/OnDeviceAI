@@ -2,11 +2,11 @@
 
 ## Current branch
 
-`phase4/hybrid-manual-checks`
+`phase4/user-selection-ui`
 
 ## Goal
 
-Add Hybrid RAG-focused manual checks across project-scoped retrieval scenarios.
+Add screen-local Phase 4 user selection so extraction loads the selected user's active project context.
 
 ## Current Phase 4 modules
 
@@ -67,7 +67,8 @@ These files are intended to become the local project context source for Hybrid R
 
 - Hybrid RAG is not implemented yet.
 - Seed JSON is typed and can be validated, but it is not wired into extraction yet.
-- Manual checks can specify a Phase 4 user/persona to exercise different active projects.
+- The Phase 4 screen can select a seed user/persona and passes that user into extraction.
+- Manual checks can use the selected screen user as their default persona.
 - Extraction returns active project/user context and Hybrid RAG diagnostics for the UI.
 - Existing Phase 4 UI shows retrieval counts, timing, top candidates, and warnings.
 - Hybrid retrieval can return candidates, evidence, warnings, timings, and source counts.
@@ -78,4 +79,4 @@ These files are intended to become the local project context source for Hybrid R
 
 ## Next step
 
-Run manual checks in the app and tune project seed data or expectations as needed.
+Create `phase4/sqlite-rag-runtime-wiring` to prepare SQLite/FTS retrieval state for the selected user/project.

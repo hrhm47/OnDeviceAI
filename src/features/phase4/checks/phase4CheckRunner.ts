@@ -17,8 +17,11 @@ export type Phase4ManualCheckResult = {
 
 export const runPhase4ManualChecks = async (
   cases: readonly Phase4ManualCheckCase[] = PHASE4_MANUAL_CHECK_CASES,
+  options?: { defaultUserId?: string },
 ) => {
-  const results = await Promise.all(cases.map(runCase));
+  const results = await Promise.all(
+    cases.map((checkCase) => runCase(checkCase, options)),
+  );
   const passedCount = results.filter((result) => result.passed).length;
 
   return {
@@ -30,11 +33,14 @@ export const runPhase4ManualChecks = async (
   };
 };
 
-const runCase = async (checkCase: Phase4ManualCheckCase) => {
+const runCase = async (
+  checkCase: Phase4ManualCheckCase,
+  options?: { defaultUserId?: string },
+) => {
   const result = await extractGeneralTaskFormDraft({
     transcript: checkCase.transcript,
     language: checkCase.language,
-    phase4UserId: checkCase.userId,
+    phase4UserId: checkCase.userId ?? options?.defaultUserId,
     provider: phase4MockLLMProvider,
   });
   const draft = result.draft;
