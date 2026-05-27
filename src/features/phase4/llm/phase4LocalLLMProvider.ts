@@ -1,9 +1,13 @@
 import * as FileSystem from "expo-file-system/legacy";
 import type { LlamaContext } from "llama.rn";
 
+import {
+  buildPhase4HybridExtractionPrompt,
+  PHASE4_RETRIEVED_CANDIDATE_LIMIT,
+} from "./buildPhase4HybridExtractionPrompt";
 import type { Phase4LLMProvider } from "./phase4LLMProvider";
 import { PHASE4_SELECTED_LLM_MODEL } from "./phase4ModelConfig";
-import { buildPhase4HybridExtractionPrompt } from "./buildPhase4HybridExtractionPrompt";
+import { PHASE4_LLM_DESCRIPTION_MAX_LENGTH } from "../types/phase4HybridLLM.types";
 
 const MODEL_DIR = `models/llm/${PHASE4_SELECTED_LLM_MODEL.modelId}`;
 const MODEL_PATH = `${MODEL_DIR}/${PHASE4_SELECTED_LLM_MODEL.filename}`;
@@ -15,6 +19,29 @@ const STOP_WORDS = [
   "<|im_end|>",
   "<|endoftext|>",
 ];
+const PHASE4_LLM_CONTEXT_TOKENS = 3072;
+const PHASE4_LLM_MAX_OUTPUT_TOKENS = 512;
+const PHASE4_RESPONSE_SCHEMA_BASE = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "description",
+    "multiIssueDetected",
+    "selectedCompanyId",
+    "selectedAreaId",
+    "requiredActionCode",
+    "dueDateCode",
+    "tagCodes",
+  ],
+  properties: {
+    description: {
+      type: "string",
+      minLength: 1,
+      maxLength: PHASE4_LLM_DESCRIPTION_MAX_LENGTH,
+    },
+    multiIssueDetected: { type: "boolean" },
+  },
+};
 
 let cachedContext: LlamaContext | null = null;
 let cachedContextModelUri: string | null = null;
@@ -36,6 +63,7 @@ export const phase4LocalLLMProvider: Phase4LLMProvider = {
     const contextReadyAt = Date.now();
     await context.clearCache(false).catch(() => undefined);
 
+    const prompt = buildPhase4HybridExtractionPrompt(input);
     const completionStartTime = Date.now();
     const result = await context.completion({
       messages: [
@@ -44,10 +72,16 @@ export const phase4LocalLLMProvider: Phase4LLMProvider = {
           content:
             "You are a controlled extraction engine. Return one valid JSON object only.",
         },
-        { role: "user", content: buildPhase4HybridExtractionPrompt(input) },
+        { role: "user", content: prompt },
       ],
-      response_format: { type: "json_object" },
-      n_predict: 256,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          strict: true,
+          schema: buildPhase4ResponseSchema(input),
+        },
+      },
+      n_predict: PHASE4_LLM_MAX_OUTPUT_TOKENS,
       temperature: 0,
       top_p: 1,
       stop: STOP_WORDS,
@@ -57,14 +91,83 @@ export const phase4LocalLLMProvider: Phase4LLMProvider = {
       contextMs: contextReadyAt - contextStartTime,
       completionMs: completedAt - completionStartTime,
       totalMs: completedAt - startedAt,
+      promptChars: prompt.length,
+      contextTokens: PHASE4_LLM_CONTEXT_TOKENS,
+      maxOutputTokens: PHASE4_LLM_MAX_OUTPUT_TOKENS,
+      tokensPredicted: result.tokens_predicted,
+      stoppedLimit: result.stopped_limit,
+      contextFull: result.context_full,
+      truncated: result.truncated,
+      stoppedEos: result.stopped_eos,
     });
 
     return {
       rawText: result.text,
       durationMs: completedAt - startedAt,
+      generationDiagnostics: {
+        tokensPredicted: result.tokens_predicted,
+        stoppedLimit: Boolean(result.stopped_limit),
+        contextFull: result.context_full,
+        truncated: result.truncated,
+        stoppedEos: result.stopped_eos,
+      },
     };
   },
 };
+
+const buildPhase4ResponseSchema = (
+  input: Parameters<Phase4LLMProvider["extractTaskForm"]>[0],
+) => ({
+  ...PHASE4_RESPONSE_SCHEMA_BASE,
+  properties: {
+    ...PHASE4_RESPONSE_SCHEMA_BASE.properties,
+    selectedCompanyId: nullableEnum(
+      visibleCandidateIds(input.retrieval.companyCandidates),
+    ),
+    selectedAreaId: nullableEnum(
+      visibleCandidateIds(input.retrieval.areaCandidates),
+    ),
+    requiredActionCode: nullableEnum(
+      visibleCandidateIds(input.retrieval.actionCandidates),
+    ),
+    dueDateCode: nullableEnum(
+      visibleCandidateIds(input.retrieval.dateCandidates),
+    ),
+    tagCodes: stringArrayEnum(visibleCandidateIds(input.retrieval.tagCandidates)),
+  },
+});
+
+const visibleCandidateIds = (
+  candidates: { id?: string }[] | undefined,
+) => compactUnique(candidates?.map((candidate) => candidate.id)).slice(
+  0,
+  PHASE4_RETRIEVED_CANDIDATE_LIMIT,
+);
+
+const nullableEnum = (values: (string | undefined)[] | undefined) => {
+  const enumValues = compactUnique(values);
+  return enumValues.length > 0
+    ? { anyOf: [{ type: "string", enum: enumValues }, { type: "null" }] }
+    : { type: "null" };
+};
+
+const stringArrayEnum = (values: (string | undefined)[] | undefined) => {
+  const enumValues = compactUnique(values);
+  return enumValues.length > 0
+    ? {
+        type: "array",
+        items: { type: "string", enum: enumValues },
+        maxItems: enumValues.length,
+      }
+    : {
+        type: "array",
+        items: { type: "string", enum: ["__no_tags_available__"] },
+        maxItems: 0,
+      };
+};
+
+const compactUnique = (values: (string | undefined)[] | undefined) =>
+  Array.from(new Set((values ?? []).filter((value): value is string => Boolean(value))));
 
 const getPhase4LlamaContext = async (modelUri: string) => {
   if (cachedContext && cachedContextModelUri === modelUri) {
@@ -76,7 +179,7 @@ const getPhase4LlamaContext = async (modelUri: string) => {
   cachedContext = await initLlama({
     model: modelUri,
     use_mlock: true,
-    n_ctx: 1024,
+    n_ctx: PHASE4_LLM_CONTEXT_TOKENS,
     n_gpu_layers: 99,
     cache_type_k: "q4_1",
   });

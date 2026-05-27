@@ -68,7 +68,6 @@ export function buildHybridGeneralTaskDraft(input: {
   const dueDate = resolveDueDate({
     transcript: input.transcript,
     llmDueDateCode: input.llmOutput?.dueDateCode ?? null,
-    reviewNotes: input.llmOutput?.reviewNotes ?? [],
   });
   const tags = resolveTags({
     transcript: input.transcript,
@@ -76,6 +75,7 @@ export function buildHybridGeneralTaskDraft(input: {
     tagCandidates: input.candidateResolution.tagCandidates.map((candidate) => ({
       id: candidate.id ?? String(candidate.value).toLowerCase(),
       label: candidate.label ?? String(candidate.value),
+      confidence: candidate.confidence,
     })),
   });
   const warningTexts = [...company.warnings, ...area.warnings];
@@ -87,9 +87,8 @@ export function buildHybridGeneralTaskDraft(input: {
       ...company.reviewNotes,
       ...area.reviewNotes,
       ...dueDate.reviewNotes,
-      ...(input.llmOutput?.reviewNotes ?? []),
       ...(hasMultipleIssues
-        ? ["Multiple separate issues were detected; review before creating a task."]
+        ? ["Multiple issues detected; create separate tasks manually."]
         : []),
     ]),
   );
@@ -140,6 +139,21 @@ export function buildHybridGeneralTaskDraft(input: {
         displayName: candidate.value.displayName,
         confidence: candidate.confidence,
         matchType: "nearest",
+        reason: candidate.reason,
+        source: "candidate",
+      })),
+      areaSuggestions: input.candidateResolution.areaCandidates.slice(0, 3).map((candidate) => ({
+        areaId: candidate.id ?? String(candidate.value),
+        displayName: candidate.label ?? String(candidate.value),
+        confidence: candidate.confidence,
+        matchType: candidate.matchType ?? "nearest",
+        reason: candidate.reason,
+        source: "candidate",
+      })),
+      tagSuggestions: input.candidateResolution.tagCandidates.slice(0, 3).map((candidate) => ({
+        tagCode: candidate.id ?? String(candidate.value).toLowerCase(),
+        displayName: candidate.value,
+        confidence: candidate.confidence,
         reason: candidate.reason,
         source: "candidate",
       })),

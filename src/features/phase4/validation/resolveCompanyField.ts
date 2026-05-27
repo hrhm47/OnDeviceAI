@@ -51,9 +51,25 @@ export function resolveCompanyField(input: {
   const topHighCandidate = input.companyCandidates.find(
     (candidate) => candidate.confidence === "high",
   );
-  if (topHighCandidate) {
+  const usefulCandidates = input.companyCandidates.filter(
+    (candidate) => candidate.confidence === "high" || candidate.confidence === "medium",
+  );
+  if (topHighCandidate && usefulCandidates.length === 1) {
     reviewNotes.push("Company selected from high-confidence retrieval candidate.");
     return resolved(topHighCandidate, "high", "LLM did not provide a valid company, so high-confidence retrieval candidate was used.", warnings, reviewNotes);
+  }
+
+  if (usefulCandidates.length > 0) {
+    reviewNotes.push("Company must be selected from retrieved candidates.");
+    return {
+      value: null,
+      companyId: null,
+      status: "selection_required",
+      confidence: topHighCandidate ? "high" : "medium",
+      reason: "Multiple possible company candidates were found; select the correct company.",
+      warnings,
+      reviewNotes,
+    };
   }
 
   if (input.llmCompanyId || input.llmCompanyName) {

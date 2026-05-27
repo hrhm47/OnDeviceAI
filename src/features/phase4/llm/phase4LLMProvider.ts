@@ -6,5 +6,12 @@ export type Phase4LLMProvider = {
   extractTaskForm(input: Phase4HybridLLMInput): Promise<{
     rawText: string;
     durationMs: number;
+    generationDiagnostics?: {
+      tokensPredicted?: number;
+      stoppedLimit?: boolean;
+      contextFull?: boolean;
+      truncated?: boolean;
+      stoppedEos?: boolean;
+    };
   }>;
 };

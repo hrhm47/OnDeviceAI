@@ -30,14 +30,14 @@ const TAG_ALIASES: { code: string; value: Phase4TaskTag; aliases: string[] }[] =
 export function resolveTags(input: {
   transcript: string;
   llmTagCodes?: string[] | null;
-  tagCandidates?: { id: string; label: string }[];
+  tagCandidates?: { id: string; label: string; confidence?: string }[];
 }): ResolvedTagsField {
   const selected: { code: string; value: Phase4TaskTag }[] = [];
 
   for (const code of input.llmTagCodes ?? []) {
     const candidate = input.tagCandidates?.find((tag) => tag.id === code);
     const value = toAllowedTag(candidate?.label);
-    if (candidate && value) {
+    if (candidate && value && !selected.some((tag) => tag.code === candidate.id)) {
       selected.push({ code: candidate.id, value });
     }
   }
@@ -61,6 +61,18 @@ export function resolveTags(input: {
       status: "suggested",
       confidence: "high",
       reason: "Tags matched transcript or retrieved candidates.",
+    };
+  }
+
+  if ((input.tagCandidates?.length ?? 0) > 0) {
+    return {
+      value: [],
+      tagCodes: [],
+      status: "selection_required",
+      confidence: input.tagCandidates?.some((tag) => tag.confidence === "high")
+        ? "high"
+        : "medium",
+      reason: "Retrieved tag candidates are available; select any applicable tags.",
     };
   }
 

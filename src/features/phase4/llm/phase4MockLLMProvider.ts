@@ -1,4 +1,5 @@
 import type { Phase4HybridLLMInput } from "../types/phase4HybridLLM.types";
+import { PHASE4_LLM_DESCRIPTION_MAX_LENGTH } from "../types/phase4HybridLLM.types";
 import type { Phase4LLMProvider } from "./phase4LLMProvider";
 
 export const phase4MockLLMProvider: Phase4LLMProvider = {
@@ -29,9 +30,6 @@ const buildMockOutput = (input: Phase4HybridLLMInput) => {
   return {
     description: buildDescription(input.transcript),
     multiIssueDetected: detectMultiIssue(normalized),
-    issueSummaries: detectMultiIssue(normalized)
-      ? input.transcript.split(/\s*,\s*|\s+and\s+/i).map((item) => item.trim()).filter(Boolean)
-      : [],
     selectedCompanyId: input.retrieval.companyCandidates?.[0]?.id ?? null,
     selectedAreaId: input.retrieval.areaCandidates?.[0]?.id ?? null,
     requiredActionCode: actionCandidate?.id ?? null,
@@ -41,12 +39,14 @@ const buildMockOutput = (input: Phase4HybridLLMInput) => {
       : input.retrieval.tagCandidates?.[0]?.id
         ? [input.retrieval.tagCandidates[0].id]
         : [],
-    reviewNotes: unsupportedDueDateNotes(normalized),
   };
 };
 
 const buildDescription = (transcript: string) =>
-  transcript.replace(/\s+/g, " ").trim();
+  transcript
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, PHASE4_LLM_DESCRIPTION_MAX_LENGTH);
 
 const detectMultiIssue = (normalized: string) => {
   const groups = [
@@ -108,13 +108,6 @@ const tagEvidenceMatches = (normalized: string, code: string) => {
     return normalized.includes("palokatko") || normalized.includes("fire stop");
   }
   return false;
-};
-
-const unsupportedDueDateNotes = (normalized: string) => {
-  if (normalized.includes("tomorrow") || normalized.includes("huomenna")) {
-    return ["Unsupported due date spoken: tomorrow"];
-  }
-  return [];
 };
 
 const matchesAny = (normalized: string, needles: string[]) =>

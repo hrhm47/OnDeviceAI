@@ -12,7 +12,7 @@ import type {
   Phase4Language,
   Phase4ReviewSuggestions,
 } from "../types/phase4.types";
-import type { Phase4ValidationWarning } from "../validation/phase4Warnings";
+import { warning, type Phase4ValidationWarning } from "../validation/phase4Warnings";
 import { buildHybridGeneralTaskDraft, type Phase4HybridDraftBuildResult } from "./buildHybridGeneralTaskDraft";
 import { preparePhase4Transcript } from "./phase4TranscriptPreparation";
 
@@ -93,6 +93,9 @@ export const extractGeneralTaskFormDraft = async (input: {
   let rawLlmOutput = "";
   let extractionTimeMs = 0;
   let providerError: string | null = null;
+  let generationDiagnostics:
+    | Awaited<ReturnType<Phase4LLMProvider["extractTaskForm"]>>["generationDiagnostics"]
+    | undefined;
 
   try {
     const providerStartedAt = Date.now();
@@ -104,12 +107,13 @@ export const extractGeneralTaskFormDraft = async (input: {
     });
     rawLlmOutput = response.rawText;
     extractionTimeMs = response.durationMs;
+    generationDiagnostics = response.generationDiagnostics;
   } catch (error) {
     providerError = error instanceof Error ? error.message : String(error);
   }
 
   const parseResult = rawLlmOutput
-    ? parsePhase4HybridLLMOutput(rawLlmOutput)
+    ? parsePhase4HybridLLMOutput(rawLlmOutput, llmInput)
     : { success: false, output: null, normalizedText: "", errorMessage: providerError };
   console.log("Phase 4 LLM parse summary:", {
     success: parseResult.success,
@@ -122,11 +126,20 @@ export const extractGeneralTaskFormDraft = async (input: {
     transcript,
     candidateResolution,
   });
+  const llmWarnings = buildLlmWarnings({
+    parseSuccess: parseResult.success,
+    providerError,
+    parseError: parseResult.errorMessage,
+    generationDiagnostics,
+  });
+  const warnings = [...validation.warnings, ...llmWarnings];
+  const finalValidationPassed = validation.validationPassed && parseResult.success;
 
   console.log("Phase 4 validation summary:", {
     validationMs: Date.now() - validationStartedAt,
-    validationPassed: validation.validationPassed,
-    warnings: validation.warnings,
+    draftValidationPassed: validation.validationPassed,
+    finalValidationPassed,
+    warnings,
     company: validation.draft.company.value,
     area: validation.draft.area.value,
     requiredAction: validation.draft.requiredAction.value,
@@ -149,8 +162,8 @@ export const extractGeneralTaskFormDraft = async (input: {
     extractionTimeMs,
     rawLlmOutput,
     parseSuccess: parseResult.success,
-    validationPassed: validation.validationPassed && parseResult.success,
-    warnings: validation.warnings,
+    validationPassed: finalValidationPassed,
+    warnings,
     errorMessage: providerError ?? parseResult.errorMessage,
     hybridRetrieval,
     projectContext,
@@ -216,3 +229,41 @@ const confidentCompanyCandidates = (candidates: Phase4CompanyCandidate[]) =>
 
 const confidentCandidates = <T,>(candidates: Phase4Candidate<T>[]) =>
   candidates.filter((candidate) => candidate.confidence !== "low");
+
+const buildLlmWarnings = (input: {
+  parseSuccess: boolean;
+  providerError: string | null;
+  parseError: string | null;
+  generationDiagnostics?: Awaited<
+    ReturnType<Phase4LLMProvider["extractTaskForm"]>
+  >["generationDiagnostics"];
+}): Phase4ValidationWarning[] => {
+  const warnings: Phase4ValidationWarning[] = [];
+  if (
+    input.generationDiagnostics?.stoppedLimit &&
+    input.generationDiagnostics.stoppedEos === false
+  ) {
+    warnings.push(
+      warning(
+        "llm",
+        "generation_cut_off",
+        "Local LLM generation reached the output token limit before an EOS stop.",
+      ),
+    );
+  }
+
+  if (input.parseSuccess) {
+    return warnings;
+  }
+
+  warnings.push(
+    warning(
+      "llm",
+      input.providerError ? "provider_failed" : "parse_failed",
+      input.providerError
+        ? `Local LLM provider failed: ${input.providerError}`
+        : `Local LLM output was not valid Phase 4 JSON: ${input.parseError ?? "Unknown parse error."}`,
+    ),
+  );
+  return warnings;
+};

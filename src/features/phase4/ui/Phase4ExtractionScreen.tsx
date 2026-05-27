@@ -28,7 +28,10 @@ import {
   exportPhase4ExtractionResultsCsv,
   savePhase4ExtractionResult,
 } from "@/src/features/phase4/storage/phase4ExtractionStorage";
-import type { Phase4Language } from "@/src/features/phase4/types/phase4.types";
+import type {
+  Phase4Language,
+  Phase4TaskTag,
+} from "@/src/features/phase4/types/phase4.types";
 import * as Sharing from "expo-sharing";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -53,6 +56,9 @@ export default function Phase4ExtractionScreen() {
   const [providerChoice, setProviderChoice] = useState<ProviderChoice>("mock");
   const [selectedUserId, setSelectedUserId] = useState(PHASE4_DEFAULT_USER_ID);
   const [result, setResult] = useState<Phase4ExtractionResult | null>(null);
+  const [selectedDraftCompanyId, setSelectedDraftCompanyId] = useState<string | null>(null);
+  const [selectedDraftAreaId, setSelectedDraftAreaId] = useState<string | null>(null);
+  const [selectedDraftTagCodes, setSelectedDraftTagCodes] = useState<string[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [rawVisible, setRawVisible] = useState(false);
   const [checkSummary, setCheckSummary] = useState<string | null>(null);
@@ -129,6 +135,12 @@ export default function Phase4ExtractionScreen() {
     void prepareRetrieval(false);
   }, [prepareRetrieval]);
 
+  useEffect(() => {
+    setSelectedDraftCompanyId(result?.draft.company.companyId ?? null);
+    setSelectedDraftAreaId(result?.draft.area.areaId ?? null);
+    setSelectedDraftTagCodes(result?.draft.tags.tagCodes ?? []);
+  }, [result?.resultId, result]);
+
   const saveResult = async () => {
     if (!result) {
       return;
@@ -160,6 +172,26 @@ export default function Phase4ExtractionScreen() {
     });
     setCheckSummary(summary.summary);
     setMessage(summary.summary);
+  };
+
+  const companySuggestions = result?.reviewSuggestions.companySuggestions ?? [];
+  const areaSuggestions = result?.reviewSuggestions.areaSuggestions ?? [];
+  const tagSuggestions = result?.reviewSuggestions.tagSuggestions ?? [];
+  const selectedCompany = companySuggestions.find(
+    (item) => item.companyId === selectedDraftCompanyId,
+  );
+  const selectedArea = areaSuggestions.find(
+    (item) => item.areaId === selectedDraftAreaId,
+  );
+  const selectedTagLabels = selectedDraftTagCodes
+    .map((code) => tagSuggestions.find((item) => item.tagCode === code)?.displayName)
+    .filter((value): value is Phase4TaskTag => Boolean(value));
+  const toggleDraftTag = (tagCode: string) => {
+    setSelectedDraftTagCodes((codes) =>
+      codes.includes(tagCode)
+        ? codes.filter((code) => code !== tagCode)
+        : [...codes, tagCode],
+    );
   };
 
   const checkLocalModel = async () => {
@@ -370,7 +402,11 @@ export default function Phase4ExtractionScreen() {
             />
             <Field
               label="Company"
-              value={result.draft.company.value ?? "Manual"}
+              value={
+                selectedCompany?.displayName ??
+                result.draft.company.value ??
+                "Manual"
+              }
               status={result.draft.company.status}
               confidence={result.draft.company.confidence}
             />
@@ -382,7 +418,7 @@ export default function Phase4ExtractionScreen() {
             />
             <Field
               label="Area"
-              value={result.draft.area.value ?? "Manual"}
+              value={selectedArea?.displayName ?? result.draft.area.value ?? "Manual"}
               status={result.draft.area.status}
               confidence={result.draft.area.confidence}
             />
@@ -400,9 +436,24 @@ export default function Phase4ExtractionScreen() {
             />
             <Field
               label="Tags"
-              value={result.draft.tags.value.join(", ") || "Manual"}
+              value={
+                selectedTagLabels.join(", ") ||
+                result.draft.tags.value.join(", ") ||
+                "Manual"
+              }
               status={result.draft.tags.status}
               confidence={result.draft.tags.confidence}
+            />
+            <CandidateSelectionPanel
+              companySuggestions={companySuggestions}
+              areaSuggestions={areaSuggestions}
+              tagSuggestions={tagSuggestions}
+              selectedCompanyId={selectedDraftCompanyId}
+              selectedAreaId={selectedDraftAreaId}
+              selectedTagCodes={selectedDraftTagCodes}
+              onSelectCompany={setSelectedDraftCompanyId}
+              onSelectArea={setSelectedDraftAreaId}
+              onToggleTag={toggleDraftTag}
             />
             <Metric
               label="Extraction time"
@@ -525,17 +576,107 @@ const Field = ({
   </View>
 );
 
+const CandidateSelectionPanel = ({
+  companySuggestions,
+  areaSuggestions,
+  tagSuggestions,
+  selectedCompanyId,
+  selectedAreaId,
+  selectedTagCodes,
+  onSelectCompany,
+  onSelectArea,
+  onToggleTag,
+}: {
+  companySuggestions: Phase4ExtractionResult["reviewSuggestions"]["companySuggestions"];
+  areaSuggestions: Phase4ExtractionResult["reviewSuggestions"]["areaSuggestions"];
+  tagSuggestions: Phase4ExtractionResult["reviewSuggestions"]["tagSuggestions"];
+  selectedCompanyId: string | null;
+  selectedAreaId: string | null;
+  selectedTagCodes: string[];
+  onSelectCompany: (companyId: string | null) => void;
+  onSelectArea: (areaId: string | null) => void;
+  onToggleTag: (tagCode: string) => void;
+}) => {
+  const hasSuggestions =
+    companySuggestions.length > 0 ||
+    areaSuggestions.length > 0 ||
+    tagSuggestions.length > 0;
+
+  if (!hasSuggestions) {
+    return null;
+  }
+
+  return (
+    <View style={styles.selectionBox}>
+      <Text style={styles.suggestionTitle}>Select from candidates</Text>
+      {companySuggestions.length > 0 ? (
+        <CandidateGroup title="Company">
+          {companySuggestions.map((item) => (
+            <Chip
+              key={`${item.companyId ?? item.displayName}-company`}
+              label={item.displayName ?? item.companyId ?? "Manual company"}
+              selected={item.companyId === selectedCompanyId}
+              onPress={() => onSelectCompany(item.companyId)}
+            />
+          ))}
+        </CandidateGroup>
+      ) : null}
+      {areaSuggestions.length > 0 ? (
+        <CandidateGroup title="Area">
+          {areaSuggestions.map((item) => (
+            <Chip
+              key={`${item.areaId}-area`}
+              label={item.displayName}
+              selected={item.areaId === selectedAreaId}
+              onPress={() => onSelectArea(item.areaId)}
+            />
+          ))}
+        </CandidateGroup>
+      ) : null}
+      {tagSuggestions.length > 0 ? (
+        <CandidateGroup title="Tags">
+          {tagSuggestions.map((item) => (
+            <Chip
+              key={`${item.tagCode}-tag`}
+              label={item.displayName}
+              selected={selectedTagCodes.includes(item.tagCode)}
+              onPress={() => onToggleTag(item.tagCode)}
+            />
+          ))}
+        </CandidateGroup>
+      ) : null}
+    </View>
+  );
+};
+
+const CandidateGroup = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <View style={styles.candidateGroup}>
+    <Text style={styles.candidateGroupTitle}>{title}</Text>
+    <View style={styles.row}>{children}</View>
+  </View>
+);
+
 const ReviewSuggestions = ({
   result,
 }: {
   result: Phase4ExtractionResult;
 }) => {
   const suggestions = result.reviewSuggestions;
+  const areaSuggestions = suggestions.areaSuggestions ?? [];
+  const tagSuggestions = suggestions.tagSuggestions ?? [];
   const hasSuggestions =
     Boolean(suggestions.workIntent) ||
     Boolean(suggestions.spokenDueDateText) ||
     Boolean(suggestions.spokenCompanyText) ||
     suggestions.companySuggestions.length > 0 ||
+    areaSuggestions.length > 0 ||
+    tagSuggestions.length > 0 ||
     suggestions.manualReviewReasons.length > 0;
 
   if (!hasSuggestions) {
@@ -565,6 +706,16 @@ const ReviewSuggestions = ({
         >
           {item.displayName ?? item.companyId ?? "Manual company"} -{" "}
           {item.matchType} / {item.confidence}
+        </Text>
+      ))}
+      {areaSuggestions.map((item) => (
+        <Text key={`${item.areaId}-${item.source}`} style={styles.note}>
+          {item.displayName} - {item.matchType} / {item.confidence}
+        </Text>
+      ))}
+      {tagSuggestions.map((item) => (
+        <Text key={`${item.tagCode}-${item.source}`} style={styles.note}>
+          {item.displayName} - tag / {item.confidence}
         </Text>
       ))}
       {suggestions.manualReviewReasons.map((reason) => (
@@ -735,6 +886,21 @@ const styles = StyleSheet.create({
     backgroundColor: C.surfaceAlt,
     padding: 12,
     gap: 6,
+  },
+  selectionBox: {
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    backgroundColor: C.surface,
+    padding: 12,
+    gap: 10,
+  },
+  candidateGroup: { gap: 6 },
+  candidateGroupTitle: {
+    color: C.textSubtle,
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
   },
   suggestionTitle: { color: C.text, fontSize: 14, fontWeight: "800" },
   warning: { color: C.warning, fontSize: 13, fontWeight: "700" },

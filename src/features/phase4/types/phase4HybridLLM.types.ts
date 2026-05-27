@@ -5,6 +5,8 @@ export type Phase4HybridDueDateCode =
   | "plus_3_days"
   | "plus_7_days";
 
+export const PHASE4_LLM_DESCRIPTION_MAX_LENGTH = 180;
+
 export type Phase4CompactCandidate = {
   id: string;
   label: string;
@@ -35,16 +37,13 @@ export type Phase4HybridLLMInput = {
 };
 
 export type Phase4HybridLLMOutput = {
-  description: string | null;
+  description: string;
   multiIssueDetected: boolean;
-  issueSummaries: string[];
   selectedCompanyId: string | null;
   selectedAreaId: string | null;
   requiredActionCode: string | null;
   dueDateCode: Phase4HybridDueDateCode | null;
-  rawDueDateText?: string | null;
   tagCodes: string[];
-  reviewNotes: string[];
 };
 
 export function isPhase4HybridLLMOutput(
@@ -55,15 +54,35 @@ export function isPhase4HybridLLMOutput(
   }
 
   const item = value as Record<string, unknown>;
+  const keys = Object.keys(item);
+  const expectedKeys = [
+    "description",
+    "multiIssueDetected",
+    "selectedCompanyId",
+    "selectedAreaId",
+    "requiredActionCode",
+    "dueDateCode",
+    "tagCodes",
+  ];
+
   return (
-    "description" in item &&
+    keys.length === expectedKeys.length &&
+    expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(item, key)) &&
+    typeof item.description === "string" &&
+    item.description.trim().length > 0 &&
+    item.description.length <= PHASE4_LLM_DESCRIPTION_MAX_LENGTH &&
     typeof item.multiIssueDetected === "boolean" &&
-    Array.isArray(item.issueSummaries) &&
-    "selectedCompanyId" in item &&
-    "selectedAreaId" in item &&
-    "requiredActionCode" in item &&
-    "dueDateCode" in item &&
+    (typeof item.selectedCompanyId === "string" || item.selectedCompanyId === null) &&
+    (typeof item.selectedAreaId === "string" || item.selectedAreaId === null) &&
+    (typeof item.requiredActionCode === "string" || item.requiredActionCode === null) &&
+    isDueDateCode(item.dueDateCode) &&
     Array.isArray(item.tagCodes) &&
-    Array.isArray(item.reviewNotes)
+    item.tagCodes.every((code) => typeof code === "string")
   );
 }
+
+const isDueDateCode = (value: unknown): value is Phase4HybridDueDateCode | null =>
+  value === null ||
+  value === "now" ||
+  value === "plus_3_days" ||
+  value === "plus_7_days";

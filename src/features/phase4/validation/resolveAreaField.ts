@@ -42,6 +42,21 @@ export function resolveAreaField(input: {
     return resolved(exactCandidate, "high", "Area selected from exact apartment and room match.", warnings, reviewNotes);
   }
 
+  if (input.areaCandidates.length > 0) {
+    reviewNotes.push("Area must be selected from retrieved candidates.");
+    return {
+      value: null,
+      areaId: null,
+      status: "selection_required",
+      confidence: input.areaCandidates.some((candidate) => candidate.confidence === "high")
+        ? "high"
+        : "medium",
+      reason: "Multiple possible areas were found; select the correct area.",
+      warnings,
+      reviewNotes,
+    };
+  }
+
   if (input.spokenAreaText) {
     warnings.push(
       `Spoken area "${input.spokenAreaText}" was not found in active project area data.`,

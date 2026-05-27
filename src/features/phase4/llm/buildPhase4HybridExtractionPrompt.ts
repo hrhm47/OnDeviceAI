@@ -3,6 +3,8 @@ import type {
   Phase4HybridLLMInput,
 } from "../types/phase4HybridLLM.types";
 
+export const PHASE4_RETRIEVED_CANDIDATE_LIMIT = 3;
+
 export function buildPhase4HybridExtractionPrompt(
   input: Phase4HybridLLMInput,
 ): string {
@@ -15,66 +17,48 @@ export function buildPhase4HybridExtractionPrompt(
       activePhase: input.project.activePhase ?? null,
     },
     retrievedCandidates: {
-      areas: compactCandidates(input.retrieval.areaCandidates, 3),
-      companies: compactCandidates(input.retrieval.companyCandidates, 3),
-      workTypes: compactCandidates(input.retrieval.workTypeCandidates, 3),
-      actions: compactCandidates(input.retrieval.actionCandidates, 3),
-      dates: compactCandidates(input.retrieval.dateCandidates, 3),
-      tags: compactCandidates(input.retrieval.tagCandidates, 3),
+      areas: compactCandidates(input.retrieval.areaCandidates),
+      companies: compactCandidates(input.retrieval.companyCandidates),
+      actions: compactCandidates(input.retrieval.actionCandidates),
+      dates: compactCandidates(input.retrieval.dateCandidates),
+      tags: compactCandidates(input.retrieval.tagCandidates),
     },
     retrievalConfidence: input.retrieval.confidence ?? "missing",
     retrievalWarnings: input.retrieval.warnings ?? [],
   };
 
   return `
-You are a construction report extraction helper.
+Extract one compact construction task JSON object.
 
-Your job is to create a SMALL JSON extraction result from the transcript and retrieved candidates.
-
-Rules:
-- Use only IDs from retrievedCandidates.
-- Do not invent company IDs.
-- Do not invent area IDs.
-- If no candidate is suitable, return null for that field.
-- Do not output the full form.
-- Do not output list, marker, photos, impacts, or notifications.
-- The app will build and validate the final form after your response.
-- Description must be a real short construction description, not a placeholder.
-- If the transcript contains multiple separate issues, set multiIssueDetected to true.
-- If a due date phrase does not match the listed date IDs, set dueDateCode to null and preserve the phrase in reviewNotes.
-- Return JSON only. No markdown. No explanation outside JSON.
+Use only IDs from retrievedCandidates. If no listed candidate fits, return null
+or [] for that field. Do not output the full form. The app validates the final
+draft after this response.
 
 Input:
-${JSON.stringify(payload, null, 2)}
+${JSON.stringify(payload)}
 
-Return JSON only with this exact shape:
-
-{
-  "description": string | null,
-  "multiIssueDetected": boolean,
-  "issueSummaries": string[],
-  "selectedCompanyId": string | null,
-  "selectedAreaId": string | null,
-  "requiredActionCode": string | null,
-  "dueDateCode": "now" | "plus_3_days" | "plus_7_days" | null,
-  "tagCodes": string[],
-  "reviewNotes": string[]
-}
-
-Field rules:
-- selectedCompanyId must be one of retrievedCandidates.companies[].id or null.
-- selectedAreaId must be one of retrievedCandidates.areas[].id or null.
-- requiredActionCode must be one of retrievedCandidates.actions[].id or null.
-- dueDateCode must be one of retrievedCandidates.dates[].id or null.
-- tagCodes must contain only retrievedCandidates.tags[].id values.
+Selection rules:
+- selectedCompanyId: one of retrievedCandidates.companies[].id or null.
+- selectedAreaId: one of retrievedCandidates.areas[].id or null.
+- requiredActionCode: one of retrievedCandidates.actions[].id or null.
+- dueDateCode: one of retrievedCandidates.dates[].id or null.
+- tagCodes: only retrievedCandidates.tags[].id values.
+- description: short real construction description, never null or a placeholder.
+- multiIssueDetected: true only when the transcript has separate issues.
 `.trim();
 }
 
 function compactCandidates(
   candidates: Phase4CompactCandidate[] | undefined,
-  limit: number,
 ) {
-  return (candidates ?? []).slice(0, limit).map((candidate) => ({
+  const uniqueCandidates = new Map<string, Phase4CompactCandidate>();
+  for (const candidate of candidates ?? []) {
+    if (!uniqueCandidates.has(candidate.id)) {
+      uniqueCandidates.set(candidate.id, candidate);
+    }
+  }
+
+  return Array.from(uniqueCandidates.values()).slice(0, PHASE4_RETRIEVED_CANDIDATE_LIMIT).map((candidate) => ({
     id: candidate.id,
     label: candidate.label,
     confidence: candidate.confidence ?? null,

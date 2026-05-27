@@ -3,6 +3,7 @@ export type Phase4Language = "en" | "fi";
 export type Phase4FieldStatus =
   | "extracted"
   | "suggested"
+  | "selection_required"
   | "manual_required"
   | "defaulted"
   | "skipped"
@@ -139,12 +140,31 @@ export type Phase4CompanyReviewSuggestion = {
   source: "llm" | "candidate" | "validator";
 };
 
+export type Phase4AreaReviewSuggestion = {
+  areaId: string;
+  displayName: string;
+  confidence: Phase4Confidence;
+  matchType: "exact" | "lexical" | "semantic" | "metadata" | "nearest";
+  reason: string;
+  source: "candidate" | "validator";
+};
+
+export type Phase4TagReviewSuggestion = {
+  tagCode: string;
+  displayName: Phase4TaskTag;
+  confidence: Phase4Confidence;
+  reason: string;
+  source: "candidate" | "validator";
+};
+
 export type Phase4ReviewSuggestions = {
   workIntent: string | null;
   spokenDueDateText: string | null;
   unsupportedDueDateReason: string | null;
   spokenCompanyText: string | null;
   companySuggestions: Phase4CompanyReviewSuggestion[];
+  areaSuggestions: Phase4AreaReviewSuggestion[];
+  tagSuggestions: Phase4TagReviewSuggestion[];
   manualReviewReasons: string[];
 };
 

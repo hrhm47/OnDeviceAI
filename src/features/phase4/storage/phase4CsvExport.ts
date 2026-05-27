@@ -36,6 +36,8 @@ const flattenCsvRow = (result: Phase4ExtractionResult) => {
     unsupportedDueDateReason: null,
     spokenCompanyText: null,
     companySuggestions: [],
+    areaSuggestions: [],
+    tagSuggestions: [],
     manualReviewReasons: [],
   };
 
