@@ -7,7 +7,6 @@ import {
 } from "./buildPhase4HybridExtractionPrompt";
 import type { Phase4LLMProvider } from "./phase4LLMProvider";
 import { PHASE4_SELECTED_LLM_MODEL } from "./phase4ModelConfig";
-import { PHASE4_LLM_DESCRIPTION_MAX_LENGTH } from "../types/phase4HybridLLM.types";
 
 const MODEL_DIR = `models/llm/${PHASE4_SELECTED_LLM_MODEL.modelId}`;
 const MODEL_PATH = `${MODEL_DIR}/${PHASE4_SELECTED_LLM_MODEL.filename}`;
@@ -25,7 +24,6 @@ const PHASE4_RESPONSE_SCHEMA_BASE = {
   type: "object",
   additionalProperties: false,
   required: [
-    "description",
     "multiIssueDetected",
     "selectedCompanyId",
     "selectedAreaId",
@@ -34,11 +32,6 @@ const PHASE4_RESPONSE_SCHEMA_BASE = {
     "tagCodes",
   ],
   properties: {
-    description: {
-      type: "string",
-      minLength: 1,
-      maxLength: PHASE4_LLM_DESCRIPTION_MAX_LENGTH,
-    },
     multiIssueDetected: { type: "boolean" },
   },
 };

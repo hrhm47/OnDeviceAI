@@ -1,5 +1,4 @@
 import type { Phase4HybridLLMInput } from "../types/phase4HybridLLM.types";
-import { PHASE4_LLM_DESCRIPTION_MAX_LENGTH } from "../types/phase4HybridLLM.types";
 import type { Phase4LLMProvider } from "./phase4LLMProvider";
 
 export const phase4MockLLMProvider: Phase4LLMProvider = {
@@ -28,7 +27,6 @@ const buildMockOutput = (input: Phase4HybridLLMInput) => {
       .map((candidate) => candidate.id) ?? [];
 
   return {
-    description: buildDescription(input.transcript),
     multiIssueDetected: detectMultiIssue(normalized),
     selectedCompanyId: input.retrieval.companyCandidates?.[0]?.id ?? null,
     selectedAreaId: input.retrieval.areaCandidates?.[0]?.id ?? null,
@@ -41,12 +39,6 @@ const buildMockOutput = (input: Phase4HybridLLMInput) => {
         : [],
   };
 };
-
-const buildDescription = (transcript: string) =>
-  transcript
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, PHASE4_LLM_DESCRIPTION_MAX_LENGTH);
 
 const detectMultiIssue = (normalized: string) => {
   const groups = [

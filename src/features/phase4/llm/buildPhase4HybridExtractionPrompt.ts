@@ -43,7 +43,6 @@ Selection rules:
 - requiredActionCode: one of retrievedCandidates.actions[].id or null.
 - dueDateCode: one of retrievedCandidates.dates[].id or null.
 - tagCodes: only retrievedCandidates.tags[].id values.
-- description: short real construction description, never null or a placeholder.
 - multiIssueDetected: true only when the transcript has separate issues.
 `.trim();
 }

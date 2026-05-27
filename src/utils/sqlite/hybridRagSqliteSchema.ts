@@ -93,8 +93,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS retrieval_items_fts USING fts5(
   item_type UNINDEXED,
   display_name,
   exact_aliases,
-  search_text,
-  content=''
+  search_text
 );
 
 CREATE INDEX IF NOT EXISTS idx_retrieval_items_project ON retrieval_items(project_id);

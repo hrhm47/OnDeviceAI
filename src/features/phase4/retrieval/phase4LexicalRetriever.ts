@@ -53,6 +53,25 @@ export const searchPhase4LexicalRetrievalItems = async (input: {
 
 const toFtsQuery = (value: string) =>
   Array.from(new Set(tokenizePhase4RetrievalText(value)))
+    .filter((token) => !LEXICAL_STOPWORDS.has(token))
     .slice(0, 12)
     .map((token) => `"${token.replace(/"/g, "\"\"")}"`)
     .join(" OR ");
+
+const LEXICAL_STOPWORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "be",
+  "in",
+  "is",
+  "it",
+  "of",
+  "on",
+  "or",
+  "the",
+  "there",
+  "to",
+  "with",
+]);

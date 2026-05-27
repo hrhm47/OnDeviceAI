@@ -77,6 +77,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     language: input.language,
     context: runtimeContext,
     hybridRetrieval,
+    candidateResolution,
   });
   console.log("Phase 4 LLM input summary:", {
     providerLanguage: input.language,
@@ -217,18 +218,39 @@ const hybridOnlyCandidates = (
   hybrid: Phase4HybridRetrievalResult,
 ): Phase4CandidateResolution => ({
   companyCandidates: confidentCompanyCandidates(hybrid.companyCandidates),
-  areaCandidates: confidentCandidates(hybrid.areaCandidates),
-  workTypeCandidates: confidentCandidates(hybrid.workTypeCandidates),
-  requiredActionCandidates: confidentCandidates(hybrid.actionCandidates),
-  dueDateCandidates: confidentCandidates(hybrid.dateCandidates),
-  tagCandidates: confidentCandidates(hybrid.tagCandidates),
+  areaCandidates: confidentUniqueCandidates(hybrid.areaCandidates),
+  workTypeCandidates: confidentUniqueCandidates(hybrid.workTypeCandidates),
+  requiredActionCandidates: confidentUniqueCandidates(hybrid.actionCandidates),
+  dueDateCandidates: confidentUniqueCandidates(hybrid.dateCandidates),
+  tagCandidates: confidentUniqueCandidates(hybrid.tagCandidates),
 });
 
 const confidentCompanyCandidates = (candidates: Phase4CompanyCandidate[]) =>
-  candidates.filter((candidate) => candidate.confidence !== "low");
+  uniqueCandidates(
+    candidates.filter((candidate) => candidate.confidence !== "low"),
+    (candidate) => candidate.value.companyId,
+  );
 
-const confidentCandidates = <T,>(candidates: Phase4Candidate<T>[]) =>
-  candidates.filter((candidate) => candidate.confidence !== "low");
+const confidentUniqueCandidates = <T,>(candidates: Phase4Candidate<T>[]) =>
+  uniqueCandidates(
+    candidates.filter((candidate) => candidate.confidence !== "low"),
+    (candidate) => candidate.id ?? String(candidate.value),
+  );
+
+const uniqueCandidates = <T,>(
+  candidates: T[],
+  key: (candidate: T) => string,
+) => {
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    const candidateKey = key(candidate);
+    if (seen.has(candidateKey)) {
+      return false;
+    }
+    seen.add(candidateKey);
+    return true;
+  });
+};
 
 const buildLlmWarnings = (input: {
   parseSuccess: boolean;

@@ -61,7 +61,7 @@ export function resolveRequiredAction(input: {
     if (candidate) {
       return {
         code: candidate.id,
-        value: toRequiredAction(candidate.label),
+        value: canonicalActionValue(candidate.id, candidate.label),
         status: "suggested",
         confidence: confidence(candidate.confidence),
         reason: "Action selected from retrieved candidate ID.",
@@ -90,7 +90,7 @@ export function resolveRequiredAction(input: {
   if (topCandidate) {
     return {
       code: topCandidate.id,
-      value: toRequiredAction(topCandidate.label),
+      value: canonicalActionValue(topCandidate.id, topCandidate.label),
       status: "suggested",
       confidence: "low",
       reason: "Action selected from top retrieval candidate.",
@@ -108,6 +108,22 @@ export function resolveRequiredAction(input: {
 
 const confidence = (value: string | undefined): Phase4Confidence =>
   value === "high" || value === "medium" || value === "low" ? value : "medium";
+
+const canonicalActionValue = (
+  code: string,
+  fallbackLabel: string,
+): Phase4RequiredAction | null => {
+  if (code === "repair") {
+    return "Korjaus";
+  }
+  if (code === "repaint") {
+    return "Maalataan uudestaan";
+  }
+  if (code === "seal") {
+    return "Kittaus ja maalaus";
+  }
+  return toRequiredAction(fallbackLabel);
+};
 
 const toRequiredAction = (value: string): Phase4RequiredAction | null => {
   const allowed: Phase4RequiredAction[] = [

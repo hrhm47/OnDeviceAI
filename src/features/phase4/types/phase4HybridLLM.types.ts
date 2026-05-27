@@ -5,8 +5,6 @@ export type Phase4HybridDueDateCode =
   | "plus_3_days"
   | "plus_7_days";
 
-export const PHASE4_LLM_DESCRIPTION_MAX_LENGTH = 180;
-
 export type Phase4CompactCandidate = {
   id: string;
   label: string;
@@ -37,7 +35,6 @@ export type Phase4HybridLLMInput = {
 };
 
 export type Phase4HybridLLMOutput = {
-  description: string;
   multiIssueDetected: boolean;
   selectedCompanyId: string | null;
   selectedAreaId: string | null;
@@ -56,7 +53,6 @@ export function isPhase4HybridLLMOutput(
   const item = value as Record<string, unknown>;
   const keys = Object.keys(item);
   const expectedKeys = [
-    "description",
     "multiIssueDetected",
     "selectedCompanyId",
     "selectedAreaId",
@@ -68,9 +64,6 @@ export function isPhase4HybridLLMOutput(
   return (
     keys.length === expectedKeys.length &&
     expectedKeys.every((key) => Object.prototype.hasOwnProperty.call(item, key)) &&
-    typeof item.description === "string" &&
-    item.description.trim().length > 0 &&
-    item.description.length <= PHASE4_LLM_DESCRIPTION_MAX_LENGTH &&
     typeof item.multiIssueDetected === "boolean" &&
     (typeof item.selectedCompanyId === "string" || item.selectedCompanyId === null) &&
     (typeof item.selectedAreaId === "string" || item.selectedAreaId === null) &&

@@ -20,6 +20,7 @@ import {
 import {
   getPhase4EmbeddingVectorCount,
   getPhase4RetrievalItemCount,
+  repairPhase4RetrievalItemsFtsIfNeeded,
   rebuildPhase4RetrievalItemsFts,
   upsertPhase4RetrievalItems,
 } from "../retrieval/phase4RetrievalItemRepository";
@@ -85,6 +86,7 @@ export const preparePhase4HybridRagRuntime = async (input?: {
   await upsertPhase4RetrievalItems(db, retrievalItems);
   const fts = await checkPhase4Fts5Support(db);
   if (fts.supported) {
+    await repairPhase4RetrievalItemsFtsIfNeeded(db);
     await rebuildPhase4RetrievalItemsFts(db);
   }
 

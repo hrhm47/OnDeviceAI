@@ -44,27 +44,19 @@ export function buildHybridGeneralTaskDraft(input: {
     })),
   });
   const description = resolveDescription({
-    llmDescription: input.llmOutput?.description ?? null,
+    llmDescription: null,
     transcript: input.transcript,
   });
   const hasMultipleIssues = Boolean(input.llmOutput?.multiIssueDetected);
-  const action = hasMultipleIssues
-    ? {
-        code: null,
-        value: null,
-        status: "manual_required" as const,
-        confidence: "none" as const,
-        reason: "Multiple issues were detected; required action must be reviewed.",
-      }
-    : resolveRequiredAction({
-        transcript: input.transcript,
-        llmActionCode: input.llmOutput?.requiredActionCode ?? null,
-        actionCandidates: input.candidateResolution.requiredActionCandidates.map((candidate) => ({
-          id: candidate.id ?? String(candidate.value),
-          label: candidate.label ?? String(candidate.value),
-          confidence: candidate.confidence,
-        })),
-      });
+  const action = resolveRequiredAction({
+    transcript: input.transcript,
+    llmActionCode: input.llmOutput?.requiredActionCode ?? null,
+    actionCandidates: input.candidateResolution.requiredActionCandidates.map((candidate) => ({
+      id: candidate.id ?? String(candidate.value),
+      label: candidate.label ?? String(candidate.value),
+      confidence: candidate.confidence,
+    })),
+  });
   const dueDate = resolveDueDate({
     transcript: input.transcript,
     llmDueDateCode: input.llmOutput?.dueDateCode ?? null,
@@ -88,7 +80,7 @@ export function buildHybridGeneralTaskDraft(input: {
       ...area.reviewNotes,
       ...dueDate.reviewNotes,
       ...(hasMultipleIssues
-        ? ["Multiple issues detected; create separate tasks manually."]
+        ? ["Possible multiple issues detected; review before creating separate tasks."]
         : []),
     ]),
   );

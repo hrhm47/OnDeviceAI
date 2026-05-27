@@ -62,7 +62,7 @@ export const getPhase4EmbeddingVectorCount = async (
 };
 
 export const rebuildPhase4RetrievalItemsFts = async (db: SQLiteDatabase) => {
-  await db.runAsync("INSERT INTO retrieval_items_fts(retrieval_items_fts) VALUES('delete-all')");
+  await db.runAsync("DELETE FROM retrieval_items_fts");
   const items = await getAllPhase4RetrievalItems(db);
   for (const item of items) {
     await db.runAsync(
@@ -77,6 +77,30 @@ export const rebuildPhase4RetrievalItemsFts = async (db: SQLiteDatabase) => {
       item.searchText,
     );
   }
+};
+
+export const repairPhase4RetrievalItemsFtsIfNeeded = async (
+  db: SQLiteDatabase,
+) => {
+  const rows = await db.getAllAsync<{ sql: string | null }>(
+    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'retrieval_items_fts'",
+  );
+  const createSql = rows[0]?.sql ?? "";
+  if (!createSql.includes("content=''") && !createSql.includes('content=""')) {
+    return;
+  }
+
+  await db.execAsync("DROP TABLE IF EXISTS retrieval_items_fts;");
+  await db.execAsync(`
+    CREATE VIRTUAL TABLE retrieval_items_fts USING fts5(
+      item_id UNINDEXED,
+      project_id UNINDEXED,
+      item_type UNINDEXED,
+      display_name,
+      exact_aliases,
+      search_text
+    );
+  `);
 };
 
 export const getAllPhase4RetrievalItems = async (db: SQLiteDatabase) => {

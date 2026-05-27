@@ -1,13 +1,19 @@
 import type { ProjectContextPackage } from "../context/activeProjectContextLoader";
 import type { Phase4HybridRetrievalResult } from "../retrieval/phase4HybridRetriever";
 import type { Phase4CompactCandidate, Phase4HybridLLMInput } from "../types/phase4HybridLLM.types";
-import type { Phase4Language, Phase4Candidate, Phase4CompanyCandidate } from "../types/phase4.types";
+import type {
+  Phase4Language,
+  Phase4Candidate,
+  Phase4CandidateResolution,
+  Phase4CompanyCandidate,
+} from "../types/phase4.types";
 
 export function buildPhase4HybridLLMInput(input: {
   transcript: string;
   language: Phase4Language;
   context: ProjectContextPackage;
   hybridRetrieval: Phase4HybridRetrievalResult;
+  candidateResolution: Phase4CandidateResolution;
 }): Phase4HybridLLMInput {
   return {
     promptVersion: "phase4_hybrid_rag_minimal_prompt_v1",
@@ -20,12 +26,12 @@ export function buildPhase4HybridLLMInput(input: {
     },
     retrieval: {
       confidence: retrievalConfidence(input.hybridRetrieval),
-      areaCandidates: input.hybridRetrieval.areaCandidates.map(toCompactCandidate),
-      companyCandidates: input.hybridRetrieval.companyCandidates.map(toCompanyCandidate),
-      workTypeCandidates: input.hybridRetrieval.workTypeCandidates.map(toCompactCandidate),
-      actionCandidates: input.hybridRetrieval.actionCandidates.map(toCompactCandidate),
-      dateCandidates: input.hybridRetrieval.dateCandidates.map(toCompactCandidate),
-      tagCandidates: input.hybridRetrieval.tagCandidates.map(toCompactCandidate),
+      areaCandidates: input.candidateResolution.areaCandidates.map(toCompactCandidate),
+      companyCandidates: input.candidateResolution.companyCandidates.map(toCompanyCandidate),
+      workTypeCandidates: input.candidateResolution.workTypeCandidates?.map(toCompactCandidate),
+      actionCandidates: input.candidateResolution.requiredActionCandidates.map(toCompactCandidate),
+      dateCandidates: input.candidateResolution.dueDateCandidates.map(toCompactCandidate),
+      tagCandidates: input.candidateResolution.tagCandidates.map(toCompactCandidate),
       warnings: input.hybridRetrieval.warnings,
     },
   };
