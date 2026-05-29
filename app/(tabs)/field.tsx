@@ -61,6 +61,12 @@ type EditableDraft = {
   tags: string;
 };
 
+type InlineSuggestion = {
+  id: string;
+  label: string;
+  meta?: string;
+};
+
 const phase4SeedBundle = getPhase4SeedBundle();
 
 const workflowSteps = [
@@ -305,8 +311,8 @@ export default function FieldScreen() {
 
       setResult(nextResult);
       setEditableDraft(createEditableDraft(nextResult));
-      setWorkflowStatus(nextResult.errorMessage ? "error" : "ready");
-      setMessage(nextResult.errorMessage ?? "Draft ready for review.");
+      setWorkflowStatus("ready");
+      setMessage("Draft ready for review.");
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
       setWorkflowStatus("error");
@@ -461,6 +467,7 @@ export default function FieldScreen() {
                 label="Company"
                 value={editableDraft.company}
                 status={friendlyFieldStatus(result.draft.company.status)}
+                suggestions={companyInlineSuggestions(result)}
                 onChangeText={(company) =>
                   setEditableDraft({ ...editableDraft, company })
                 }
@@ -478,6 +485,7 @@ export default function FieldScreen() {
                 label="Area"
                 value={editableDraft.area}
                 status={friendlyFieldStatus(result.draft.area.status)}
+                suggestions={areaInlineSuggestions(result)}
                 onChangeText={(area) =>
                   setEditableDraft({ ...editableDraft, area })
                 }
@@ -496,6 +504,7 @@ export default function FieldScreen() {
                 status={friendlyFieldStatus(
                   result.draft.requiredActionDueDate.status,
                 )}
+                suggestions={dueDateInlineSuggestions(result)}
                 onChangeText={(dueDate) =>
                   setEditableDraft({ ...editableDraft, dueDate })
                 }
@@ -504,22 +513,14 @@ export default function FieldScreen() {
                 label="Tags"
                 value={editableDraft.tags}
                 status={friendlyFieldStatus(result.draft.tags.status)}
+                suggestions={tagInlineSuggestions(result)}
                 onChangeText={(tags) =>
                   setEditableDraft({ ...editableDraft, tags })
                 }
               />
-              <ReviewSuggestions result={result} />
               <ReadOnlyRow label="Marker" value="Manual" />
               <ReadOnlyRow label="Photos" value="Skipped" />
               <ReadOnlyRow label="Notifications" value="False" />
-              {result.warnings.map((warning) => (
-                <Text
-                  key={`${warning.fieldId}-${warning.code}`}
-                  style={styles.warning}
-                >
-                  {warning.fieldId}: {warning.message}
-                </Text>
-              ))}
               <Pressable style={styles.saveButton} onPress={saveDraft}>
                 <IconSymbol
                   name="tray.and.arrow.down.fill"
@@ -597,6 +598,49 @@ const splitTags = (tags: string): Phase4TaskTag[] =>
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean) as Phase4TaskTag[];
+
+const companyInlineSuggestions = (
+  result: Phase4ExtractionResult,
+): InlineSuggestion[] =>
+  result.reviewSuggestions.companySuggestions.map((item) => ({
+    id: item.companyId ?? item.displayName ?? item.reason,
+    label: item.displayName ?? "Manual company",
+    meta: friendlySuggestionMeta(item.matchType, item.confidence),
+  }));
+
+const areaInlineSuggestions = (
+  result: Phase4ExtractionResult,
+): InlineSuggestion[] =>
+  result.reviewSuggestions.areaSuggestions.map((item) => ({
+    id: item.areaId,
+    label: item.displayName,
+    meta: friendlySuggestionMeta(item.matchType, item.confidence),
+  }));
+
+const dueDateInlineSuggestions = (
+  result: Phase4ExtractionResult,
+): InlineSuggestion[] =>
+  result.reviewSuggestions.spokenDueDateText
+    ? [
+        {
+          id: "spoken-due-date",
+          label: result.reviewSuggestions.spokenDueDateText,
+          meta: "spoken",
+        },
+      ]
+    : [];
+
+const tagInlineSuggestions = (
+  result: Phase4ExtractionResult,
+): InlineSuggestion[] =>
+  result.reviewSuggestions.tagSuggestions.map((item) => ({
+    id: item.tagCode,
+    label: item.displayName,
+    meta: item.confidence,
+  }));
+
+const friendlySuggestionMeta = (matchType: string, confidence: string) =>
+  `${matchType} / ${confidence}`;
 
 const fieldStatusForExtractionStep = (
   step: Phase4ExtractionProgressStep,
@@ -862,12 +906,14 @@ function EditableField({
   label,
   value,
   status,
+  suggestions,
   multiline,
   onChangeText,
 }: {
   label: string;
   value: string;
   status: string;
+  suggestions?: InlineSuggestion[];
   multiline?: boolean;
   onChangeText: (text: string) => void;
 }) {
@@ -884,88 +930,28 @@ function EditableField({
         textAlignVertical={multiline ? "top" : "center"}
         style={[styles.input, multiline && styles.multilineInput]}
       />
+      <InlineSuggestions suggestions={suggestions ?? []} />
     </View>
   );
 }
 
-function ReviewSuggestions({ result }: { result: Phase4ExtractionResult }) {
-  const suggestions = result.reviewSuggestions;
-  const hasSuggestions =
-    suggestions.companySuggestions.length > 0 ||
-    suggestions.areaSuggestions.length > 0 ||
-    suggestions.tagSuggestions.length > 0 ||
-    suggestions.manualReviewReasons.length > 0 ||
-    Boolean(suggestions.spokenCompanyText) ||
-    Boolean(suggestions.spokenDueDateText);
-
-  if (!hasSuggestions) {
-    return null;
-  }
-
-  return (
-    <View style={styles.suggestionBox}>
-      <Text style={styles.suggestionTitle}>Suggestions</Text>
-      {suggestions.spokenCompanyText ? (
-        <Text style={styles.suggestionNote}>
-          Spoken company: {suggestions.spokenCompanyText}
-        </Text>
-      ) : null}
-      {suggestions.spokenDueDateText ? (
-        <Text style={styles.suggestionNote}>
-          Spoken due date: {suggestions.spokenDueDateText}
-        </Text>
-      ) : null}
-      <SuggestionGroup
-        title="Companies"
-        items={suggestions.companySuggestions.map((item) => ({
-          id: item.companyId ?? item.displayName ?? item.reason,
-          label: item.displayName ?? "Manual company",
-          meta: `${item.matchType} / ${item.confidence}`,
-        }))}
-      />
-      <SuggestionGroup
-        title="Areas"
-        items={suggestions.areaSuggestions.map((item) => ({
-          id: item.areaId,
-          label: item.displayName,
-          meta: `${item.matchType} / ${item.confidence}`,
-        }))}
-      />
-      <SuggestionGroup
-        title="Tags"
-        items={suggestions.tagSuggestions.map((item) => ({
-          id: item.tagCode,
-          label: item.displayName,
-          meta: item.confidence,
-        }))}
-      />
-      {suggestions.manualReviewReasons.map((reason) => (
-        <Text key={reason} style={styles.warning}>
-          {reason}
-        </Text>
-      ))}
-    </View>
-  );
-}
-
-function SuggestionGroup({
-  title,
-  items,
+function InlineSuggestions({
+  suggestions,
 }: {
-  title: string;
-  items: { id: string; label: string; meta: string }[];
+  suggestions: InlineSuggestion[];
 }) {
-  if (items.length === 0) {
+  if (suggestions.length === 0) {
     return null;
   }
 
   return (
-    <View style={styles.suggestionGroup}>
-      <Text style={styles.suggestionGroupTitle}>{title}</Text>
-      {items.map((item) => (
-        <View key={item.id} style={styles.suggestionItem}>
-          <Text style={styles.suggestionItemLabel}>{item.label}</Text>
-          <Text style={styles.suggestionItemMeta}>{item.meta}</Text>
+    <View style={styles.inlineSuggestionList}>
+      {suggestions.map((suggestion) => (
+        <View key={suggestion.id} style={styles.inlineSuggestionItem}>
+          <Text style={styles.inlineSuggestionLabel}>{suggestion.label}</Text>
+          {suggestion.meta ? (
+            <Text style={styles.inlineSuggestionMeta}>{suggestion.meta}</Text>
+          ) : null}
         </View>
       ))}
     </View>
@@ -1261,51 +1247,29 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     lineHeight: 21,
   },
-  suggestionBox: {
-    gap: 10,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 8,
-    backgroundColor: C.surfaceAlt,
-    padding: 12,
-  },
-  suggestionTitle: {
-    color: C.text,
-    fontSize: 15,
-    fontWeight: "900",
-  },
-  suggestionNote: {
-    color: C.textSubtle,
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: "700",
-  },
-  suggestionGroup: {
+  inlineSuggestionList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 6,
   },
-  suggestionGroupTitle: {
-    color: C.textSubtle,
-    fontSize: 11,
-    fontWeight: "900",
-    textTransform: "uppercase",
-  },
-  suggestionItem: {
+  inlineSuggestionItem: {
     borderWidth: 1,
-    borderColor: C.border,
+    borderColor: C.primary,
     borderRadius: 8,
-    backgroundColor: C.surface,
-    padding: 10,
-    gap: 3,
+    backgroundColor: C.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2,
   },
-  suggestionItemLabel: {
+  inlineSuggestionLabel: {
     color: C.text,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "900",
   },
-  suggestionItemMeta: {
-    color: C.textSubtle,
-    fontSize: 12,
-    fontWeight: "700",
+  inlineSuggestionMeta: {
+    color: C.primary,
+    fontSize: 11,
+    fontWeight: "800",
   },
   readOnlyRow: {
     flexDirection: "row",
@@ -1330,11 +1294,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     textAlign: "right",
-  },
-  warning: {
-    color: C.warning,
-    fontSize: 13,
-    fontWeight: "800",
   },
   saveButton: {
     minHeight: 54,
