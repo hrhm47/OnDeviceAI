@@ -1,5 +1,5 @@
-import keywordSeed from "../data/construction_retrieval_keywords_v1.json";
 import type { ProjectContextPackage } from "../context/activeProjectContextLoader";
+import keywordSeed from "../data/construction_retrieval_keywords_v1.json";
 import type { Phase4RetrievalItem } from "./phase4RetrievalTypes";
 
 type KeywordGroup = {
