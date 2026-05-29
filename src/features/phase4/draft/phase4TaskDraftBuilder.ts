@@ -52,6 +52,14 @@ export type Phase4ExtractionResult = {
   } | null;
 };
 
+export type Phase4ExtractionProgressStep =
+  | "preparing_transcript"
+  | "preparing_runtime"
+  | "retrieving_context"
+  | "building_llm_input"
+  | "running_llm"
+  | "validating_draft";
+
 export const extractGeneralTaskFormDraft = async (input: {
   phase3ResultId?: string | null;
   rawTranscript?: string | null;
@@ -60,7 +68,9 @@ export const extractGeneralTaskFormDraft = async (input: {
   phase4UserId?: string | null;
   language: Phase4Language;
   provider?: Phase4LLMProvider;
+  onProgress?: (step: Phase4ExtractionProgressStep) => void;
 }): Promise<Phase4ExtractionResult> => {
+  input.onProgress?.("preparing_transcript");
   const transcript = preparePhase4Transcript(input);
   const {
     candidateResolution,
@@ -71,7 +81,9 @@ export const extractGeneralTaskFormDraft = async (input: {
   } = await resolveHybridCandidateResolution({
       transcript,
       userId: input.phase4UserId ?? undefined,
+      onProgress: input.onProgress,
     });
+  input.onProgress?.("building_llm_input");
   const llmInput = buildPhase4HybridLLMInput({
     transcript,
     language: input.language,
@@ -99,6 +111,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     | undefined;
 
   try {
+    input.onProgress?.("running_llm");
     const providerStartedAt = Date.now();
     const response = await provider.extractTaskForm(llmInput);
     console.log("Phase 4 LLM response summary:", {
@@ -121,6 +134,7 @@ export const extractGeneralTaskFormDraft = async (input: {
     errorMessage: parseResult.errorMessage,
     normalizedTextLength: parseResult.normalizedText.length,
   });
+  input.onProgress?.("validating_draft");
   const validationStartedAt = Date.now();
   const validation: Phase4HybridDraftBuildResult = buildHybridGeneralTaskDraft({
     llmOutput: parseResult.output,
@@ -175,6 +189,7 @@ export const extractGeneralTaskFormDraft = async (input: {
 const resolveHybridCandidateResolution = async (input: {
   transcript: string;
   userId?: string;
+  onProgress?: (step: Phase4ExtractionProgressStep) => void;
 }): Promise<{
   candidateResolution: Phase4CandidateResolution;
   hybridRetrieval: Phase4HybridRetrievalResult;
@@ -182,7 +197,9 @@ const resolveHybridCandidateResolution = async (input: {
   retrievalRuntime: Phase4ExtractionResult["retrievalRuntime"];
   runtimeContext: Awaited<ReturnType<typeof preparePhase4HybridRagRuntime>>["context"];
 }> => {
+  input.onProgress?.("preparing_runtime");
   const runtime = await preparePhase4HybridRagRuntime({ userId: input.userId });
+  input.onProgress?.("retrieving_context");
   const hybridRetrieval = await retrievePhase4HybridContext({
     transcript: input.transcript,
     context: runtime.context,
