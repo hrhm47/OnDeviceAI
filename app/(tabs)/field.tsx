@@ -54,17 +54,22 @@ type FieldWorkflowStatus =
 
 type EditableDraft = {
   company: string;
+  companyId: string | null;
   description: string;
   area: string;
+  areaId: string | null;
   requiredAction: string;
   dueDate: string;
   tags: string;
+  tagCodes: string[];
 };
 
 type InlineSuggestion = {
   id: string;
   label: string;
   meta?: string;
+  selected?: boolean;
+  onPress?: () => void;
 };
 
 const phase4SeedBundle = getPhase4SeedBundle();
@@ -467,9 +472,18 @@ export default function FieldScreen() {
                 label="Company"
                 value={editableDraft.company}
                 status={friendlyFieldStatus(result.draft.company.status)}
-                suggestions={companyInlineSuggestions(result)}
+                suggestions={companyInlineSuggestions(
+                  result,
+                  editableDraft.companyId,
+                  (suggestion) =>
+                    setEditableDraft({
+                      ...editableDraft,
+                      company: suggestion.label,
+                      companyId: suggestion.companyId,
+                    }),
+                )}
                 onChangeText={(company) =>
-                  setEditableDraft({ ...editableDraft, company })
+                  setEditableDraft({ ...editableDraft, company, companyId: null })
                 }
               />
               <EditableField
@@ -485,9 +499,18 @@ export default function FieldScreen() {
                 label="Area"
                 value={editableDraft.area}
                 status={friendlyFieldStatus(result.draft.area.status)}
-                suggestions={areaInlineSuggestions(result)}
+                suggestions={areaInlineSuggestions(
+                  result,
+                  editableDraft.areaId,
+                  (suggestion) =>
+                    setEditableDraft({
+                      ...editableDraft,
+                      area: suggestion.label,
+                      areaId: suggestion.areaId,
+                    }),
+                )}
                 onChangeText={(area) =>
-                  setEditableDraft({ ...editableDraft, area })
+                  setEditableDraft({ ...editableDraft, area, areaId: null })
                 }
               />
               <EditableField
@@ -508,14 +531,25 @@ export default function FieldScreen() {
                 onChangeText={(dueDate) =>
                   setEditableDraft({ ...editableDraft, dueDate })
                 }
+                onSelectSuggestion={(suggestion) =>
+                  setEditableDraft({
+                    ...editableDraft,
+                    dueDate: suggestion.label,
+                  })
+                }
               />
               <EditableField
                 label="Tags"
                 value={editableDraft.tags}
                 status={friendlyFieldStatus(result.draft.tags.status)}
-                suggestions={tagInlineSuggestions(result)}
+                suggestions={tagInlineSuggestions(
+                  result,
+                  editableDraft.tagCodes,
+                  (suggestion) =>
+                    setEditableDraft(toggleEditableDraftTag(editableDraft, suggestion)),
+                )}
                 onChangeText={(tags) =>
-                  setEditableDraft({ ...editableDraft, tags })
+                  setEditableDraft({ ...editableDraft, tags, tagCodes: [] })
                 }
               />
               <ReadOnlyRow label="Marker" value="Manual" />
@@ -541,11 +575,14 @@ const createEditableDraft = (
   result: Phase4ExtractionResult,
 ): EditableDraft => ({
   company: result.draft.company.value ?? "",
+  companyId: result.draft.company.companyId,
   description: result.draft.description.value,
   area: result.draft.area.value ?? "",
+  areaId: result.draft.area.areaId ?? null,
   requiredAction: result.draft.requiredAction.value ?? "",
   dueDate: result.draft.requiredActionDueDate.value ?? "",
   tags: result.draft.tags.value.join(", "),
+  tagCodes: result.draft.tags.tagCodes ?? [],
 });
 
 const applyEditsToResult = (
@@ -558,6 +595,7 @@ const applyEditsToResult = (
     (company) =>
       company.displayName.toLowerCase() === companyName.toLowerCase(),
   );
+  const tagValues = splitTags(editableDraft.tags);
 
   return {
     ...result,
@@ -566,7 +604,7 @@ const applyEditsToResult = (
       company: {
         ...result.draft.company,
         value: companyName || null,
-        companyId: matchedCompany?.companyId ?? null,
+        companyId: editableDraft.companyId ?? matchedCompany?.companyId ?? null,
       },
       description: {
         ...result.draft.description,
@@ -575,6 +613,7 @@ const applyEditsToResult = (
       area: {
         ...result.draft.area,
         value: editableDraft.area.trim() || null,
+        areaId: editableDraft.areaId,
       },
       requiredAction: {
         ...result.draft.requiredAction,
@@ -587,7 +626,8 @@ const applyEditsToResult = (
       },
       tags: {
         ...result.draft.tags,
-        value: splitTags(editableDraft.tags),
+        value: tagValues,
+        tagCodes: editableDraft.tagCodes,
       },
     },
   };
@@ -601,20 +641,32 @@ const splitTags = (tags: string): Phase4TaskTag[] =>
 
 const companyInlineSuggestions = (
   result: Phase4ExtractionResult,
+  selectedCompanyId: string | null,
+  onSelect: (suggestion: { label: string; companyId: string | null }) => void,
 ): InlineSuggestion[] =>
   result.reviewSuggestions.companySuggestions.map((item) => ({
     id: item.companyId ?? item.displayName ?? item.reason,
     label: item.displayName ?? "Manual company",
     meta: friendlySuggestionMeta(item.matchType, item.confidence),
+    selected: Boolean(item.companyId && item.companyId === selectedCompanyId),
+    onPress: () =>
+      onSelect({
+        label: item.displayName ?? "",
+        companyId: item.companyId,
+      }),
   }));
 
 const areaInlineSuggestions = (
   result: Phase4ExtractionResult,
+  selectedAreaId: string | null,
+  onSelect: (suggestion: { label: string; areaId: string }) => void,
 ): InlineSuggestion[] =>
   result.reviewSuggestions.areaSuggestions.map((item) => ({
     id: item.areaId,
     label: item.displayName,
     meta: friendlySuggestionMeta(item.matchType, item.confidence),
+    selected: item.areaId === selectedAreaId,
+    onPress: () => onSelect({ label: item.displayName, areaId: item.areaId }),
   }));
 
 const dueDateInlineSuggestions = (
@@ -632,15 +684,40 @@ const dueDateInlineSuggestions = (
 
 const tagInlineSuggestions = (
   result: Phase4ExtractionResult,
+  selectedTagCodes: string[],
+  onToggle: (suggestion: { label: Phase4TaskTag; tagCode: string }) => void,
 ): InlineSuggestion[] =>
   result.reviewSuggestions.tagSuggestions.map((item) => ({
     id: item.tagCode,
     label: item.displayName,
     meta: item.confidence,
+    selected: selectedTagCodes.includes(item.tagCode),
+    onPress: () =>
+      onToggle({ label: item.displayName, tagCode: item.tagCode }),
   }));
 
 const friendlySuggestionMeta = (matchType: string, confidence: string) =>
   `${matchType} / ${confidence}`;
+
+const toggleEditableDraftTag = (
+  draft: EditableDraft,
+  suggestion: { label: Phase4TaskTag; tagCode: string },
+): EditableDraft => {
+  const selected = draft.tagCodes.includes(suggestion.tagCode);
+  const nextTagCodes = selected
+    ? draft.tagCodes.filter((code) => code !== suggestion.tagCode)
+    : [...draft.tagCodes, suggestion.tagCode];
+  const currentTags = splitTags(draft.tags);
+  const nextTags = selected
+    ? currentTags.filter((tag) => tag !== suggestion.label)
+    : Array.from(new Set([...currentTags, suggestion.label]));
+
+  return {
+    ...draft,
+    tags: nextTags.join(", "),
+    tagCodes: nextTagCodes,
+  };
+};
 
 const fieldStatusForExtractionStep = (
   step: Phase4ExtractionProgressStep,
@@ -909,6 +986,7 @@ function EditableField({
   suggestions,
   multiline,
   onChangeText,
+  onSelectSuggestion,
 }: {
   label: string;
   value: string;
@@ -916,6 +994,7 @@ function EditableField({
   suggestions?: InlineSuggestion[];
   multiline?: boolean;
   onChangeText: (text: string) => void;
+  onSelectSuggestion?: (suggestion: InlineSuggestion) => void;
 }) {
   return (
     <View style={styles.field}>
@@ -930,15 +1009,20 @@ function EditableField({
         textAlignVertical={multiline ? "top" : "center"}
         style={[styles.input, multiline && styles.multilineInput]}
       />
-      <InlineSuggestions suggestions={suggestions ?? []} />
+      <InlineSuggestions
+        suggestions={suggestions ?? []}
+        onSelectSuggestion={onSelectSuggestion}
+      />
     </View>
   );
 }
 
 function InlineSuggestions({
   suggestions,
+  onSelectSuggestion,
 }: {
   suggestions: InlineSuggestion[];
+  onSelectSuggestion?: (suggestion: InlineSuggestion) => void;
 }) {
   if (suggestions.length === 0) {
     return null;
@@ -947,12 +1031,22 @@ function InlineSuggestions({
   return (
     <View style={styles.inlineSuggestionList}>
       {suggestions.map((suggestion) => (
-        <View key={suggestion.id} style={styles.inlineSuggestionItem}>
+        <Pressable
+          key={suggestion.id}
+          onPress={() => {
+            suggestion.onPress?.();
+            onSelectSuggestion?.(suggestion);
+          }}
+          style={[
+            styles.inlineSuggestionItem,
+            suggestion.selected && styles.inlineSuggestionItemSelected,
+          ]}
+        >
           <Text style={styles.inlineSuggestionLabel}>{suggestion.label}</Text>
           {suggestion.meta ? (
             <Text style={styles.inlineSuggestionMeta}>{suggestion.meta}</Text>
           ) : null}
-        </View>
+        </Pressable>
       ))}
     </View>
   );
@@ -1254,12 +1348,16 @@ const styles = StyleSheet.create({
   },
   inlineSuggestionItem: {
     borderWidth: 1,
-    borderColor: C.primary,
+    borderColor: C.border,
     borderRadius: 8,
-    backgroundColor: C.primarySoft,
+    backgroundColor: C.surface,
     paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 2,
+  },
+  inlineSuggestionItemSelected: {
+    backgroundColor: C.primarySoft,
+    borderColor: C.primary,
   },
   inlineSuggestionLabel: {
     color: C.text,
