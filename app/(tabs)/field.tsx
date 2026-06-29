@@ -149,6 +149,8 @@ export default function FieldScreen() {
     language,
   });
 
+  // once the user changes, we need to load the project context and prepare the retrieval runtime before allowing to record
+
   useEffect(() => {
     let active = true;
 
@@ -165,6 +167,9 @@ export default function FieldScreen() {
       const contextResult = loadActiveProjectContext({
         userId: selectedUserId,
       });
+
+      console.log("contextResult", contextResult);
+
       if (!contextResult.ok) {
         if (!active) {
           return;
@@ -281,6 +286,7 @@ export default function FieldScreen() {
     setMessage("Finalizing recorded speech.");
 
     const transcriptionResult = await stopRecordingAndTranscribe();
+    console.log("Transcription result:", transcriptionResult);
     const finalTranscript =
       transcriptionResult?.transcript.trim() ||
       latestResult?.transcript.trim() ||
@@ -309,6 +315,7 @@ export default function FieldScreen() {
         provider: phase4LocalLLMProvider,
         onProgress: (step) => {
           const nextStatus = fieldStatusForExtractionStep(step);
+          console.log("Extraction step:", step, "->", nextStatus);
           setWorkflowStatus(nextStatus);
           setMessage(messageForExtractionStep(step));
         },
@@ -483,7 +490,11 @@ export default function FieldScreen() {
                     }),
                 )}
                 onChangeText={(company) =>
-                  setEditableDraft({ ...editableDraft, company, companyId: null })
+                  setEditableDraft({
+                    ...editableDraft,
+                    company,
+                    companyId: null,
+                  })
                 }
               />
               <EditableField
@@ -546,7 +557,9 @@ export default function FieldScreen() {
                   result,
                   editableDraft.tagCodes,
                   (suggestion) =>
-                    setEditableDraft(toggleEditableDraftTag(editableDraft, suggestion)),
+                    setEditableDraft(
+                      toggleEditableDraftTag(editableDraft, suggestion),
+                    ),
                 )}
                 onChangeText={(tags) =>
                   setEditableDraft({ ...editableDraft, tags, tagCodes: [] })
@@ -692,8 +705,7 @@ const tagInlineSuggestions = (
     label: item.displayName,
     meta: item.confidence,
     selected: selectedTagCodes.includes(item.tagCode),
-    onPress: () =>
-      onToggle({ label: item.displayName, tagCode: item.tagCode }),
+    onPress: () => onToggle({ label: item.displayName, tagCode: item.tagCode }),
   }));
 
 const friendlySuggestionMeta = (matchType: string, confidence: string) =>
@@ -839,7 +851,10 @@ function UserSelector({
           {users.map((user) => (
             <Pressable
               key={user.user_id}
-              onPress={() => onSelect(user.user_id)}
+              onPress={() => [
+                console.log("user.user_id", user.user_id, user.display_name),
+                onSelect(user.user_id),
+              ]}
               style={[
                 styles.userOption,
                 selectedUser?.user_id === user.user_id &&

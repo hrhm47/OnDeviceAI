@@ -7,8 +7,8 @@ import { preparePhase4HybridRagRuntime } from "../storage/phase4HybridRagRuntime
 import type {
   GeneralTaskFormDraft,
   Phase4Candidate,
-  Phase4CompanyCandidate,
   Phase4CandidateResolution,
+  Phase4CompanyCandidate,
   Phase4Language,
   Phase4ReviewSuggestions,
 } from "../types/phase4.types";
@@ -84,6 +84,15 @@ export const extractGeneralTaskFormDraft = async (input: {
       onProgress: input.onProgress,
     });
   input.onProgress?.("building_llm_input");
+
+  console.log("Phase 4 candidate resolution input:", {
+    transcript,
+    language: input.language,
+    context: runtimeContext,
+    hybridRetrieval,
+    candidateResolution,
+  })
+
   const llmInput = buildPhase4HybridLLMInput({
     transcript,
     language: input.language,

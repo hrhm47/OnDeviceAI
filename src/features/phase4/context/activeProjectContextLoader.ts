@@ -8,9 +8,9 @@ import {
   type Phase4SeedProjectCompanyContext,
   type Phase4SeedUser,
 } from "../data/phase4SeedData";
-import { getPhase4ReferenceData } from "../referenceData/phase4ReferenceRepository";
 import type { GeneratedProjectArea } from "../rag/area/generateProjectAreas";
 import { getGeneratedAreasForProject } from "../rag/area/getGeneratedAreasForProject";
+import { getPhase4ReferenceData } from "../referenceData/phase4ReferenceRepository";
 import type {
   Phase4CompanyCategory,
   Phase4CompanyReference,
@@ -36,6 +36,7 @@ export const loadActiveProjectContext = (input?: {
   seedBundle?: Phase4SeedBundle;
 }): ProjectContextLoadResult => {
   const bundle = input?.seedBundle ?? getPhase4SeedBundle();
+  
   const userId = input?.userId ?? PHASE4_DEFAULT_USER_ID;
   const activeUser = bundle.users.find((user) => user.user_id === userId);
   if (!activeUser) {

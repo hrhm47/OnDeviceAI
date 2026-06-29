@@ -58,3 +58,7 @@ models/llm/**/*.gguf
 *.db
 *.sqlite
 *.sqlite3
+
+
+alppila_building_dataset_v2
+alppila_building_dataset_v2.zip
