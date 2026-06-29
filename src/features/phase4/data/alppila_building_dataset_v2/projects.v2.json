@@ -1,0 +1,12 @@
+[
+  {
+    "project_id": "p1_alppila_residential",
+    "project_name": "Alppila Residential Construction Project",
+    "project_type": "residential_apartment_building",
+    "project_status": "active",
+    "site_id": "site_triolitie_2",
+    "default_form_id": "general_task_form",
+    "dataset_language": "en",
+    "project_description": "Synthetic project used to test voice-assisted construction reporting for one residential apartment building."
+  }
+]

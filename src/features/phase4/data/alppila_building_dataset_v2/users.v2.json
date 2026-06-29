@@ -1,0 +1,57 @@
+[
+  {
+    "user_id": "u_timmo",
+    "display_name": "Timmo",
+    "role_type": "quality_inspector",
+    "employer_company_id": "c_main_builder",
+    "active_project_id": "p1_alppila_residential",
+    "default_building_id": "bldg_triolitie_2b",
+    "default_floor_number": 3,
+    "default_language": "en",
+    "user_description": "Main-contractor quality inspector."
+  },
+  {
+    "user_id": "u_jari",
+    "display_name": "Jari",
+    "role_type": "painting_foreman",
+    "employer_company_id": "c_pintafix",
+    "active_project_id": "p1_alppila_residential",
+    "default_building_id": "bldg_triolitie_2b",
+    "default_floor_number": 4,
+    "default_language": "en",
+    "user_description": "Painting foreman responsible for apartment finishing work."
+  },
+  {
+    "user_id": "u_sari",
+    "display_name": "Sari",
+    "role_type": "electrical_worker",
+    "employer_company_id": "c_northvolt",
+    "active_project_id": "p1_alppila_residential",
+    "default_building_id": "bldg_triolitie_2b",
+    "default_floor_number": 2,
+    "default_language": "en",
+    "user_description": "Electrical worker who may also report issues outside the electrical trade."
+  },
+  {
+    "user_id": "u_pekka",
+    "display_name": "Pekka",
+    "role_type": "plumbing_technician",
+    "employer_company_id": "c_aquapipe",
+    "active_project_id": "p1_alppila_residential",
+    "default_building_id": "bldg_triolitie_2b",
+    "default_floor_number": 5,
+    "default_language": "en",
+    "user_description": "Plumbing technician working in apartment kitchens and wet areas."
+  },
+  {
+    "user_id": "u_aino",
+    "display_name": "Aino",
+    "role_type": "cleaning_supervisor",
+    "employer_company_id": "c_cleansite",
+    "active_project_id": "p1_alppila_residential",
+    "default_building_id": "bldg_triolitie_2b",
+    "default_floor_number": 8,
+    "default_language": "en",
+    "user_description": "Cleaning supervisor who can identify finishing and safety issues during handover cleaning."
+  }
+]

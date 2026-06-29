@@ -1,0 +1,15 @@
+[
+  {
+    "site_id": "site_triolitie_2",
+    "project_id": "p1_alppila_residential",
+    "site_name": "Triolintie 2",
+    "address_line": "Triolintie 2",
+    "city_district": "Alppila",
+    "city": "Oulu",
+    "country": "Finland",
+    "building_ids": [
+      "bldg_triolitie_2b"
+    ],
+    "site_description": "Residential property site containing the modelled building Triolintie 2B."
+  }
+]
