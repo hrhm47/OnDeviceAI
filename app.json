@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "ondeviceai",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.haseeb26.OnDeviceAI",
@@ -30,10 +29,6 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -78,11 +73,7 @@
         "llama.rn",
         {
           "enableEntitlements": true,
-          "entitlementsProfile": [
-            "development",
-            "preview",
-            "production"
-          ],
+          "entitlementsProfile": ["development", "preview", "production"],
           "forceCxx20": true,
           "enableOpenCLAndHexagon": false
         }

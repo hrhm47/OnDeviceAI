@@ -4,11 +4,11 @@ import {
   setAudioModeAsync,
   useAudioRecorder,
 } from "expo-audio";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createPcmLiveStream,
   type PcmLiveStreamHandle,
 } from "react-native-sherpa-onnx/audio";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { whisperModels } from "@/constants/types/ModelTypes";
 
@@ -25,9 +25,9 @@ import {
   VADStatus,
 } from "../services/vadService";
 import {
-  ASRLanguage,
   ASREngine,
   ASREngineMetadata,
+  ASRLanguage,
   SegmentTranscript,
   TranscriptionResult,
 } from "../types/asr.types";
@@ -351,6 +351,7 @@ export const useAsrController = ({
           language,
           sampleRate: ASR_SAMPLE_RATE,
           onPartialResult: (partialText) => {
+            console.log("Native ASR partial result:", partialText);
             setPartialTranscript(partialText);
             setLiveTranscript(partialText);
             partialTranscriptsRef.current.push(partialText);
@@ -517,6 +518,7 @@ export const useAsrController = ({
         }
 
         const result = await engine.stopStreaming();
+        console.log("Native ASR stopStreaming result:", result);
         await persistResult(result);
         return result;
       }

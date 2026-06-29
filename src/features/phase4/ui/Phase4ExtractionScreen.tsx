@@ -6,13 +6,13 @@ import {
   PHASE4_DEFAULT_USER_ID,
 } from "@/src/features/phase4/data/phase4SeedData";
 import {
-  downloadPhase4EmbeddingGemmaModel,
-  getPhase4EmbeddingGemmaReadiness,
-} from "@/src/features/phase4/embeddings/phase4EmbeddingGemmaProvider";
-import {
   extractGeneralTaskFormDraft,
   type Phase4ExtractionResult,
 } from "@/src/features/phase4/draft/phase4TaskDraftBuilder";
+import {
+  downloadPhase4EmbeddingGemmaModel,
+  getPhase4EmbeddingGemmaReadiness,
+} from "@/src/features/phase4/embeddings/phase4EmbeddingGemmaProvider";
 import {
   downloadPhase4LocalLLMModel,
   getPhase4LocalLLMReadiness,
@@ -21,13 +21,13 @@ import {
 import { phase4MockLLMProvider } from "@/src/features/phase4/llm/phase4MockLLMProvider";
 import { PHASE4_SELECTED_LLM_MODEL } from "@/src/features/phase4/llm/phase4ModelConfig";
 import {
-  clearPhase4HybridRagRuntimeCache,
-  preparePhase4HybridRagRuntime,
-} from "@/src/features/phase4/storage/phase4HybridRagRuntime";
-import {
   exportPhase4ExtractionResultsCsv,
   savePhase4ExtractionResult,
 } from "@/src/features/phase4/storage/phase4ExtractionStorage";
+import {
+  clearPhase4HybridRagRuntimeCache,
+  preparePhase4HybridRagRuntime,
+} from "@/src/features/phase4/storage/phase4HybridRagRuntime";
 import type {
   Phase4Language,
   Phase4TaskTag,
@@ -56,9 +56,15 @@ export default function Phase4ExtractionScreen() {
   const [providerChoice, setProviderChoice] = useState<ProviderChoice>("mock");
   const [selectedUserId, setSelectedUserId] = useState(PHASE4_DEFAULT_USER_ID);
   const [result, setResult] = useState<Phase4ExtractionResult | null>(null);
-  const [selectedDraftCompanyId, setSelectedDraftCompanyId] = useState<string | null>(null);
-  const [selectedDraftAreaId, setSelectedDraftAreaId] = useState<string | null>(null);
-  const [selectedDraftTagCodes, setSelectedDraftTagCodes] = useState<string[]>([]);
+  const [selectedDraftCompanyId, setSelectedDraftCompanyId] = useState<
+    string | null
+  >(null);
+  const [selectedDraftAreaId, setSelectedDraftAreaId] = useState<string | null>(
+    null,
+  );
+  const [selectedDraftTagCodes, setSelectedDraftTagCodes] = useState<string[]>(
+    [],
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [rawVisible, setRawVisible] = useState(false);
   const [checkSummary, setCheckSummary] = useState<string | null>(null);
@@ -105,31 +111,38 @@ export default function Phase4ExtractionScreen() {
     );
   };
 
-  const prepareRetrieval = useCallback(async (forceRefresh = false) => {
-    try {
-      setMessage("Preparing Phase 4 retrieval...");
-      setEmbeddingIndexProgress(null);
-      const runtime = await preparePhase4HybridRagRuntime({
-        userId: selectedUserId,
-        forceRefresh,
-        embeddingMode: "ifReady",
-        onEmbeddingProgress: (progress) => {
-          setEmbeddingIndexProgress(
-            `Indexing embeddings: ${progress.completed}/${progress.total}`,
-          );
-        },
-      });
-      const status = `${runtime.status.message} ${runtime.status.retrievalItemCount} retrieval items. FTS5 ${runtime.status.ftsReady ? "ready" : "unavailable"}. Vectors ${runtime.status.embeddingVectorCount}.`;
-      setRetrievalStatus(status);
-      setMessage(status);
-    } catch (error) {
-      const text = error instanceof Error ? error.message : String(error);
-      setRetrievalStatus(`Retrieval preparation failed: ${text}`);
-      setMessage(`Retrieval preparation failed: ${text}`);
-    } finally {
-      setEmbeddingIndexProgress(null);
-    }
-  }, [selectedUserId]);
+  // test LLM with new way of finding issues and locations
+
+  // it will be done after running few more tests and understanding of the current system and limitation and synthetic data
+
+  const prepareRetrieval = useCallback(
+    async (forceRefresh = false) => {
+      try {
+        setMessage("Preparing Phase 4 retrieval...");
+        setEmbeddingIndexProgress(null);
+        const runtime = await preparePhase4HybridRagRuntime({
+          userId: selectedUserId,
+          forceRefresh,
+          embeddingMode: "ifReady",
+          onEmbeddingProgress: (progress) => {
+            setEmbeddingIndexProgress(
+              `Indexing embeddings: ${progress.completed}/${progress.total}`,
+            );
+          },
+        });
+        const status = `${runtime.status.message} ${runtime.status.retrievalItemCount} retrieval items. FTS5 ${runtime.status.ftsReady ? "ready" : "unavailable"}. Vectors ${runtime.status.embeddingVectorCount}.`;
+        setRetrievalStatus(status);
+        setMessage(status);
+      } catch (error) {
+        const text = error instanceof Error ? error.message : String(error);
+        setRetrievalStatus(`Retrieval preparation failed: ${text}`);
+        setMessage(`Retrieval preparation failed: ${text}`);
+      } finally {
+        setEmbeddingIndexProgress(null);
+      }
+    },
+    [selectedUserId],
+  );
 
   useEffect(() => {
     void prepareRetrieval(false);
@@ -161,6 +174,7 @@ export default function Phase4ExtractionScreen() {
       setMessage(`Phase 4 CSV export created: ${path}`);
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
+      console.log("CSV export failed:", text);
       setMessage(`CSV export failed: ${text}`);
       Alert.alert("CSV export failed", text);
     }
@@ -184,7 +198,10 @@ export default function Phase4ExtractionScreen() {
     (item) => item.areaId === selectedDraftAreaId,
   );
   const selectedTagLabels = selectedDraftTagCodes
-    .map((code) => tagSuggestions.find((item) => item.tagCode === code)?.displayName)
+    .map(
+      (code) =>
+        tagSuggestions.find((item) => item.tagCode === code)?.displayName,
+    )
     .filter((value): value is Phase4TaskTag => Boolean(value));
   const toggleDraftTag = (tagCode: string) => {
     setSelectedDraftTagCodes((codes) =>
@@ -418,7 +435,9 @@ export default function Phase4ExtractionScreen() {
             />
             <Field
               label="Area"
-              value={selectedArea?.displayName ?? result.draft.area.value ?? "Manual"}
+              value={
+                selectedArea?.displayName ?? result.draft.area.value ?? "Manual"
+              }
               status={result.draft.area.status}
               confidence={result.draft.area.confidence}
             />
@@ -662,11 +681,7 @@ const CandidateGroup = ({
   </View>
 );
 
-const ReviewSuggestions = ({
-  result,
-}: {
-  result: Phase4ExtractionResult;
-}) => {
+const ReviewSuggestions = ({ result }: { result: Phase4ExtractionResult }) => {
   const suggestions = result.reviewSuggestions;
   const areaSuggestions = suggestions.areaSuggestions ?? [];
   const tagSuggestions = suggestions.tagSuggestions ?? [];
