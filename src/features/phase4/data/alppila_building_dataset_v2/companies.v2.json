@@ -1,0 +1,112 @@
+[
+  {
+    "company_id": "c_main_builder",
+    "company_name": "Main Builder Oy",
+    "company_type": "main_contractor",
+    "general_capability_work_type_ids": [
+      "wt_general_construction"
+    ],
+    "home_city": "Oulu",
+    "company_status": "active",
+    "company_description": "Main contractor responsible for site coordination and general construction."
+  },
+  {
+    "company_id": "c_pintafix",
+    "company_name": "PintaFix Oy",
+    "company_type": "subcontractor",
+    "general_capability_work_type_ids": [
+      "wt_painting_finishing"
+    ],
+    "home_city": "Oulu",
+    "company_status": "active",
+    "company_description": "Painting and apartment-level surface correction contractor."
+  },
+  {
+    "company_id": "c_aquapipe",
+    "company_name": "AquaPipe Finland Oy",
+    "company_type": "subcontractor",
+    "general_capability_work_type_ids": [
+      "wt_plumbing"
+    ],
+    "home_city": "Oulu",
+    "company_status": "active",
+    "company_description": "Plumbing installation and repair contractor."
+  },
+  {
+    "company_id": "c_northvolt",
+    "company_name": "NorthVolt Electrical Oy",
+    "company_type": "subcontractor",
+    "general_capability_work_type_ids": [
+      "wt_electrical"
+    ],
+    "home_city": "Oulu",
+    "company_status": "active",
+    "company_description": "Electrical installation, finishing, and safety contractor."
+  },
+  {
+    "company_id": "c_hvacpro",
+    "company_name": "HVACPro Oulu Oy",
+    "company_type": "subcontractor",
+    "general_capability_work_type_ids": [
+      "wt_hvac_ventilation"
+    ],
+    "home_city": "Oulu",
+    "company_status": "active",
+    "company_description": "HVAC and ventilation installation and adjustment contractor."
+  },
+  {
+    "company_id": "c_tilepro",
+    "company_name": "TilePro Oulu Oy",
+    "company_type": "specialist_subcontractor",
+    "general_capability_work_type_ids": [
+      "wt_tiling"
+    ],
+    "home_city": "Oulu",
+    "company_status": "active",
+    "company_description": "Wet-area and apartment tiling contractor."
+  },
+  {
+    "company_id": "c_sealsafe",
+    "company_name": "SealSafe Oy",
+    "company_type": "specialist_subcontractor",
+    "general_capability_work_type_ids": [
+      "wt_sealing_waterproofing"
+    ],
+    "home_city": "Oulu",
+    "company_status": "active",
+    "company_description": "Sealing, silicone, and waterproofing specialist."
+  },
+  {
+    "company_id": "c_doorwindow",
+    "company_name": "DoorWindow Fix Oy",
+    "company_type": "specialist_subcontractor",
+    "general_capability_work_type_ids": [
+      "wt_doors_windows"
+    ],
+    "home_city": "Oulu",
+    "company_status": "active",
+    "company_description": "Door and window installation and adjustment specialist."
+  },
+  {
+    "company_id": "c_cleansite",
+    "company_name": "CleanSite Oy",
+    "company_type": "subcontractor",
+    "general_capability_work_type_ids": [
+      "wt_cleaning"
+    ],
+    "home_city": "Oulu",
+    "company_status": "active",
+    "company_description": "Construction and final cleaning contractor."
+  },
+  {
+    "company_id": "c_floorfix",
+    "company_name": "FloorFix Oy",
+    "company_type": "specialist_subcontractor",
+    "general_capability_work_type_ids": [
+      "wt_flooring"
+    ],
+    "home_city": "Oulu",
+    "company_status": "active",
+    "company_description": "Flooring, laminate, parquet, and skirting-board repair specialist."
+  }
+]

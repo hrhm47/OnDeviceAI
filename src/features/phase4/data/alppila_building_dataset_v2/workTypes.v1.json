@@ -1,0 +1,203 @@
+[
+  {
+    "work_type_id": "wt_general_construction",
+    "name": "General construction",
+    "description": "General building work, coordination, and non-specialist repairs.",
+    "aliases_en": [
+      "general repair",
+      "construction repair",
+      "building repair",
+      "unfinished construction work",
+      "site coordination"
+    ],
+    "example_issues_en": [
+      "unfinished wall opening",
+      "damaged partition",
+      "general repair required"
+    ]
+  },
+  {
+    "work_type_id": "wt_painting_finishing",
+    "name": "Painting and surface finishing",
+    "description": "Painting, touch-up work, and wall or ceiling surface corrections.",
+    "aliases_en": [
+      "paint damage",
+      "wall scratch",
+      "uneven paint",
+      "paint peeling",
+      "repaint",
+      "touch up",
+      "surface defect",
+      "poor finish"
+    ],
+    "example_issues_en": [
+      "paint is damaged beside the window",
+      "the wall finish is uneven",
+      "the ceiling needs repainting"
+    ]
+  },
+  {
+    "work_type_id": "wt_plumbing",
+    "name": "Plumbing",
+    "description": "Pipes, drains, water fixtures, toilets, sinks, and visible leaks.",
+    "aliases_en": [
+      "pipe",
+      "water pipe",
+      "leak",
+      "sink leak",
+      "drain",
+      "toilet",
+      "tap",
+      "faucet",
+      "water fixture",
+      "plumbing"
+    ],
+    "example_issues_en": [
+      "water is leaking under the sink",
+      "the toilet connection is loose",
+      "the drain is blocked"
+    ]
+  },
+  {
+    "work_type_id": "wt_electrical",
+    "name": "Electrical work",
+    "description": "Sockets, switches, lighting, wiring, cables, and electrical safety.",
+    "aliases_en": [
+      "socket",
+      "power outlet",
+      "switch",
+      "light",
+      "lighting",
+      "wire",
+      "wiring",
+      "cable",
+      "electrical panel",
+      "exposed wire"
+    ],
+    "example_issues_en": [
+      "the socket is loose",
+      "the ceiling light does not work",
+      "an electrical cable is exposed"
+    ]
+  },
+  {
+    "work_type_id": "wt_hvac_ventilation",
+    "name": "HVAC and ventilation",
+    "description": "Ventilation terminals, airflow, heating, cooling, and HVAC adjustments.",
+    "aliases_en": [
+      "ventilation",
+      "airflow",
+      "air flow",
+      "vent",
+      "air valve",
+      "heating",
+      "radiator",
+      "thermostat",
+      "HVAC"
+    ],
+    "example_issues_en": [
+      "there is no airflow from the vent",
+      "the radiator is not heating",
+      "the ventilation valve is loose"
+    ]
+  },
+  {
+    "work_type_id": "wt_tiling",
+    "name": "Tiling",
+    "description": "Wall and floor tiles, grout, and tile finishing.",
+    "aliases_en": [
+      "tile",
+      "floor tile",
+      "wall tile",
+      "cracked tile",
+      "loose tile",
+      "grout",
+      "missing grout"
+    ],
+    "example_issues_en": [
+      "a bathroom tile is cracked",
+      "the floor tile is loose",
+      "grout is missing beside the shower"
+    ]
+  },
+  {
+    "work_type_id": "wt_sealing_waterproofing",
+    "name": "Sealing and waterproofing",
+    "description": "Silicone joints, sealants, waterproofing, thresholds, and wet-area sealing.",
+    "aliases_en": [
+      "silicone",
+      "seal",
+      "sealant",
+      "waterproofing",
+      "waterproof membrane",
+      "joint sealing",
+      "missing silicone"
+    ],
+    "example_issues_en": [
+      "silicone is missing around the shower",
+      "the balcony door seal is damaged",
+      "waterproofing needs inspection"
+    ]
+  },
+  {
+    "work_type_id": "wt_doors_windows",
+    "name": "Doors and windows",
+    "description": "Doors, windows, handles, locks, hinges, seals, and adjustments.",
+    "aliases_en": [
+      "door",
+      "window",
+      "handle",
+      "lock",
+      "hinge",
+      "does not close",
+      "does not open",
+      "balcony door",
+      "window seal"
+    ],
+    "example_issues_en": [
+      "the balcony door does not close",
+      "the window handle is loose",
+      "the apartment door needs adjustment"
+    ]
+  },
+  {
+    "work_type_id": "wt_cleaning",
+    "name": "Cleaning",
+    "description": "Construction cleaning, dust removal, waste removal, and final cleaning.",
+    "aliases_en": [
+      "dirty",
+      "dust",
+      "construction dust",
+      "waste",
+      "debris",
+      "cleaning",
+      "final cleaning",
+      "remove rubbish"
+    ],
+    "example_issues_en": [
+      "construction dust remains in the bedroom",
+      "waste must be removed from the corridor",
+      "the apartment needs final cleaning"
+    ]
+  },
+  {
+    "work_type_id": "wt_flooring",
+    "name": "Flooring",
+    "description": "Laminate, parquet, vinyl, floor surfaces, skirting boards, and floor repairs.",
+    "aliases_en": [
+      "floor",
+      "flooring",
+      "laminate",
+      "parquet",
+      "vinyl",
+      "floor scratch",
+      "loose floor",
+      "skirting board"
+    ],
+    "example_issues_en": [
+      "the laminate is loose",
+      "the floor is scratched",
+      "the skirting board is missing"
+    ]
+  }
+]
