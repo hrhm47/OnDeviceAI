@@ -2,12 +2,22 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FieldColors as C } from "@/constants/theme";
 import { useAsrController } from "@/src/features/asr/hooks/useAsrController";
 import {
+  loadActiveProjectContext,
+  type ProjectContextPackage,
+} from "@/src/features/phase4/context/activeProjectContextLoader";
+import {
+  getPhase4SeedBundle,
+  PHASE4_DEFAULT_USER_ID,
+  type Phase4SeedUser,
+} from "@/src/features/phase4/data/phase4SeedData";
+import {
   extractGeneralTaskFormDraft,
+  type Phase4ExtractionProgressStep,
   type Phase4ExtractionResult,
 } from "@/src/features/phase4/draft/phase4TaskDraftBuilder";
 import { phase4LocalLLMProvider } from "@/src/features/phase4/llm/phase4LocalLLMProvider";
-import { loadActiveProjectContext } from "@/src/features/phase4/context/activeProjectContextLoader";
 import { savePhase4ExtractionResult } from "@/src/features/phase4/storage/phase4ExtractionStorage";
+import { preparePhase4HybridRagRuntime } from "@/src/features/phase4/storage/phase4HybridRagRuntime";
 import type {
   Phase4AllowedDueDate,
   Phase4Language,
@@ -16,8 +26,8 @@ import type {
 } from "@/src/features/phase4/types/phase4.types";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -30,37 +40,61 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type FieldWorkflowStatus =
-  | "idle"
+  | "selecting_user"
+  | "loading_context"
+  | "ready_to_record"
   | "recording"
   | "transcribing"
-  | "extracting"
+  | "preparing_transcript"
+  | "retrieving_context"
+  | "extracting_with_llm"
   | "ready"
   | "saved"
   | "error";
 
 type EditableDraft = {
   company: string;
+  companyId: string | null;
   description: string;
   area: string;
+  areaId: string | null;
   requiredAction: string;
   dueDate: string;
   tags: string;
+  tagCodes: string[];
 };
 
+type InlineSuggestion = {
+  id: string;
+  label: string;
+  meta?: string;
+  selected?: boolean;
+  onPress?: () => void;
+};
+
+const phase4SeedBundle = getPhase4SeedBundle();
+
 const workflowSteps = [
+  { key: "selecting_user", label: "User" },
+  { key: "loading_context", label: "Data" },
   { key: "recording", label: "Record" },
-  { key: "transcribing", label: "Transcribe" },
-  { key: "extracting", label: "Extract" },
+  { key: "transcribing", label: "Speech" },
+  { key: "retrieving_context", label: "RAG" },
+  { key: "extracting_with_llm", label: "Draft" },
   { key: "ready", label: "Review" },
 ] as const;
 
 const statusIndex: Record<FieldWorkflowStatus, number> = {
-  idle: -1,
-  recording: 0,
-  transcribing: 1,
-  extracting: 2,
-  ready: 3,
-  saved: 3,
+  selecting_user: 0,
+  loading_context: 1,
+  ready_to_record: 2,
+  recording: 2,
+  transcribing: 3,
+  preparing_transcript: 3,
+  retrieving_context: 4,
+  extracting_with_llm: 5,
+  ready: 6,
+  saved: 6,
   error: -1,
 };
 
@@ -68,21 +102,38 @@ const waitForPaint = () =>
   new Promise((resolve) => requestAnimationFrame(resolve));
 
 export default function FieldScreen() {
+  const [selectedUserId, setSelectedUserId] = useState(PHASE4_DEFAULT_USER_ID);
+  const [projectContext, setProjectContext] =
+    useState<ProjectContextPackage | null>(null);
   const [language, setLanguage] = useState<Phase4Language>("en");
   const [workflowStatus, setWorkflowStatus] =
-    useState<FieldWorkflowStatus>("idle");
+    useState<FieldWorkflowStatus>("loading_context");
   const [transcript, setTranscript] = useState("");
   const [result, setResult] = useState<Phase4ExtractionResult | null>(null);
-  const [editableDraft, setEditableDraft] = useState<EditableDraft | null>(null);
+  const [editableDraft, setEditableDraft] = useState<EditableDraft | null>(
+    null,
+  );
   const [message, setMessage] = useState<string | null>(null);
+  const [embeddingIndexProgress, setEmbeddingIndexProgress] = useState<
+    string | null
+  >(null);
+  const [userSelectorOpen, setUserSelectorOpen] = useState(false);
 
-  const referenceData = useMemo(() => {
-    const context = loadActiveProjectContext();
-    if (!context.ok) {
-      return { companies: [] };
-    }
-    return context.context.referenceData;
-  }, []);
+  const selectedUser = useMemo(
+    () =>
+      phase4SeedBundle.users.find((user) => user.user_id === selectedUserId) ??
+      null,
+    [selectedUserId],
+  );
+  const selectedProject = useMemo(
+    () =>
+      phase4SeedBundle.projects.find(
+        (project) => project.project_id === selectedUser?.active_project_id,
+      ) ?? null,
+    [selectedUser],
+  );
+  const referenceData = projectContext?.referenceData ?? { companies: [] };
+
   const {
     status: asrStatus,
     isRecording,
@@ -98,6 +149,86 @@ export default function FieldScreen() {
     language,
   });
 
+  // once the user changes, we need to load the project context and prepare the retrieval runtime before allowing to record
+
+  useEffect(() => {
+    let active = true;
+
+    const loadProjectContext = async () => {
+      setWorkflowStatus("loading_context");
+      setProjectContext(null);
+      setTranscript("");
+      setResult(null);
+      setEditableDraft(null);
+      setEmbeddingIndexProgress(null);
+      setUserSelectorOpen(false);
+      setMessage("Loading project data.");
+
+      const contextResult = loadActiveProjectContext({
+        userId: selectedUserId,
+      });
+
+      console.log("contextResult", contextResult);
+
+      if (!contextResult.ok) {
+        if (!active) {
+          return;
+        }
+        setWorkflowStatus("error");
+        setMessage(contextResult.errorMessage);
+        return;
+      }
+
+      const nextUserLanguage =
+        contextResult.context.activeUser.default_language === "fi"
+          ? "fi"
+          : "en";
+      if (active) {
+        setLanguage(nextUserLanguage);
+        setProjectContext(contextResult.context);
+        setMessage("Preparing retrieval.");
+      }
+
+      try {
+        const runtime = await preparePhase4HybridRagRuntime({
+          userId: selectedUserId,
+          embeddingMode: "ifReady",
+          onEmbeddingProgress: (progress) => {
+            if (!active) {
+              return;
+            }
+            setEmbeddingIndexProgress(
+              `Indexing embeddings ${progress.completed}/${progress.total}`,
+            );
+          },
+        });
+
+        if (!active) {
+          return;
+        }
+        setWorkflowStatus("ready_to_record");
+        setMessage(runtime.status.message);
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        const text = error instanceof Error ? error.message : String(error);
+        setWorkflowStatus("error");
+        setMessage(text);
+      } finally {
+        if (active) {
+          setEmbeddingIndexProgress(null);
+        }
+      }
+    };
+
+    void loadProjectContext();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedUserId]);
+
   useEffect(() => {
     if (liveTranscript) {
       setTranscript(liveTranscript);
@@ -111,12 +242,30 @@ export default function FieldScreen() {
     }
   }, [asrError]);
 
+  const busyWithExtraction =
+    workflowStatus === "transcribing" ||
+    workflowStatus === "preparing_transcript" ||
+    workflowStatus === "retrieving_context" ||
+    workflowStatus === "extracting_with_llm";
+  const contextLoading = workflowStatus === "loading_context";
+  const userControlsDisabled =
+    contextLoading || isRecording || busyWithExtraction;
+  const micDisabled = contextLoading || busyWithExtraction || !projectContext;
+  const languageDisabled = userControlsDisabled;
+  const elapsedSeconds = Math.max(0, Math.floor(recordingDurationMs / 1000));
+  const showProcessingPanel = contextLoading || busyWithExtraction;
+
   const beginRecording = async () => {
+    if (!projectContext || contextLoading) {
+      return;
+    }
+
     setWorkflowStatus("recording");
     setTranscript("");
     setResult(null);
     setEditableDraft(null);
     setMessage(null);
+    setUserSelectorOpen(false);
     reset();
 
     try {
@@ -134,9 +283,10 @@ export default function FieldScreen() {
     }
 
     setWorkflowStatus("transcribing");
-    setMessage(null);
+    setMessage("Finalizing recorded speech.");
 
     const transcriptionResult = await stopRecordingAndTranscribe();
+    console.log("Transcription result:", transcriptionResult);
     const finalTranscript =
       transcriptionResult?.transcript.trim() ||
       latestResult?.transcript.trim() ||
@@ -146,24 +296,35 @@ export default function FieldScreen() {
 
     if (!finalTranscript) {
       setWorkflowStatus("error");
-      setMessage("No transcript was captured. Record again before creating a draft.");
+      setMessage(
+        "No transcript was captured. Record again before creating a draft.",
+      );
       return;
     }
 
-    setWorkflowStatus("extracting");
+    setWorkflowStatus("preparing_transcript");
+    setMessage("Preparing transcript.");
     await waitForPaint();
+
     try {
       const nextResult = await extractGeneralTaskFormDraft({
         phase3ResultId: transcriptionResult?.id ?? latestResult?.id ?? null,
         transcript: finalTranscript,
+        phase4UserId: selectedUserId,
         language,
         provider: phase4LocalLLMProvider,
+        onProgress: (step) => {
+          const nextStatus = fieldStatusForExtractionStep(step);
+          console.log("Extraction step:", step, "->", nextStatus);
+          setWorkflowStatus(nextStatus);
+          setMessage(messageForExtractionStep(step));
+        },
       });
 
       setResult(nextResult);
       setEditableDraft(createEditableDraft(nextResult));
-      setWorkflowStatus(nextResult.errorMessage ? "error" : "ready");
-      setMessage(nextResult.errorMessage ?? "Draft ready for review.");
+      setWorkflowStatus("ready");
+      setMessage("Draft ready for review.");
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
       setWorkflowStatus("error");
@@ -193,9 +354,13 @@ export default function FieldScreen() {
     }
   };
 
-  const elapsedSeconds = Math.max(0, Math.floor(recordingDurationMs / 1000));
-  const isProcessing =
-    workflowStatus === "transcribing" || workflowStatus === "extracting";
+  const selectUser = (userId: string) => {
+    if (userControlsDisabled || selectedUserId === userId) {
+      setUserSelectorOpen(false);
+      return;
+    }
+    setSelectedUserId(userId);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -205,21 +370,35 @@ export default function FieldScreen() {
       >
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.eyebrow}>Field task</Text>
-            <Text style={styles.title}>Voice to draft</Text>
+            {/* <Text style={styles.eyebrow}>Field </Text> */}
+            <Text style={styles.title}>Voice to Draft</Text>
           </View>
+
+          <UserSelector
+            users={phase4SeedBundle.users}
+            selectedUser={selectedUser}
+            selectedProjectName={
+              projectContext?.project.project_name ??
+              selectedProject?.project_name ??
+              "Project not loaded"
+            }
+            disabled={userControlsDisabled}
+            open={userSelectorOpen}
+            onToggle={() => setUserSelectorOpen((value) => !value)}
+            onSelect={selectUser}
+          />
 
           <View style={styles.languageRow}>
             <ModeChip
               label="English"
               selected={language === "en"}
-              disabled={isRecording || workflowStatus === "extracting"}
+              disabled={languageDisabled}
               onPress={() => setLanguage("en")}
             />
             <ModeChip
               label="Finnish"
               selected={language === "fi"}
-              disabled={isRecording || workflowStatus === "extracting"}
+              disabled={languageDisabled}
               onPress={() => setLanguage("fi")}
             />
           </View>
@@ -229,16 +408,14 @@ export default function FieldScreen() {
           <View style={styles.recorderPanel}>
             <Pressable
               onPress={isRecording ? stopAndExtract : beginRecording}
-              disabled={workflowStatus === "transcribing" || workflowStatus === "extracting"}
+              disabled={micDisabled}
               style={[
                 styles.micButton,
                 isRecording && styles.micButtonRecording,
-                (workflowStatus === "transcribing" ||
-                  workflowStatus === "extracting") &&
-                  styles.micButtonDisabled,
+                micDisabled && styles.micButtonDisabled,
               ]}
             >
-              {isProcessing ? (
+              {showProcessingPanel ? (
                 <ActivityIndicator size="large" color="#FFFFFF" />
               ) : (
                 <IconSymbol
@@ -256,7 +433,25 @@ export default function FieldScreen() {
             ) : null}
           </View>
 
-          {isProcessing ? <ProcessingPanel status={workflowStatus} /> : null}
+          {showProcessingPanel ? (
+            <ProcessingPanel
+              status={workflowStatus}
+              detail={embeddingIndexProgress ?? message}
+            />
+          ) : null}
+
+          {projectContext ? (
+            <View style={styles.contextPanel}>
+              <ReadOnlyRow
+                label="Worker"
+                value={projectContext.activeUser.display_name}
+              />
+              <ReadOnlyRow
+                label="Project"
+                value={projectContext.project.project_name}
+              />
+            </View>
+          ) : null}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Transcript</Text>
@@ -284,8 +479,22 @@ export default function FieldScreen() {
                 label="Company"
                 value={editableDraft.company}
                 status={friendlyFieldStatus(result.draft.company.status)}
+                suggestions={companyInlineSuggestions(
+                  result,
+                  editableDraft.companyId,
+                  (suggestion) =>
+                    setEditableDraft({
+                      ...editableDraft,
+                      company: suggestion.label,
+                      companyId: suggestion.companyId,
+                    }),
+                )}
                 onChangeText={(company) =>
-                  setEditableDraft({ ...editableDraft, company })
+                  setEditableDraft({
+                    ...editableDraft,
+                    company,
+                    companyId: null,
+                  })
                 }
               />
               <EditableField
@@ -301,8 +510,18 @@ export default function FieldScreen() {
                 label="Area"
                 value={editableDraft.area}
                 status={friendlyFieldStatus(result.draft.area.status)}
+                suggestions={areaInlineSuggestions(
+                  result,
+                  editableDraft.areaId,
+                  (suggestion) =>
+                    setEditableDraft({
+                      ...editableDraft,
+                      area: suggestion.label,
+                      areaId: suggestion.areaId,
+                    }),
+                )}
                 onChangeText={(area) =>
-                  setEditableDraft({ ...editableDraft, area })
+                  setEditableDraft({ ...editableDraft, area, areaId: null })
                 }
               />
               <EditableField
@@ -316,30 +535,39 @@ export default function FieldScreen() {
               <EditableField
                 label="Due date"
                 value={editableDraft.dueDate}
-                status={friendlyFieldStatus(result.draft.requiredActionDueDate.status)}
+                status={friendlyFieldStatus(
+                  result.draft.requiredActionDueDate.status,
+                )}
+                suggestions={dueDateInlineSuggestions(result)}
                 onChangeText={(dueDate) =>
                   setEditableDraft({ ...editableDraft, dueDate })
+                }
+                onSelectSuggestion={(suggestion) =>
+                  setEditableDraft({
+                    ...editableDraft,
+                    dueDate: suggestion.label,
+                  })
                 }
               />
               <EditableField
                 label="Tags"
                 value={editableDraft.tags}
                 status={friendlyFieldStatus(result.draft.tags.status)}
+                suggestions={tagInlineSuggestions(
+                  result,
+                  editableDraft.tagCodes,
+                  (suggestion) =>
+                    setEditableDraft(
+                      toggleEditableDraftTag(editableDraft, suggestion),
+                    ),
+                )}
                 onChangeText={(tags) =>
-                  setEditableDraft({ ...editableDraft, tags })
+                  setEditableDraft({ ...editableDraft, tags, tagCodes: [] })
                 }
               />
               <ReadOnlyRow label="Marker" value="Manual" />
               <ReadOnlyRow label="Photos" value="Skipped" />
               <ReadOnlyRow label="Notifications" value="False" />
-              {result.warnings.map((warning) => (
-                <Text
-                  key={`${warning.fieldId}-${warning.code}`}
-                  style={styles.warning}
-                >
-                  {warning.fieldId}: {warning.message}
-                </Text>
-              ))}
               <Pressable style={styles.saveButton} onPress={saveDraft}>
                 <IconSymbol
                   name="tray.and.arrow.down.fill"
@@ -356,13 +584,18 @@ export default function FieldScreen() {
   );
 }
 
-const createEditableDraft = (result: Phase4ExtractionResult): EditableDraft => ({
+const createEditableDraft = (
+  result: Phase4ExtractionResult,
+): EditableDraft => ({
   company: result.draft.company.value ?? "",
+  companyId: result.draft.company.companyId,
   description: result.draft.description.value,
   area: result.draft.area.value ?? "",
+  areaId: result.draft.area.areaId ?? null,
   requiredAction: result.draft.requiredAction.value ?? "",
   dueDate: result.draft.requiredActionDueDate.value ?? "",
   tags: result.draft.tags.value.join(", "),
+  tagCodes: result.draft.tags.tagCodes ?? [],
 });
 
 const applyEditsToResult = (
@@ -375,6 +608,7 @@ const applyEditsToResult = (
     (company) =>
       company.displayName.toLowerCase() === companyName.toLowerCase(),
   );
+  const tagValues = splitTags(editableDraft.tags);
 
   return {
     ...result,
@@ -383,7 +617,7 @@ const applyEditsToResult = (
       company: {
         ...result.draft.company,
         value: companyName || null,
-        companyId: matchedCompany?.companyId ?? null,
+        companyId: editableDraft.companyId ?? matchedCompany?.companyId ?? null,
       },
       description: {
         ...result.draft.description,
@@ -392,6 +626,7 @@ const applyEditsToResult = (
       area: {
         ...result.draft.area,
         value: editableDraft.area.trim() || null,
+        areaId: editableDraft.areaId,
       },
       requiredAction: {
         ...result.draft.requiredAction,
@@ -404,7 +639,8 @@ const applyEditsToResult = (
       },
       tags: {
         ...result.draft.tags,
-        value: splitTags(editableDraft.tags),
+        value: tagValues,
+        tagCodes: editableDraft.tagCodes,
       },
     },
   };
@@ -416,14 +652,136 @@ const splitTags = (tags: string): Phase4TaskTag[] =>
     .map((tag) => tag.trim())
     .filter(Boolean) as Phase4TaskTag[];
 
+const companyInlineSuggestions = (
+  result: Phase4ExtractionResult,
+  selectedCompanyId: string | null,
+  onSelect: (suggestion: { label: string; companyId: string | null }) => void,
+): InlineSuggestion[] =>
+  result.reviewSuggestions.companySuggestions.map((item) => ({
+    id: item.companyId ?? item.displayName ?? item.reason,
+    label: item.displayName ?? "Manual company",
+    meta: friendlySuggestionMeta(item.matchType, item.confidence),
+    selected: Boolean(item.companyId && item.companyId === selectedCompanyId),
+    onPress: () =>
+      onSelect({
+        label: item.displayName ?? "",
+        companyId: item.companyId,
+      }),
+  }));
+
+const areaInlineSuggestions = (
+  result: Phase4ExtractionResult,
+  selectedAreaId: string | null,
+  onSelect: (suggestion: { label: string; areaId: string }) => void,
+): InlineSuggestion[] =>
+  result.reviewSuggestions.areaSuggestions.map((item) => ({
+    id: item.areaId,
+    label: item.displayName,
+    meta: friendlySuggestionMeta(item.matchType, item.confidence),
+    selected: item.areaId === selectedAreaId,
+    onPress: () => onSelect({ label: item.displayName, areaId: item.areaId }),
+  }));
+
+const dueDateInlineSuggestions = (
+  result: Phase4ExtractionResult,
+): InlineSuggestion[] =>
+  result.reviewSuggestions.spokenDueDateText
+    ? [
+        {
+          id: "spoken-due-date",
+          label: result.reviewSuggestions.spokenDueDateText,
+          meta: "spoken",
+        },
+      ]
+    : [];
+
+const tagInlineSuggestions = (
+  result: Phase4ExtractionResult,
+  selectedTagCodes: string[],
+  onToggle: (suggestion: { label: Phase4TaskTag; tagCode: string }) => void,
+): InlineSuggestion[] =>
+  result.reviewSuggestions.tagSuggestions.map((item) => ({
+    id: item.tagCode,
+    label: item.displayName,
+    meta: item.confidence,
+    selected: selectedTagCodes.includes(item.tagCode),
+    onPress: () => onToggle({ label: item.displayName, tagCode: item.tagCode }),
+  }));
+
+const friendlySuggestionMeta = (matchType: string, confidence: string) =>
+  `${matchType} / ${confidence}`;
+
+const toggleEditableDraftTag = (
+  draft: EditableDraft,
+  suggestion: { label: Phase4TaskTag; tagCode: string },
+): EditableDraft => {
+  const selected = draft.tagCodes.includes(suggestion.tagCode);
+  const nextTagCodes = selected
+    ? draft.tagCodes.filter((code) => code !== suggestion.tagCode)
+    : [...draft.tagCodes, suggestion.tagCode];
+  const currentTags = splitTags(draft.tags);
+  const nextTags = selected
+    ? currentTags.filter((tag) => tag !== suggestion.label)
+    : Array.from(new Set([...currentTags, suggestion.label]));
+
+  return {
+    ...draft,
+    tags: nextTags.join(", "),
+    tagCodes: nextTagCodes,
+  };
+};
+
+const fieldStatusForExtractionStep = (
+  step: Phase4ExtractionProgressStep,
+): FieldWorkflowStatus => {
+  if (step === "preparing_transcript") {
+    return "preparing_transcript";
+  }
+  if (step === "preparing_runtime" || step === "retrieving_context") {
+    return "retrieving_context";
+  }
+  return "extracting_with_llm";
+};
+
+const messageForExtractionStep = (step: Phase4ExtractionProgressStep) => {
+  if (step === "preparing_transcript") {
+    return "Preparing transcript.";
+  }
+  if (step === "preparing_runtime") {
+    return "Loading project retrieval.";
+  }
+  if (step === "retrieving_context") {
+    return "Retrieving project context.";
+  }
+  if (step === "building_llm_input") {
+    return "Preparing local LLM input.";
+  }
+  if (step === "running_llm") {
+    return "Local LLM is creating the draft.";
+  }
+  return "Checking draft suggestions.";
+};
+
 const statusLabel = (status: FieldWorkflowStatus, asrStatus: string) => {
+  if (status === "loading_context") {
+    return "Loading project data";
+  }
+  if (status === "ready_to_record") {
+    return "Tap to record";
+  }
   if (status === "recording") {
     return "Listening";
   }
   if (status === "transcribing") {
+    return "Transcribing";
+  }
+  if (status === "preparing_transcript") {
     return "Preparing transcript";
   }
-  if (status === "extracting") {
+  if (status === "retrieving_context") {
+    return "Retrieving context";
+  }
+  if (status === "extracting_with_llm") {
     return "Creating draft";
   }
   if (status === "ready") {
@@ -450,6 +808,71 @@ const friendlyFieldStatus = (status: string) => {
   }
   return status.replaceAll("_", " ");
 };
+
+function UserSelector({
+  users,
+  selectedUser,
+  selectedProjectName,
+  disabled,
+  open,
+  onToggle,
+  onSelect,
+}: {
+  users: Phase4SeedUser[];
+  selectedUser: Phase4SeedUser | null;
+  selectedProjectName: string;
+  disabled: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onSelect: (userId: string) => void;
+}) {
+  return (
+    <View style={styles.userSelector}>
+      <Pressable
+        disabled={disabled}
+        onPress={onToggle}
+        style={[
+          styles.userSelectorButton,
+          open && styles.userSelectorButtonOpen,
+          disabled && styles.modeChipDisabled,
+        ]}
+      >
+        <View style={styles.userSelectorTextBlock}>
+          <Text style={styles.selectorLabel}>Worker</Text>
+          <Text style={styles.selectorValue}>
+            {selectedUser?.display_name ?? "Select user"}
+          </Text>
+          <Text style={styles.selectorSubValue}>{selectedProjectName}</Text>
+        </View>
+        <IconSymbol name="chevron.down" size={18} color={C.primary} />
+      </Pressable>
+      {open ? (
+        <View style={styles.userOptionList}>
+          {users.map((user) => (
+            <Pressable
+              key={user.user_id}
+              onPress={() => [
+                console.log("user.user_id", user.user_id, user.display_name),
+                onSelect(user.user_id),
+              ]}
+              style={[
+                styles.userOption,
+                selectedUser?.user_id === user.user_id &&
+                  styles.userOptionSelected,
+              ]}
+            >
+              <Text style={styles.userOptionName}>{user.display_name}</Text>
+              <Text style={styles.userOptionMeta}>
+                {user.role_type ?? "Worker"} /{" "}
+                {user.default_language === "fi" ? "Finnish" : "English"}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 function WorkflowSteps({ status }: { status: FieldWorkflowStatus }) {
   const currentIndex = statusIndex[status];
@@ -487,13 +910,14 @@ function WorkflowSteps({ status }: { status: FieldWorkflowStatus }) {
   );
 }
 
-function ProcessingPanel({ status }: { status: FieldWorkflowStatus }) {
-  const title =
-    status === "extracting" ? "Creating draft" : "Preparing transcript";
-  const body =
-    status === "extracting"
-      ? "The local LLM is extracting task details."
-      : "Finalizing the recorded speech.";
+function ProcessingPanel({
+  status,
+  detail,
+}: {
+  status: FieldWorkflowStatus;
+  detail?: string | null;
+}) {
+  const { title, body } = processingCopy(status, detail);
 
   return (
     <View style={styles.processingPanel}>
@@ -505,6 +929,40 @@ function ProcessingPanel({ status }: { status: FieldWorkflowStatus }) {
     </View>
   );
 }
+
+const processingCopy = (
+  status: FieldWorkflowStatus,
+  detail?: string | null,
+) => {
+  if (status === "loading_context") {
+    return {
+      title: "Loading project data",
+      body: detail ?? "Preparing the selected worker project.",
+    };
+  }
+  if (status === "transcribing") {
+    return {
+      title: "Transcribing",
+      body: "Finalizing the recorded speech.",
+    };
+  }
+  if (status === "preparing_transcript") {
+    return {
+      title: "Preparing transcript",
+      body: "Cleaning the captured text for extraction.",
+    };
+  }
+  if (status === "retrieving_context") {
+    return {
+      title: "Retrieving context",
+      body: "Finding matching project data for this report.",
+    };
+  }
+  return {
+    title: "Creating draft",
+    body: "The local LLM is extracting task details.",
+  };
+};
 
 function ModeChip({
   label,
@@ -528,10 +986,7 @@ function ModeChip({
       ]}
     >
       <Text
-        style={[
-          styles.modeChipText,
-          selected && styles.modeChipTextSelected,
-        ]}
+        style={[styles.modeChipText, selected && styles.modeChipTextSelected]}
       >
         {label}
       </Text>
@@ -543,14 +998,18 @@ function EditableField({
   label,
   value,
   status,
+  suggestions,
   multiline,
   onChangeText,
+  onSelectSuggestion,
 }: {
   label: string;
   value: string;
   status: string;
+  suggestions?: InlineSuggestion[];
   multiline?: boolean;
   onChangeText: (text: string) => void;
+  onSelectSuggestion?: (suggestion: InlineSuggestion) => void;
 }) {
   return (
     <View style={styles.field}>
@@ -565,6 +1024,45 @@ function EditableField({
         textAlignVertical={multiline ? "top" : "center"}
         style={[styles.input, multiline && styles.multilineInput]}
       />
+      <InlineSuggestions
+        suggestions={suggestions ?? []}
+        onSelectSuggestion={onSelectSuggestion}
+      />
+    </View>
+  );
+}
+
+function InlineSuggestions({
+  suggestions,
+  onSelectSuggestion,
+}: {
+  suggestions: InlineSuggestion[];
+  onSelectSuggestion?: (suggestion: InlineSuggestion) => void;
+}) {
+  if (suggestions.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.inlineSuggestionList}>
+      {suggestions.map((suggestion) => (
+        <Pressable
+          key={suggestion.id}
+          onPress={() => {
+            suggestion.onPress?.();
+            onSelectSuggestion?.(suggestion);
+          }}
+          style={[
+            styles.inlineSuggestionItem,
+            suggestion.selected && styles.inlineSuggestionItemSelected,
+          ]}
+        >
+          <Text style={styles.inlineSuggestionLabel}>{suggestion.label}</Text>
+          {suggestion.meta ? (
+            <Text style={styles.inlineSuggestionMeta}>{suggestion.meta}</Text>
+          ) : null}
+        </Pressable>
+      ))}
     </View>
   );
 }
@@ -604,6 +1102,71 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     fontWeight: "900",
   },
+  userSelector: {
+    gap: 8,
+  },
+  userSelectorButton: {
+    minHeight: 66,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    backgroundColor: C.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: 12,
+  },
+  userSelectorButtonOpen: {
+    borderColor: C.primary,
+    backgroundColor: C.primarySoft,
+  },
+  userSelectorTextBlock: {
+    flex: 1,
+    gap: 2,
+  },
+  selectorLabel: {
+    color: C.textSubtle,
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  selectorValue: {
+    color: C.text,
+    fontSize: 17,
+    fontWeight: "900",
+  },
+  selectorSubValue: {
+    color: C.textSubtle,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  userOptionList: {
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    backgroundColor: C.surface,
+    overflow: "hidden",
+  },
+  userOption: {
+    gap: 3,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  userOptionSelected: {
+    backgroundColor: C.primarySoft,
+  },
+  userOptionName: {
+    color: C.text,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  userOptionMeta: {
+    color: C.textSubtle,
+    fontSize: 12,
+    fontWeight: "700",
+  },
   languageRow: {
     flexDirection: "row",
     gap: 8,
@@ -636,7 +1199,7 @@ const styles = StyleSheet.create({
   stepRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 8,
+    gap: 6,
   },
   stepItem: {
     flex: 1,
@@ -644,9 +1207,9 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   stepDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: C.borderStrong,
     alignItems: "center",
@@ -663,7 +1226,7 @@ const styles = StyleSheet.create({
   },
   stepLabel: {
     color: C.textSubtle,
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "800",
   },
   stepLabelActive: {
@@ -723,6 +1286,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: "700",
+  },
+  contextPanel: {
+    gap: 8,
   },
   section: {
     gap: 10,
@@ -790,6 +1356,34 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     lineHeight: 21,
   },
+  inlineSuggestionList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  inlineSuggestionItem: {
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    backgroundColor: C.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2,
+  },
+  inlineSuggestionItemSelected: {
+    backgroundColor: C.primarySoft,
+    borderColor: C.primary,
+  },
+  inlineSuggestionLabel: {
+    color: C.text,
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  inlineSuggestionMeta: {
+    color: C.primary,
+    fontSize: 11,
+    fontWeight: "800",
+  },
   readOnlyRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -813,11 +1407,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "800",
     textAlign: "right",
-  },
-  warning: {
-    color: C.warning,
-    fontSize: 13,
-    fontWeight: "800",
   },
   saveButton: {
     minHeight: 54,

@@ -9,7 +9,7 @@ import {
 
 export const testModelDownload = async () => {
 
-    console.log("Starting model download test...");
+    // console.log("Starting model download test...");
 
     // const targetModelId = 'sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8';
     // const targetModelId = 'sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-int8-2025-11-12';
@@ -18,12 +18,12 @@ export const testModelDownload = async () => {
   
     const downloaded = await listDownloadedModelsByCategory(ModelCategory.Stt);
 
-    console.log(`${downloaded.length} models downloaded`);
+    // console.log(`${downloaded.length} models downloaded`);
     const existingTargetModel = downloaded.find((model) => model.id === targetModelId);
 
     if (existingTargetModel) {
         const modelPath = await getLocalModelPathByCategory(ModelCategory.Stt, existingTargetModel.id);
-        console.log('Model already downloaded at:', modelPath);
+        // console.log('Model already downloaded at:', modelPath);
         return modelPath; // Return the local path of the requested model
     }
 
@@ -48,7 +48,7 @@ export const testModelDownload = async () => {
     );
 
     if (modelPath) {
-        console.log('Model downloaded successfully at:', modelPath);
+        // console.log('Model downloaded successfully at:', modelPath);
         return modelPath;
     }
 

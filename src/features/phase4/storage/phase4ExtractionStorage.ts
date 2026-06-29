@@ -71,7 +71,17 @@ export const exportPhase4ExtractionResultsCsv = async () => {
   await ensureStorageDir();
   const { csvFile } = getStoragePaths();
   const results = await getPhase4ExtractionResults();
+  console.log(
+    "Exporting Phase 4 extraction results to CSV with",
+    results.length,
+    "results",
+  );
   const csv = buildPhase4ExtractionResultsCsv(results);
+  console.log("Phase 4 CSV export built", {
+    rowCount: results.length,
+    characterCount: csv.length,
+    csvFile,
+  });
   await FileSystem.writeAsStringAsync(csvFile, csv);
   return csvFile;
 };
