@@ -1,6 +1,5 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { FieldColors as C } from "@/constants/theme";
-import { runPhase4ManualChecks } from "@/src/features/phase4/checks/phase4CheckRunner";
 import {
   getPhase4SeedBundle,
   PHASE4_DEFAULT_USER_ID,
@@ -17,9 +16,9 @@ import {
   downloadPhase4LocalLLMModel,
   getPhase4LocalLLMReadiness,
   phase4LocalLLMProvider,
+  runPhase4LocalLLMCompletion,
 } from "@/src/features/phase4/llm/phase4LocalLLMProvider";
 import { phase4MockLLMProvider } from "@/src/features/phase4/llm/phase4MockLLMProvider";
-import { PHASE4_SELECTED_LLM_MODEL } from "@/src/features/phase4/llm/phase4ModelConfig";
 import {
   exportPhase4ExtractionResultsCsv,
   savePhase4ExtractionResult,
@@ -44,6 +43,15 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  buildSimpleGeneralTaskFormDraft,
+  type SimpleGeneralTaskFormDraft,
+} from "../draft/buildSimpleGeneralTaskFormDraft";
+import { MistalCallFunc, parseMistralExtraction } from "../https/mistralAi";
+import {
+  resolveConstructionExtraction,
+  testResolveConstructionExtraction,
+} from "../retrieval/misteralStructuralData";
 
 type ProviderChoice = "mock" | "local";
 const phase4SeedBundle = getPhase4SeedBundle();
@@ -51,11 +59,51 @@ const phase4SeedBundle = getPhase4SeedBundle();
 export default function Phase4ExtractionScreen() {
   const [transcript, setTranscript] = useState(
     "There is a pipe leak in the bathroom. It needs to be fixed today. Mark it as quality.",
+    // // "There is a pipe leak in the Alppila 1st floor bathroom. It needs to be fixed today. Mark it as quality.",
+    // // "The first floor lighting is bad and it needs to change today.",
+    // // "Water is leaking below the kitchen sink in Apartment 204.",
+    // // "The bathroom tile is cracked in Apartment 302 and should be fixed tomorrow.",
+    // // "Construction dust remains in the bedroom of Apartment 701.",
+    // // "Something is damaged near the entrance on the second floor.",
+    // // "The bathroom tile is cracked in Apartment 302.",
+    // // "The kitchen socket is loose in Apartment 201.",
+    // // "The balcony door does not close in Apartment 701.",
+    // // "The balcony light does not work in Apartment 701.",
+    // // "Paint is peeling in the second-floor corridor.",
+    // // "Water is collecting under the sink in Apartment 504 kitchen.",
+    // // "Something is damaged near the entrance.",
+    // // "The first-floor lighting is bad and needs changing today.",
+    // "At Alppila, the socket in the bathroom of unit 204 is loose today.",
   );
+
+  const [testTranscript, setTestTranscript] = useState([
+    "There is a pipe leak in the bathroom. It needs to be fixed today. Mark it as quality.",
+    "There is a pipe leak in the Alppila 1st floor bathroom. It needs to be fixed today. Mark it as quality.",
+    "The first floor lighting is bad and it needs to change today.",
+    "Water is leaking below the kitchen sink in Apartment 204.",
+    "The bathroom tile is cracked in Apartment 302 and should be fixed tomorrow.",
+    "Construction dust remains in the bedroom of Apartment 701.",
+    "Something is damaged near the entrance on the second floor.",
+    "The bathroom tile is cracked in Apartment 302.",
+    "The kitchen socket is loose in Apartment 201.",
+    "The balcony door does not close in Apartment 701.",
+    "The balcony light does not work in Apartment 701.",
+    "Paint is peeling in the second-floor corridor.",
+    "Water is collecting under the sink in Apartment 504 kitchen.",
+    "Something is damaged near the entrance.",
+    "The first-floor lighting is bad and needs changing today.",
+    "At Alppila, the socket in the bathroom of unit 204 is loose today.",
+    "The light fixture in the fourth floor corridor is hanging loose. Assign this to the electrical contractor.",
+  ]);
   const [language, setLanguage] = useState<Phase4Language>("en");
   const [providerChoice, setProviderChoice] = useState<ProviderChoice>("mock");
   const [selectedUserId, setSelectedUserId] = useState(PHASE4_DEFAULT_USER_ID);
   const [result, setResult] = useState<Phase4ExtractionResult | null>(null);
+  const [simpleDraft, setSimpleDraft] =
+    useState<SimpleGeneralTaskFormDraft | null>(null);
+  const [simpleResolutionStatus, setSimpleResolutionStatus] = useState<
+    string | null
+  >(null);
   const [selectedDraftCompanyId, setSelectedDraftCompanyId] = useState<
     string | null
   >(null);
@@ -90,6 +138,8 @@ export default function Phase4ExtractionScreen() {
       provider: providerChoice,
       userId: selectedUserId,
     });
+    setSimpleDraft(null);
+    setSimpleResolutionStatus(null);
     setMessage("Running Phase 4 extraction...");
     const provider =
       providerChoice === "local"
@@ -123,13 +173,15 @@ export default function Phase4ExtractionScreen() {
         const runtime = await preparePhase4HybridRagRuntime({
           userId: selectedUserId,
           forceRefresh,
-          embeddingMode: "ifReady",
+          embeddingMode: "skip",
           onEmbeddingProgress: (progress) => {
             setEmbeddingIndexProgress(
               `Indexing embeddings: ${progress.completed}/${progress.total}`,
             );
           },
         });
+
+        console.log("Retrieval runtime prepared:", runtime.status);
         const status = `${runtime.status.message} ${runtime.status.retrievalItemCount} retrieval items. FTS5 ${runtime.status.ftsReady ? "ready" : "unavailable"}. Vectors ${runtime.status.embeddingVectorCount}.`;
         setRetrievalStatus(status);
         setMessage(status);
@@ -144,9 +196,9 @@ export default function Phase4ExtractionScreen() {
     [selectedUserId],
   );
 
-  useEffect(() => {
-    void prepareRetrieval(false);
-  }, [prepareRetrieval]);
+  // useEffect(() => {
+  //   void prepareRetrieval(false);
+  // }, [prepareRetrieval]);
 
   useEffect(() => {
     setSelectedDraftCompanyId(result?.draft.company.companyId ?? null);
@@ -180,13 +232,13 @@ export default function Phase4ExtractionScreen() {
     }
   };
 
-  const runChecks = async () => {
-    const summary = await runPhase4ManualChecks(undefined, {
-      defaultUserId: selectedUserId,
-    });
-    setCheckSummary(summary.summary);
-    setMessage(summary.summary);
-  };
+  // const runChecks = async () => {
+  //   const summary = await runPhase4ManualChecks(undefined, {
+  //     defaultUserId: selectedUserId,
+  //   });
+  //   setCheckSummary(summary.summary);
+  //   setMessage(summary.summary);
+  // };
 
   const companySuggestions = result?.reviewSuggestions.companySuggestions ?? [];
   const areaSuggestions = result?.reviewSuggestions.areaSuggestions ?? [];
@@ -253,6 +305,202 @@ export default function Phase4ExtractionScreen() {
     }
   };
 
+  // my own testing with local running LLM
+
+  /*
+
+const constructionPromptExtractorV1 = `Extract one construction issue from the transcript.
+
+Return one JSON object with:
+issue, location, timeframe.
+
+Rules:
+
+- issue:
+  Return only the physical problem or defective object.
+  Remove floor, apartment, room, area, and time information.
+  Keep the wording short.
+
+- location:
+  Include every stated location clue.
+  Combine floor, apartment, room, and area information.
+
+  Room words such as bathroom, bedroom, kitchen, corridor,
+  stairwell, sauna, balcony, and entrance are location information.
+
+  A room word must be included in location even when it appears
+  directly before the defective object.
+
+  Example:
+  "bedroom window" means:
+  issue = "damaged window"
+  location includes "bedroom"
+
+- timeframe:
+  Return only an explicit time expression such as today,
+  tomorrow, by Friday, or next week.
+  Use null when no explicit time is stated.
+
+- Do not invent missing information.
+- Do not repeat location words inside issue.
+- Return JSON only without markdown.
+
+Example:
+
+Transcript:
+"The bedroom window is damaged in Apartment 405."
+
+Output:
+{
+  "issue": "damaged window",
+  "location": "Apartment 405 bedroom",
+  "timeframe": null
+}
+`;
+
+
+*/
+
+  const runLocalLLMTest = async () => {
+    //"There is a pipe leak in the bathroom. It needs to be fixed today. Mark it as quality."
+    // "The first-floor lighting is bad and needs to be changed today."
+    // console.log("Running local LLM test with input:", transcript);
+
+    try {
+      setMessage("Running local LLM test...");
+
+      // const userPrompt = `Transcript: ${JSON.stringify(transcript)}`;
+
+      // const systemPrompt = `
+      //   You extract one construction issue from a spoken transcript.
+
+      //     Return exactly four lines in this format:
+
+      //     ISSUE: <short physical problem>
+      //     LOCATION: <stated location or null>
+      //     WORK_TYPE: <one allowed work type or null>
+      //     TIMEFRAME: <stated time expression or null>
+
+      //     Allowed work types:
+      //     electrical
+      //     plumbing
+      //     painting
+      //     tiling
+      //     doors_windows
+      //     hvac
+      //     cleaning
+      //     flooring
+      //     general_construction
+
+      //     Rules:
+      //     - Extract only information stated in the transcript.
+      //     - Keep each value short.
+      //     - Do not explain the result.
+      //     - Lighting, lights, sockets, switches, wires, and cables are electrical.
+      //     `;
+
+      const systemPrompt = `
+Extract one construction issue from the transcript.
+
+Return one JSON object with:
+issue,location, timeframe.
+
+Rules:
+
+- issue:
+  Return only the physical problem or defective object.
+  Remove floor, apartment, room, area, and time information.
+  Keep the wording short.
+
+- location:
+  Include every stated location clue.
+  Combine floor, apartment, room, and area information.
+
+  Room words such as bathroom, bedroom, kitchen, corridor,
+  stairwell, sauna, balcony, and entrance are location information.
+
+  A room word must be included in location even when it appears
+  directly before the defective object.
+
+  Example:
+  "bedroom window" means:
+  issue = "damaged window"
+  location includes "bedroom"
+
+- timeframe:
+  Return only an explicit time expression such as today,
+  tomorrow, by Friday, or next week.
+  Use null when no explicit time is stated.
+
+- Do not invent missing information.
+- Do not repeat location words inside issue.
+- Return JSON only without markdown.
+
+Example:
+
+Transcript:
+"The bedroom window is damaged in Apartment 405."
+
+Output:
+{
+  "issue": "damaged window",
+  "location": "Apartment 405 bedroom",
+  "timeframe": null,
+  "workType": "doors_windows"
+}
+`;
+
+      const response = await runPhase4LocalLLMCompletion({
+        systemPrompt,
+        userPrompt: `Transcript: ${JSON.stringify(transcript)}`,
+        responseSchema: null,
+        maxOutputTokens: 90,
+        temperature: 0,
+        topP: 1,
+        repeatPenalty: 1.1,
+        frequencyPenalty: 0.1,
+      });
+      // const response = await runPhase4LocalLLMCompletion({
+      //   systemPrompt: extractionSystemPrompt,
+      //   userPrompt: `Transcript: ${JSON.stringify(transcript)}`,
+      //   responseSchema: null,
+      //   maxOutputTokens: 100,
+      //   temperature: 0,
+      //   topP: 1,
+      //   repeatPenalty: 1.1,
+      //   frequencyPenalty: 0.1,
+      // });
+
+      console.log("Local LLM test response:", response);
+
+      const parsed = JSON.parse(response.content) as {
+        issue?: string;
+        location?: string;
+        timeframe?: string;
+      };
+
+      // const worktypeMatches = await testingSqlData(parsed.issue ?? "");
+
+      // const parsed = JSON.parse(response.rawText);
+
+      // testResolveConstructionExtraction()
+
+      // console.log("only issue:", worktypeMatches);
+
+      setCheckSummary(`Local LLM output:\n${response.rawText}`);
+
+      setMessage(`Extraction completed.`);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+
+      console.log("Local LLM extraction failed:", text);
+
+      setMessage(`Local LLM extraction failed: ${text}`);
+
+      Alert.alert("Local LLM extraction failed", text);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -275,6 +523,67 @@ export default function Phase4ExtractionScreen() {
                   setSelectedUserId(user.user_id);
                   setLanguage(user.default_language === "fi" ? "fi" : "en");
                   setResult(null);
+                  setSimpleDraft(null);
+                  setSimpleResolutionStatus(null);
+                }}
+              />
+            ))}
+          </View>
+
+          <View style={[styles.header, { marginVertical: 8 }]}>
+            <Text style={styles.eyebrow}>Test Phrases Section</Text>
+          </View>
+
+          <View style={styles.row}>
+            {testTranscript.map((trans, index) => (
+              <Chip
+                key={index}
+                selected={trans === transcript}
+                label={"Test " + (index + 1)}
+                onPress={async () => {
+                  setTranscript(trans);
+                  setSimpleDraft(null);
+                  setSimpleResolutionStatus(null);
+                  setMessage("Mistral call in progress...");
+                  const wait = await MistalCallFunc(trans);
+
+                  if (wait.result) {
+                    const extraction = parseMistralExtraction(wait.result);
+
+                    console.log("Parsed Mistral extraction:", extraction);
+
+                    const resolved = await resolveConstructionExtraction(
+                      extraction,
+                      {
+                        projectId:
+                          selectedUser?.active_project_id ??
+                          "p1_alppila_residential",
+                        defaultBuildingId:
+                          selectedUser?.default_building_id ?? null,
+                      },
+                    );
+
+                    console.log(
+                      "Resolved DB result:",
+                      JSON.stringify(resolved, null, 2),
+                    );
+
+                    const draft = buildSimpleGeneralTaskFormDraft({
+                      extraction,
+                      resolution: resolved,
+                    });
+                    setSimpleDraft(draft);
+                    setSimpleResolutionStatus(resolved.location.status);
+
+                    console.log(
+                      "Simple form draft:",
+                      JSON.stringify(draft, null, 2),
+                    );
+
+                    setMessage(
+                      `Mistral + DB + draft completed. Status: ${resolved.location.status}`,
+                    );
+                  }
                 }}
               />
             ))}
@@ -285,12 +594,16 @@ export default function Phase4ExtractionScreen() {
           </Text>
           <TextInput
             value={transcript}
-            onChangeText={setTranscript}
+            onChangeText={(value) => {
+              setTranscript(value);
+              setSimpleDraft(null);
+              setSimpleResolutionStatus(null);
+            }}
             multiline
             textAlignVertical="top"
             style={styles.textArea}
           />
-          <View style={styles.row}>
+          {/* <View style={styles.row}>
             <Chip
               selected={language === "en"}
               label="English"
@@ -301,8 +614,8 @@ export default function Phase4ExtractionScreen() {
               label="Finnish"
               onPress={() => setLanguage("fi")}
             />
-          </View>
-          <View style={styles.row}>
+          </View> */}
+          {/* <View style={styles.row}>
             <Chip
               selected={providerChoice === "mock"}
               label="Mock provider"
@@ -313,10 +626,10 @@ export default function Phase4ExtractionScreen() {
               label="Local provider"
               onPress={() => setProviderChoice("local")}
             />
-          </View>
+          </View> */}
         </Section>
 
-        <Section title="Model">
+        {/* <Section title="Model">
           <Metric
             label="Selected model"
             value={PHASE4_SELECTED_LLM_MODEL.displayName}
@@ -329,20 +642,42 @@ export default function Phase4ExtractionScreen() {
             Local provider uses llama.rn and needs the GGUF file in the app
             document directory.
           </Text>
-        </Section>
+        </Section> */}
 
         <View style={styles.actions}>
           <Button
+            label="Run Local LLM test"
+            icon="play.fill"
+            onPress={runLocalLLMTest}
+          />
+          <Button
+            label="Call Mistral"
+            icon="play.fill"
+            onPress={async () => {
+              setSimpleDraft(null);
+              setSimpleResolutionStatus(null);
+              const wait = await MistalCallFunc(
+                "The balcony door seal in apartment 203 of Building 2B is damaged.",
+              );
+              // console.log("Mistral call result:", wait);
+            }}
+          />
+          <Button
+            label="Test Mistral aftert extraction"
+            icon="play.fill"
+            onPress={testResolveConstructionExtraction}
+          />
+          {/* <Button
             label="Run extraction"
             icon="play.fill"
             onPress={runExtraction}
-          />
-          <Button
+          /> */}
+          {/* <Button
             label="Prepare retrieval"
             icon="checkmark.circle"
             onPress={() => prepareRetrieval(true)}
-          />
-          <Button
+          /> */}
+          {/* <Button
             label="Save result"
             icon="tray.and.arrow.down.fill"
             onPress={saveResult}
@@ -356,8 +691,10 @@ export default function Phase4ExtractionScreen() {
           <Button
             label="Run checks"
             icon="checkmark.circle"
-            onPress={runChecks}
-          />
+            onPress={() => {
+              Alert.alert("Run checks is currently disabled.");
+            }}
+          /> */}
           <Button
             label="Check model"
             icon="info.circle.fill"
@@ -368,16 +705,16 @@ export default function Phase4ExtractionScreen() {
             icon="icloud.and.arrow.down"
             onPress={downloadLocalModel}
           />
-          <Button
+          {/* <Button
             label="Check embeddings"
             icon="info.circle.fill"
             onPress={checkEmbeddingModel}
-          />
-          <Button
+          /> */}
+          {/* <Button
             label="Download embeddings"
             icon="icloud.and.arrow.down"
             onPress={downloadEmbeddingModel}
-          />
+          /> */}
         </View>
 
         {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -398,6 +735,52 @@ export default function Phase4ExtractionScreen() {
           <Text style={styles.note}>{embeddingIndexProgress}</Text>
         ) : null}
         {checkSummary ? <Text style={styles.note}>{checkSummary}</Text> : null}
+
+        {simpleDraft ? (
+          <Section title="Mistral DB Form Draft">
+            {simpleResolutionStatus ? (
+              <Text style={styles.note}>
+                Location status: {simpleResolutionStatus}
+              </Text>
+            ) : null}
+            <SimpleField label="List" value={simpleDraft.list.label} />
+            <SimpleField
+              label="Company"
+              value={simpleDraft.company.selected?.label ?? "Manual"}
+            />
+            <SimpleField label="Description" value={simpleDraft.description} />
+            <SimpleField
+              label="Area"
+              value={simpleDraft.area?.label ?? "Manual"}
+            />
+            <SimpleField
+              label="Required action"
+              value={simpleDraft.requiredAction?.label ?? "Manual"}
+            />
+            <SimpleField
+              label="Due date"
+              value={simpleDraft.requiredActionDueDate ?? "Manual"}
+            />
+            <SimpleField
+              label="Tags"
+              value={
+                simpleDraft.tags.map((tag) => tag.label).join(", ") || "Manual"
+              }
+            />
+            <SimpleField label="Notifications" value="false" />
+            {!simpleDraft.company.selected &&
+            simpleDraft.company.suggestions.length > 0 ? (
+              <View style={styles.selectionBox}>
+                <Text style={styles.suggestionTitle}>Company suggestions</Text>
+                {simpleDraft.company.suggestions.map((company) => (
+                  <Text key={company.id} style={styles.note}>
+                    {company.label}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
+          </Section>
+        ) : null}
 
         {result ? (
           <Section title="Extracted draft">
@@ -592,6 +975,15 @@ const Field = ({
     <Text style={styles.status}>
       {status} / {confidence}
     </Text>
+  </View>
+);
+
+const SimpleField = ({ label, value }: { label: string; value: string }) => (
+  <View style={styles.fieldRow}>
+    <View style={styles.fieldText}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldValue}>{value}</Text>
+    </View>
   </View>
 );
 
