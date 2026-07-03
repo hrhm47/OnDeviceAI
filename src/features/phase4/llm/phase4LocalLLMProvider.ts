@@ -19,7 +19,7 @@ const STOP_WORDS = [
   "<|endoftext|>",
 ];
 const PHASE4_LLM_CONTEXT_TOKENS = 3072;
-const PHASE4_LLM_MAX_OUTPUT_TOKENS = 512;
+const PHASE4_LLM_MAX_OUTPUT_TOKENS = 100;
 const PHASE4_RESPONSE_SCHEMA_BASE = {
   type: "object",
   additionalProperties: false,
@@ -108,6 +108,81 @@ export const phase4LocalLLMProvider: Phase4LLMProvider = {
   },
 };
 
+export const runPhase4LocalLLMCompletion = async (input: {
+  systemPrompt?: string;
+  userPrompt: string;
+  responseSchema?: object | null;
+  maxOutputTokens?: number;
+  temperature?: number;
+  topP?: number;
+  repeatPenalty?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+}) => {
+  const startedAt = Date.now();
+  const modelUri = await resolvePhase4LocalLLMModelUri();
+  if (!modelUri) {
+    throw new Error(
+      `Phase 4 local model file was not found on this device. Expected ${getPhase4DocumentModelUri()}. Download or copy ${PHASE4_SELECTED_LLM_MODEL.filename} before using the local provider.`,
+    );
+  }
+
+  const context = await getPhase4LlamaContext(modelUri);
+  await context.clearCache(false).catch(() => undefined);
+
+
+  const messages = [
+    {
+      role: "system" as const,
+      content:
+        input.systemPrompt ??
+        "Follow the user's instructions exactly.",
+    },
+    { role: "user" as const, content: input.userPrompt },
+  ];
+
+  console.log(
+    "Actual local LLM messages:",
+    JSON.stringify(messages, null, 2),
+  );
+
+  const result = await context.completion({
+    messages,
+    response_format: input.responseSchema
+      ? {
+        type: "json_schema",
+        json_schema: {
+          strict: true,
+          schema: input.responseSchema,
+        },
+      }
+      : undefined,
+    n_predict: input.maxOutputTokens ?? PHASE4_LLM_MAX_OUTPUT_TOKENS,
+    temperature: input.temperature ?? 0,
+    top_p: input.topP ?? 1,
+    penalty_last_n: 64,
+    penalty_repeat: input.repeatPenalty ?? 1.1,
+    penalty_freq: input.frequencyPenalty ?? 0.1,
+    penalty_present: input.presencePenalty ?? 0,
+    stop: STOP_WORDS,
+
+  });
+
+  return {
+    rawText: result.text,
+    content: result.content,
+    durationMs: Date.now() - startedAt,
+    generationDiagnostics: {
+      tokensPredicted: result.tokens_predicted,
+      tokensEvaluated: result.tokens_evaluated,
+      stoppedLimit: Boolean(result.stopped_limit),
+      contextFull: result.context_full,
+      truncated: result.truncated,
+      stoppedEos: result.stopped_eos,
+    },
+  };
+};
+
 const buildPhase4ResponseSchema = (
   input: Parameters<Phase4LLMProvider["extractTaskForm"]>[0],
 ) => ({
@@ -148,21 +223,21 @@ const stringArrayEnum = (values: (string | undefined)[] | undefined) => {
   const enumValues = compactUnique(values);
   return enumValues.length > 0
     ? {
-        type: "array",
-        items: { type: "string", enum: enumValues },
-        maxItems: enumValues.length,
-      }
+      type: "array",
+      items: { type: "string", enum: enumValues },
+      maxItems: enumValues.length,
+    }
     : {
-        type: "array",
-        items: { type: "string", enum: ["__no_tags_available__"] },
-        maxItems: 0,
-      };
+      type: "array",
+      items: { type: "string", enum: ["__no_tags_available__"] },
+      maxItems: 0,
+    };
 };
 
 const compactUnique = (values: (string | undefined)[] | undefined) =>
   Array.from(new Set((values ?? []).filter((value): value is string => Boolean(value))));
 
-const getPhase4LlamaContext = async (modelUri: string) => {
+export const getPhase4LlamaContext = async (modelUri: string) => {
   if (cachedContext && cachedContextModelUri === modelUri) {
     return cachedContext;
   }
@@ -174,7 +249,7 @@ const getPhase4LlamaContext = async (modelUri: string) => {
     use_mlock: true,
     n_ctx: PHASE4_LLM_CONTEXT_TOKENS,
     n_gpu_layers: 99,
-    cache_type_k: "q4_1",
+    // cache_type_k: "q4_1",
   });
   cachedContextModelUri = modelUri;
   return cachedContext;
@@ -274,3 +349,125 @@ export const loadPhase4LocalLLMModelInfo = async () => {
   const { loadLlamaModelInfo } = await import("llama.rn");
   return loadLlamaModelInfo(modelUri);
 };
+
+
+export const testWithMessages = async () => {
+  const modelUri =
+    await resolvePhase4LocalLLMModelUri();
+
+  if (!modelUri) {
+    throw new Error("Model not found.");
+  }
+
+  const context =
+    await getPhase4LlamaContext(modelUri);
+
+  await context.clearCache(false);
+
+  const result = await context.completion({
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a strict construction classifier. " +
+          "Return exactly one allowed label.",
+      },
+      {
+        role: "user",
+        content: `
+Allowed labels:
+electrical
+plumbing
+cleaning
+
+Lighting and sockets are electrical.
+Pipes and leaks are plumbing.
+Dust and waste are cleaning.
+
+Text: The first floor lighting is bad.
+
+Label:
+`.trim(),
+      },
+    ],
+
+    n_predict: 32,
+    temperature: 0,
+    top_p: 1,
+    penalty_repeat: 1.1,
+    penalty_freq: 0,
+    penalty_present: 0,
+    stop: STOP_WORDS,
+  });
+
+  console.log(
+    "Messages result:",
+    JSON.stringify(result.text),
+  );
+
+  return result.text;
+};
+
+export const testWithManualQwenPrompt =
+  async () => {
+    const modelUri =
+      await resolvePhase4LocalLLMModelUri();
+
+    if (!modelUri) {
+      throw new Error("Model not found.");
+    }
+
+    const context =
+      await getPhase4LlamaContext(modelUri);
+
+    await context.clearCache(false);
+
+    const systemText =
+      "You are a strict construction classifier. " +
+      "Return exactly one allowed label.";
+
+    const userText = `
+Allowed labels:
+electrical
+plumbing
+cleaning
+
+Lighting and sockets are electrical.
+Pipes and leaks are plumbing.
+Dust and waste are cleaning.
+
+Text: The first floor lighting is bad.
+
+Label:
+`.trim();
+
+    const prompt =
+      `<|im_start|>system\n` +
+      `${systemText}<|im_end|>\n` +
+      `<|im_start|>user\n` +
+      `${userText}<|im_end|>\n` +
+      `<|im_start|>assistant\n`;
+
+    const result = await context.completion({
+      prompt,
+
+      n_predict: 32,
+      temperature: 0,
+      top_p: 1,
+      penalty_repeat: 1.1,
+      penalty_freq: 0,
+      penalty_present: 0,
+
+      stop: [
+        "<|im_end|>",
+        "<|endoftext|>",
+      ],
+    });
+
+    console.log(
+      "Manual Qwen result:",
+      JSON.stringify(result.text),
+    );
+
+    return result.text;
+  };

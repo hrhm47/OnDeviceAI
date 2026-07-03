@@ -240,7 +240,7 @@ function FieldUiToggleCard({
   return (
     <View style={styles.card}>
       <View style={styles.cardTitleRow}>
-        <IconSymbol size={22} name="mic.fill" color={C.primary} />
+        {/* <IconSymbol size={22} name="mic.fill" color={C.primary} /> */}
         <Text style={styles.cardTitle}>Field UI mode</Text>
       </View>
       <View style={styles.toggleRow}>
