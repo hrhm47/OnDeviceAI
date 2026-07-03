@@ -1,15 +1,19 @@
 import {
   getPhase4SeedBundle,
   PHASE4_DEFAULT_USER_ID,
-  type Phase4SeedArea,
+  type Phase4SeedBuilding,
   type Phase4SeedBundle,
   type Phase4SeedCompany,
   type Phase4SeedProject,
   type Phase4SeedProjectCompanyContext,
+  type Phase4SeedSite,
   type Phase4SeedUser,
+  type Phase4SeedWorkType,
 } from "../data/phase4SeedData";
-import type { GeneratedProjectArea } from "../rag/area/generateProjectAreas";
-import { getGeneratedAreasForProject } from "../rag/area/getGeneratedAreasForProject";
+import {
+  buildPhase4DerivedAreas,
+  type Phase4DerivedArea,
+} from "../data/phase4DerivedAreas";
 import { getPhase4ReferenceData } from "../referenceData/phase4ReferenceRepository";
 import type {
   Phase4CompanyCategory,
@@ -21,9 +25,12 @@ import type {
 export type ProjectContextPackage = {
   activeUser: Phase4SeedUser;
   project: Phase4SeedProject;
-  areas: Phase4SeedArea[];
+  sites: Phase4SeedSite[];
+  buildings: Phase4SeedBuilding[];
+  areas: Phase4DerivedArea[];
   companies: Phase4SeedCompany[];
   projectCompanyContext: Phase4SeedProjectCompanyContext[];
+  workTypes: Phase4SeedWorkType[];
   referenceData: Phase4ReferenceData;
 };
 
@@ -36,7 +43,7 @@ export const loadActiveProjectContext = (input?: {
   seedBundle?: Phase4SeedBundle;
 }): ProjectContextLoadResult => {
   const bundle = input?.seedBundle ?? getPhase4SeedBundle();
-  
+
   const userId = input?.userId ?? PHASE4_DEFAULT_USER_ID;
   const activeUser = bundle.users.find((user) => user.user_id === userId);
   if (!activeUser) {
@@ -56,14 +63,22 @@ export const loadActiveProjectContext = (input?: {
   const projectCompanyContext = bundle.projectCompanyContext.filter(
     (context) => context.project_id === project.project_id,
   );
-  const projectCompanyIds = new Set([
-    ...projectCompanyContext.map((context) => context.company_id),
-    activeUser.employer_company_id,
-  ]);
-  const projectAreas = [
-    ...bundle.areas.filter((area) => area.project_id === project.project_id),
-    ...generatedProjectAreas(project.project_id),
-  ];
+  const projectCompanyIds = new Set(
+    projectCompanyContext.map((context) => context.company_id),
+  );
+  if (activeUser.employer_company_id) {
+    projectCompanyIds.add(activeUser.employer_company_id);
+  }
+
+  const projectSites = bundle.sites.filter(
+    (site) => site.project_id === project.project_id,
+  );
+  const projectBuildings = bundle.buildings.filter(
+    (building) => building.project_id === project.project_id,
+  );
+  const projectAreas = buildPhase4DerivedAreas(bundle).filter(
+    (area) => area.project_id === project.project_id,
+  );
   const projectCompanies = bundle.companies.filter((company) =>
     projectCompanyIds.has(company.company_id),
   );
@@ -73,13 +88,17 @@ export const loadActiveProjectContext = (input?: {
     context: {
       activeUser,
       project,
+      sites: projectSites,
+      buildings: projectBuildings,
       areas: projectAreas,
       companies: projectCompanies,
       projectCompanyContext,
+      workTypes: bundle.workTypes,
       referenceData: buildProjectReferenceData({
         companies: projectCompanies,
         areas: projectAreas,
         projectCompanyContext,
+        workTypes: bundle.workTypes,
       }),
     },
   };
@@ -87,26 +106,28 @@ export const loadActiveProjectContext = (input?: {
 
 const buildProjectReferenceData = (input: {
   companies: Phase4SeedCompany[];
-  areas: Phase4SeedArea[];
+  areas: Phase4DerivedArea[];
   projectCompanyContext: Phase4SeedProjectCompanyContext[];
+  workTypes: Phase4SeedWorkType[];
 }): Phase4ReferenceData => {
   const base = getPhase4ReferenceData();
+  const allowedAreaOptions = input.areas.map((area) => area.area_label);
   return {
     ...base,
     formSchema: {
       ...base.formSchema,
-      allowedAreaOptions: input.areas.map((area) => area.area_label),
+      allowedAreaOptions,
       fields: base.formSchema.fields.map((field) =>
         field.fieldId === "area"
           ? {
               ...field,
-              allowedValues: input.areas.map((area) => area.area_label),
+              allowedValues: allowedAreaOptions,
             }
           : field,
       ),
     },
     companies: input.companies.map((company) =>
-      toCompanyReference(company, input.projectCompanyContext),
+      toCompanyReference(company, input.projectCompanyContext, input.workTypes),
     ),
   };
 };
@@ -114,49 +135,75 @@ const buildProjectReferenceData = (input: {
 const toCompanyReference = (
   company: Phase4SeedCompany,
   contexts: Phase4SeedProjectCompanyContext[],
+  workTypes: Phase4SeedWorkType[],
 ): Phase4CompanyReference => {
   const companyContexts = contexts.filter(
     (context) => context.company_id === company.company_id,
   );
-  const keywords = companyContexts.flatMap((context) =>
-    splitKeywordText(context.trigger_keywords_en_fi),
-  );
-  const notes = companyContexts
-    .flatMap((context) => [
-      context.agreement_scope,
-      context.candidate_match_note,
-      context.note_count_interpretation,
-    ])
-    .filter((value): value is string => Boolean(value));
+  const workTypeIds = uniqueStrings([
+    ...(company.general_capability_work_type_ids ?? []),
+    ...companyContexts.flatMap((context) => context.work_type_ids ?? []),
+  ]);
+  const matchedWorkTypes = workTypeIds
+    .map((workTypeId) => workTypes.find((workType) => workType.work_type_id === workTypeId))
+    .filter((workType): workType is Phase4SeedWorkType => Boolean(workType));
+  const keywords = uniqueStrings([
+    ...workTypeIds,
+    ...matchedWorkTypes.flatMap((workType) => [
+      workType.name,
+      workType.description,
+      ...(workType.aliases_en ?? []),
+      ...(workType.example_issues_en ?? []),
+    ]),
+  ]);
+  const notes = compactStrings([
+    company.company_description,
+    ...companyContexts.flatMap((context) => [
+      context.responsibility_description,
+      context.scope_notes,
+      context.level_scope?.scope_description,
+      context.apartment_scope?.scope_description,
+      context.space_type_scope?.scope_description,
+    ]),
+  ]);
+  const categoryText = compactStrings([
+    company.company_type,
+    company.company_description,
+    ...workTypeIds,
+    ...matchedWorkTypes.map((workType) => workType.name),
+  ]).join(" ");
+  const roleLabels = compactStrings([
+    ...companyContexts.map((context) => context.project_role),
+    company.company_type,
+    "project company",
+  ]);
 
   return {
     companyId: company.company_id,
     displayName: company.company_name,
-    primaryCategory: mapTradeGroup(company.primary_trade_group),
+    primaryCategory: mapTradeGroup(categoryText),
     responsibilitySummary: {
-      en: [company.company_note, ...notes].filter(Boolean).join(" "),
-      fi: [company.company_note, ...notes].filter(Boolean).join(" "),
+      en: notes.join(" "),
+      fi: notes.join(" "),
     },
-    workIntents: Array.from(
-      new Set(companyContexts.map((context) => context.work_type_code)),
-    ),
+    workIntents: workTypeIds,
     roleLabels: {
-      en: [company.primary_trade_group ?? "project company"],
-      fi: [company.primary_trade_group ?? "project company"],
+      en: roleLabels,
+      fi: roleLabels,
     },
     serviceKeywords: { en: keywords, fi: keywords },
     actionHints: {
       en: ["Korjaus", "Kuntoon"],
       fi: ["Korjaus", "Kuntoon"],
     },
-    tagHints: inferTagHints(company, keywords),
+    tagHints: inferTagHints(categoryText, keywords),
   };
 };
 
 const mapTradeGroup = (
   tradeGroup: string | null | undefined,
 ): Phase4CompanyCategory => {
-  const normalized = tradeGroup ?? "";
+  const normalized = (tradeGroup ?? "").toLowerCase();
   if (normalized.includes("painting")) return "painting_finishing";
   if (normalized.includes("plumbing")) return "plumbing";
   if (normalized.includes("electrical")) return "electrical";
@@ -164,19 +211,19 @@ const mapTradeGroup = (
   if (normalized.includes("cleaning")) return "cleaning";
   if (normalized.includes("door") || normalized.includes("window")) return "doors_windows";
   if (normalized.includes("floor") || normalized.includes("tiling")) return "flooring";
-  if (normalized.includes("waterproofing") || normalized.includes("moisture")) return "sealing_waterproofing";
+  if (normalized.includes("waterproofing") || normalized.includes("seal")) {
+    return "sealing_waterproofing";
+  }
   if (normalized.includes("safety")) return "fall_protection";
-  if (normalized.includes("excavation")) return "concrete";
   if (normalized.includes("concrete") || normalized.includes("foundation")) return "concrete";
-  if (normalized.includes("crane")) return "site_logistics";
   return "site_logistics";
 };
 
 const inferTagHints = (
-  company: Phase4SeedCompany,
+  categoryText: string,
   keywords: string[],
 ): Phase4TaskTag[] => {
-  const text = `${company.primary_trade_group ?? ""} ${keywords.join(" ")}`.toLowerCase();
+  const text = `${categoryText} ${keywords.join(" ")}`.toLowerCase();
   if (text.includes("safety") || text.includes("guardrail") || text.includes("cable")) {
     return ["Safety"];
   }
@@ -186,37 +233,8 @@ const inferTagHints = (
   return ["Quality"];
 };
 
-const splitKeywordText = (value: string | null | undefined) =>
-  value?.split(";").map((item) => item.trim()).filter(Boolean) ?? [];
+const compactStrings = (values: (string | number | null | undefined)[]) =>
+  values.map((value) => String(value ?? "").trim()).filter(Boolean);
 
-const generatedProjectAreas = (projectId: string): Phase4SeedArea[] => {
-  return getGeneratedAreasForProject(projectId).map((area) => ({
-    area_id: area.areaId,
-    project_id: area.projectId,
-    building_name: area.buildingName,
-    building_phase: area.buildingPhase,
-    floor_or_zone: area.floorNumber ?? area.zoneCode,
-    area_type: `generated_${area.areaType}`,
-    area_label: area.displayName,
-    spoken_location_examples: area.aliases,
-    parent_area_id: null,
-    area_note: generatedAreaNote(area),
-  }));
-};
-
-const GENERATED_AREA_NOTE_PREFIX = "generated_area_metadata:";
-
-const generatedAreaNote = (area: GeneratedProjectArea) =>
-  `${GENERATED_AREA_NOTE_PREFIX}${JSON.stringify({
-    areaId: area.areaId,
-    projectId: area.projectId,
-    buildingId: area.buildingId,
-    buildingName: area.buildingName,
-    buildingPhase: area.buildingPhase,
-    floorNumber: area.floorNumber,
-    unitCode: area.unitCode,
-    roomType: area.roomType,
-    zoneCode: area.zoneCode,
-    areaType: area.areaType,
-    searchText: area.searchText,
-  })}`;
+const uniqueStrings = (values: (string | number | null | undefined)[]) =>
+  Array.from(new Set(compactStrings(values)));
