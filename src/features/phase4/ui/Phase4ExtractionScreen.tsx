@@ -94,6 +94,10 @@ export default function Phase4ExtractionScreen() {
     "The first-floor lighting is bad and needs changing today.",
     "At Alppila, the socket in the bathroom of unit 204 is loose today.",
     "The light fixture in the fourth floor corridor is hanging loose. Assign this to the electrical contractor.",
+    "The light is not working.",
+    "The corridor needs cleaning.",
+    "The leaking tap in Apartment 504 kitchen must be repaired by Friday.",
+    "The bathroom drain in Apartment 204 on the third floor is blocked.",
   ]);
   const [language, setLanguage] = useState<Phase4Language>("en");
   const [providerChoice, setProviderChoice] = useState<ProviderChoice>("mock");
@@ -663,7 +667,7 @@ Output:
             }}
           />
           <Button
-            label="Test Mistral aftert extraction"
+            label="Test Mistral Output extraction"
             icon="play.fill"
             onPress={testResolveConstructionExtraction}
           />
@@ -695,7 +699,7 @@ Output:
               Alert.alert("Run checks is currently disabled.");
             }}
           /> */}
-          <Button
+          {/* <Button
             label="Check model"
             icon="info.circle.fill"
             onPress={checkLocalModel}
@@ -704,7 +708,7 @@ Output:
             label="Download model"
             icon="icloud.and.arrow.down"
             onPress={downloadLocalModel}
-          />
+          /> */}
           {/* <Button
             label="Check embeddings"
             icon="info.circle.fill"
@@ -767,7 +771,7 @@ Output:
                 simpleDraft.tags.map((tag) => tag.label).join(", ") || "Manual"
               }
             />
-            <SimpleField label="Notifications" value="false" />
+            <SimpleField label="Notifications" value="Not Available" />
             {!simpleDraft.company.selected &&
             simpleDraft.company.suggestions.length > 0 ? (
               <View style={styles.selectionBox}>
