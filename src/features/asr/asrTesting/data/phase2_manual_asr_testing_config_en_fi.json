@@ -949,7 +949,7 @@
       "testSource": "manual_construction_dataset",
       "category": "defect",
       "difficulty": "medium",
-      "referenceText": "The entrance door of apartment D208 rubs against the frame and the lock is difficult to turn.",
+      "referenceText": "The entrance door of apartment A205 rubs against the frame and the lock is difficult to turn.",
       "expectedFields": {
         "reportType": "defect",
         "location": "Apartment D208 entrance door",
