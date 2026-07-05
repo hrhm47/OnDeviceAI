@@ -1,5 +1,5 @@
-import { REQUIRED_ACTION_OPTIONS_V1 } from "../referenceData/workActions";
 import { TASK_TAGS_V1 } from "../referenceData/tags.v1";
+import { REQUIRED_ACTION_OPTIONS_V1 } from "../referenceData/workActions";
 import type {
   ConstructionExtraction,
   ConstructionResolution,
