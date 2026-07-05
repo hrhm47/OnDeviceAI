@@ -60,3 +60,5 @@ models/llm/**/*.gguf
 *.sqlite3
 
 
+#envrionment files
+.env
