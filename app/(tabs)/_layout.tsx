@@ -61,14 +61,24 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          title: "Phase 4",
+          href: fieldUiEnabled ? null : undefined,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={25} name="list.bullet.rectangle" color={color} />
+          ),
+        }}
+      />
+      {/* <Tabs.Screen
+        name="index"
+        options={{
           title: "Home",
           href: fieldUiEnabled ? null : undefined,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={25} name="house.fill" color={color} />
           ),
         }}
-      />
-      <Tabs.Screen
+      /> */}
+      {/* <Tabs.Screen
         name="bench"
         options={{
           title: "ASR Test",
@@ -77,8 +87,8 @@ export default function TabLayout() {
             <IconSymbol size={25} name="mic.fill" color={color} />
           ),
         }}
-      />
-      <Tabs.Screen
+      /> */}
+      {/* <Tabs.Screen
         name="phase3-native-asr"
         options={{
           title: "Phase 3",
@@ -87,18 +97,9 @@ export default function TabLayout() {
             <IconSymbol size={25} name="waveform" color={color} />
           ),
         }}
-      />
-      <Tabs.Screen
-        name="phase4-extraction"
-        options={{
-          title: "Phase 4",
-          href: fieldUiEnabled ? null : undefined,
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={25} name="list.bullet.rectangle" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
+      /> */}
+
+      {/* <Tabs.Screen
         name="history"
         options={{
           title: "Results",
@@ -107,7 +108,7 @@ export default function TabLayout() {
             <IconSymbol size={25} name="chart.bar.fill" color={color} />
           ),
         }}
-      />
+      /> */}
       {/* <Tabs.Screen
         name="datasets"
         options={{
