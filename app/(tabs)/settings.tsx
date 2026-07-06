@@ -21,18 +21,18 @@ const modelInfo = [
     state: "Ready",
     description: "Device speech recognition service for quick baseline tests.",
   },
-  {
-    name: "Whisper base",
-    state: "Not ready",
-    description:
-      "Bundled multilingual model for offline full-recording transcription.",
-  },
-  {
-    name: "Qwen3-ASR",
-    state: "Available",
-    description:
-      "Sherpa-ONNX multilingual candidate with VAD-segmented fallback.",
-  },
+  // {
+  //   name: "Whisper base",
+  //   state: "Not ready",
+  //   description:
+  //     "Bundled multilingual model for offline full-recording transcription.",
+  // },
+  // {
+  //   name: "Qwen3-ASR",
+  //   state: "Available",
+  //   description:
+  //     "Sherpa-ONNX multilingual candidate with VAD-segmented fallback.",
+  // },
 ];
 
 export default function SettingsScreen() {
@@ -80,11 +80,11 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.eyebrow}>Settings and model info</Text>
-          <Text style={styles.title}>Prototype controls</Text>
-          <Text style={styles.subtitle}>
+          {/* <Text style={styles.title}>Prototype controls</Text> */}
+          {/* <Text style={styles.subtitle}>
             Keep device readiness, exports, and thesis context visible for demo
             and evaluation sessions.
-          </Text>
+          </Text> */}
         </View>
 
         <FieldUiToggleCard
@@ -101,7 +101,8 @@ export default function SettingsScreen() {
             {(["English", "Finnish"] as const).map((item) => (
               <Pressable
                 key={item}
-                onPress={() => setLanguage(item)}
+                disabled={item === "Finnish"}
+                onPress={() => setLanguage("English")}
                 style={[
                   styles.segment,
                   language === item && styles.segmentActive,
@@ -111,6 +112,10 @@ export default function SettingsScreen() {
                   style={[
                     styles.segmentText,
                     language === item && styles.segmentTextActive,
+                    item === "Finnish" && {
+                      textDecorationLine: "line-through",
+                      textDecorationStyle: "solid",
+                    },
                   ]}
                 >
                   {item}
@@ -182,7 +187,7 @@ export default function SettingsScreen() {
             value={`${Platform.OS} ${Platform.Version}`}
           />
           <InfoRow label="Active model" value={activeModel.toUpperCase()} />
-          <InfoRow label="Recorded runs" value={String(history.length)} />
+          {/* <InfoRow label="Recorded runs" value={String(history.length)} /> */}
           <InfoRow label="App version" value={appVersion} />
         </View>
 
@@ -220,9 +225,20 @@ export default function SettingsScreen() {
           <Text style={styles.bodyText}>
             This mobile prototype studies how privacy-first on-device AI can
             reduce reporting friction and cognitive load in digital construction
-            reporting. The intended flow is voice input, local ASR, construction
-            vocabulary improvement, context extraction, and editable report
-            autofill preview.
+            reporting. The intended flow is voice input,{" "}
+            <Text
+              style={{
+                textDecorationLine: "line-through",
+                textDecorationStyle: "solid",
+              }}
+            >
+              local ASR
+            </Text>{" "}
+            , construction vocabulary improvement, context extraction, and
+            editable report autofill preview.
+            {
+              "\n\nVoiceInput->ASR->(Mistral)Extraction->DBSearchforData->SuggestedFilledForm->UserConfirmation"
+            }
           </Text>
         </View>
       </ScrollView>

@@ -98,6 +98,8 @@ export default function Phase4ExtractionScreen() {
     "The corridor needs cleaning.",
     "The leaking tap in Apartment 504 kitchen must be repaired by Friday.",
     "The bathroom drain in Apartment 204 on the third floor is blocked.",
+    "The entrance door of apartment 204 rubs against the frame and the lock is difficult to turn.",
+    "In the apartment the in the entrance door of apartment 204 is not properly locking and it is difficult to turn as well",
   ]);
   const [language, setLanguage] = useState<Phase4Language>("en");
   const [providerChoice, setProviderChoice] = useState<ProviderChoice>("mock");
