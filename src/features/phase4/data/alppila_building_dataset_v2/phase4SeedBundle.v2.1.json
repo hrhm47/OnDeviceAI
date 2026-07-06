@@ -1,0 +1,3166 @@
+{
+  "dataset_version": "2.1",
+  "projects": [
+    {
+      "project_id": "p1_alppila_residential",
+      "project_name": "Alppila Residential Construction Project",
+      "project_type": "residential_apartment_building",
+      "project_status": "active",
+      "default_form_id": "general_task_form",
+      "dataset_language": "en",
+      "project_description": "Synthetic project used to test voice-assisted construction reporting for one residential apartment building."
+    }
+  ],
+  "sites": [
+    {
+      "site_id": "site_triolitie_2",
+      "project_id": "p1_alppila_residential",
+      "site_name": "Triolintie 2",
+      "address_line": "Triolintie 2",
+      "city_district": "Alppila",
+      "city": "Oulu",
+      "country": "Finland",
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "site_description": "Residential property site containing the modelled building Triolintie 2B."
+    }
+  ],
+  "buildings": [
+    {
+      "building_id": "bldg_triolitie_2b",
+      "site_id": "site_triolitie_2",
+      "project_id": "p1_alppila_residential",
+      "building_name": "Triolintie 2B",
+      "building_code": "2B",
+      "building_type": "residential_apartment_building",
+      "address_line": "Triolintie 2B",
+      "above_ground_floor_count": 9,
+      "has_basement": true,
+      "basement": {
+        "floor_id": "bldg_triolitie_2b_basement",
+        "floor_number": -1,
+        "floor_label": "Basement",
+        "shared_spaces": [
+          {
+            "space_id": "bldg_triolitie_2b_basement_laundry",
+            "space_type": "laundry_room",
+            "display_name": "Laundry room"
+          },
+          {
+            "space_id": "bldg_triolitie_2b_basement_apartment_storage",
+            "space_type": "apartment_storage",
+            "display_name": "Apartment storage area"
+          },
+          {
+            "space_id": "bldg_triolitie_2b_basement_bicycle_storage",
+            "space_type": "bicycle_storage",
+            "display_name": "Bicycle storage"
+          },
+          {
+            "space_id": "bldg_triolitie_2b_basement_technical_room",
+            "space_type": "technical_room",
+            "display_name": "Technical room"
+          }
+        ]
+      },
+      "floors": [
+        {
+          "floor_id": "bldg_triolitie_2b_floor_1",
+          "floor_number": 1,
+          "floor_label": "Floor 1",
+          "apartments": [
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_101",
+              "apartment_number": "101",
+              "floor_number": 1,
+              "sequence_on_floor": 1,
+              "layout_type": "one_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_101_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_101_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_101_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_101_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_101_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_101_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_101_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 7
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_102",
+              "apartment_number": "102",
+              "floor_number": 1,
+              "sequence_on_floor": 2,
+              "layout_type": "two_bedroom",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_102_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_102_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_102_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_102_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_102_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_102_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_102_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_102_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 8
+                }
+              ]
+            }
+          ],
+          "shared_spaces": [
+            {
+              "space_id": "bldg_triolitie_2b_floor_1_stairwell",
+              "space_type": "stairwell",
+              "display_name": "Stairwell"
+            },
+            {
+              "space_id": "bldg_triolitie_2b_floor_1_corridor",
+              "space_type": "corridor",
+              "display_name": "Shared corridor"
+            }
+          ]
+        },
+        {
+          "floor_id": "bldg_triolitie_2b_floor_2",
+          "floor_number": 2,
+          "floor_label": "Floor 2",
+          "apartments": [
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_201",
+              "apartment_number": "201",
+              "floor_number": 2,
+              "sequence_on_floor": 1,
+              "layout_type": "studio",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_201_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_201_kitchenette",
+                  "space_type": "kitchenette",
+                  "space_number": null,
+                  "display_name": "Kitchenette",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_201_living_bedroom",
+                  "space_type": "living_bedroom",
+                  "space_number": null,
+                  "display_name": "Living room and sleeping area",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_201_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_201_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 5
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_202",
+              "apartment_number": "202",
+              "floor_number": 2,
+              "sequence_on_floor": 2,
+              "layout_type": "one_bedroom",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_202_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_202_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_202_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_202_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_202_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_202_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 6
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_203",
+              "apartment_number": "203",
+              "floor_number": 2,
+              "sequence_on_floor": 3,
+              "layout_type": "two_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_203_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_203_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_203_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_203_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_203_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_203_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_203_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_203_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_203_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 9
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_204",
+              "apartment_number": "204",
+              "floor_number": 2,
+              "sequence_on_floor": 4,
+              "layout_type": "one_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_204_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_204_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_204_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_204_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_204_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_204_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_204_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 7
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_205",
+              "apartment_number": "205",
+              "floor_number": 2,
+              "sequence_on_floor": 5,
+              "layout_type": "two_bedroom",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_205_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_205_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_205_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_205_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_205_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_205_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_205_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_205_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 8
+                }
+              ]
+            }
+          ],
+          "shared_spaces": [
+            {
+              "space_id": "bldg_triolitie_2b_floor_2_stairwell",
+              "space_type": "stairwell",
+              "display_name": "Stairwell"
+            },
+            {
+              "space_id": "bldg_triolitie_2b_floor_2_corridor",
+              "space_type": "corridor",
+              "display_name": "Shared corridor"
+            }
+          ]
+        },
+        {
+          "floor_id": "bldg_triolitie_2b_floor_3",
+          "floor_number": 3,
+          "floor_label": "Floor 3",
+          "apartments": [
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_301",
+              "apartment_number": "301",
+              "floor_number": 3,
+              "sequence_on_floor": 1,
+              "layout_type": "one_bedroom",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_301_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_301_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_301_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_301_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_301_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_301_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 6
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_302",
+              "apartment_number": "302",
+              "floor_number": 3,
+              "sequence_on_floor": 2,
+              "layout_type": "two_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_302_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_302_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_302_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_302_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_302_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_302_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_302_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_302_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_302_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 9
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_303",
+              "apartment_number": "303",
+              "floor_number": 3,
+              "sequence_on_floor": 3,
+              "layout_type": "studio",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_303_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_303_kitchenette",
+                  "space_type": "kitchenette",
+                  "space_number": null,
+                  "display_name": "Kitchenette",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_303_living_bedroom",
+                  "space_type": "living_bedroom",
+                  "space_number": null,
+                  "display_name": "Living room and sleeping area",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_303_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_303_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 5
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_304",
+              "apartment_number": "304",
+              "floor_number": 3,
+              "sequence_on_floor": 4,
+              "layout_type": "three_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_bedroom_3",
+                  "space_type": "bedroom",
+                  "space_number": 3,
+                  "display_name": "Bedroom 3",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_utility_room",
+                  "space_type": "utility_room",
+                  "space_number": null,
+                  "display_name": "Utility room",
+                  "sequence": 9
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_walk_in_closet",
+                  "space_type": "walk_in_closet",
+                  "space_number": null,
+                  "display_name": "Walk-in closet",
+                  "sequence": 10
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 11
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_304_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 12
+                }
+              ]
+            }
+          ],
+          "shared_spaces": [
+            {
+              "space_id": "bldg_triolitie_2b_floor_3_stairwell",
+              "space_type": "stairwell",
+              "display_name": "Stairwell"
+            },
+            {
+              "space_id": "bldg_triolitie_2b_floor_3_corridor",
+              "space_type": "corridor",
+              "display_name": "Shared corridor"
+            }
+          ]
+        },
+        {
+          "floor_id": "bldg_triolitie_2b_floor_4",
+          "floor_number": 4,
+          "floor_label": "Floor 4",
+          "apartments": [
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_401",
+              "apartment_number": "401",
+              "floor_number": 4,
+              "sequence_on_floor": 1,
+              "layout_type": "one_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_401_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_401_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_401_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_401_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_401_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_401_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_401_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 7
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_402",
+              "apartment_number": "402",
+              "floor_number": 4,
+              "sequence_on_floor": 2,
+              "layout_type": "two_bedroom",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_402_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_402_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_402_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_402_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_402_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_402_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_402_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_402_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 8
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_403",
+              "apartment_number": "403",
+              "floor_number": 4,
+              "sequence_on_floor": 3,
+              "layout_type": "one_bedroom",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_403_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_403_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_403_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_403_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_403_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_403_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 6
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_404",
+              "apartment_number": "404",
+              "floor_number": 4,
+              "sequence_on_floor": 4,
+              "layout_type": "three_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_bedroom_3",
+                  "space_type": "bedroom",
+                  "space_number": 3,
+                  "display_name": "Bedroom 3",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_utility_room",
+                  "space_type": "utility_room",
+                  "space_number": null,
+                  "display_name": "Utility room",
+                  "sequence": 9
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_walk_in_closet",
+                  "space_type": "walk_in_closet",
+                  "space_number": null,
+                  "display_name": "Walk-in closet",
+                  "sequence": 10
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 11
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_404_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 12
+                }
+              ]
+            }
+          ],
+          "shared_spaces": [
+            {
+              "space_id": "bldg_triolitie_2b_floor_4_stairwell",
+              "space_type": "stairwell",
+              "display_name": "Stairwell"
+            },
+            {
+              "space_id": "bldg_triolitie_2b_floor_4_corridor",
+              "space_type": "corridor",
+              "display_name": "Shared corridor"
+            }
+          ]
+        },
+        {
+          "floor_id": "bldg_triolitie_2b_floor_5",
+          "floor_number": 5,
+          "floor_label": "Floor 5",
+          "apartments": [
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_501",
+              "apartment_number": "501",
+              "floor_number": 5,
+              "sequence_on_floor": 1,
+              "layout_type": "studio",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_501_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_501_kitchenette",
+                  "space_type": "kitchenette",
+                  "space_number": null,
+                  "display_name": "Kitchenette",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_501_living_bedroom",
+                  "space_type": "living_bedroom",
+                  "space_number": null,
+                  "display_name": "Living room and sleeping area",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_501_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_501_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 5
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_502",
+              "apartment_number": "502",
+              "floor_number": 5,
+              "sequence_on_floor": 2,
+              "layout_type": "one_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_502_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_502_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_502_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_502_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_502_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_502_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_502_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 7
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_503",
+              "apartment_number": "503",
+              "floor_number": 5,
+              "sequence_on_floor": 3,
+              "layout_type": "two_bedroom",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_503_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_503_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_503_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_503_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_503_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_503_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_503_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_503_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 8
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_504",
+              "apartment_number": "504",
+              "floor_number": 5,
+              "sequence_on_floor": 4,
+              "layout_type": "two_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_504_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_504_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_504_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_504_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_504_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_504_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_504_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_504_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_504_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 9
+                }
+              ]
+            }
+          ],
+          "shared_spaces": [
+            {
+              "space_id": "bldg_triolitie_2b_floor_5_stairwell",
+              "space_type": "stairwell",
+              "display_name": "Stairwell"
+            },
+            {
+              "space_id": "bldg_triolitie_2b_floor_5_corridor",
+              "space_type": "corridor",
+              "display_name": "Shared corridor"
+            }
+          ]
+        },
+        {
+          "floor_id": "bldg_triolitie_2b_floor_6",
+          "floor_number": 6,
+          "floor_label": "Floor 6",
+          "apartments": [
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_601",
+              "apartment_number": "601",
+              "floor_number": 6,
+              "sequence_on_floor": 1,
+              "layout_type": "one_bedroom",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_601_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_601_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_601_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_601_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_601_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_601_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 6
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_602",
+              "apartment_number": "602",
+              "floor_number": 6,
+              "sequence_on_floor": 2,
+              "layout_type": "two_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_602_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_602_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_602_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_602_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_602_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_602_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_602_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_602_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_602_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 9
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_603",
+              "apartment_number": "603",
+              "floor_number": 6,
+              "sequence_on_floor": 3,
+              "layout_type": "one_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_603_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_603_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_603_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_603_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_603_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_603_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_603_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 7
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_604",
+              "apartment_number": "604",
+              "floor_number": 6,
+              "sequence_on_floor": 4,
+              "layout_type": "three_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_bedroom_3",
+                  "space_type": "bedroom",
+                  "space_number": 3,
+                  "display_name": "Bedroom 3",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_utility_room",
+                  "space_type": "utility_room",
+                  "space_number": null,
+                  "display_name": "Utility room",
+                  "sequence": 9
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_walk_in_closet",
+                  "space_type": "walk_in_closet",
+                  "space_number": null,
+                  "display_name": "Walk-in closet",
+                  "sequence": 10
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 11
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_604_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 12
+                }
+              ]
+            }
+          ],
+          "shared_spaces": [
+            {
+              "space_id": "bldg_triolitie_2b_floor_6_stairwell",
+              "space_type": "stairwell",
+              "display_name": "Stairwell"
+            },
+            {
+              "space_id": "bldg_triolitie_2b_floor_6_corridor",
+              "space_type": "corridor",
+              "display_name": "Shared corridor"
+            }
+          ]
+        },
+        {
+          "floor_id": "bldg_triolitie_2b_floor_7",
+          "floor_number": 7,
+          "floor_label": "Floor 7",
+          "apartments": [
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_701",
+              "apartment_number": "701",
+              "floor_number": 7,
+              "sequence_on_floor": 1,
+              "layout_type": "one_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_701_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_701_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_701_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_701_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_701_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_701_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_701_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 7
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_702",
+              "apartment_number": "702",
+              "floor_number": 7,
+              "sequence_on_floor": 2,
+              "layout_type": "two_bedroom",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_702_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_702_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_702_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_702_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_702_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_702_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_702_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_702_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 8
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_703",
+              "apartment_number": "703",
+              "floor_number": 7,
+              "sequence_on_floor": 3,
+              "layout_type": "three_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_bedroom_3",
+                  "space_type": "bedroom",
+                  "space_number": 3,
+                  "display_name": "Bedroom 3",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_utility_room",
+                  "space_type": "utility_room",
+                  "space_number": null,
+                  "display_name": "Utility room",
+                  "sequence": 9
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_walk_in_closet",
+                  "space_type": "walk_in_closet",
+                  "space_number": null,
+                  "display_name": "Walk-in closet",
+                  "sequence": 10
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 11
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_703_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 12
+                }
+              ]
+            }
+          ],
+          "shared_spaces": [
+            {
+              "space_id": "bldg_triolitie_2b_floor_7_stairwell",
+              "space_type": "stairwell",
+              "display_name": "Stairwell"
+            },
+            {
+              "space_id": "bldg_triolitie_2b_floor_7_corridor",
+              "space_type": "corridor",
+              "display_name": "Shared corridor"
+            }
+          ]
+        },
+        {
+          "floor_id": "bldg_triolitie_2b_floor_8",
+          "floor_number": 8,
+          "floor_label": "Floor 8",
+          "apartments": [
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_801",
+              "apartment_number": "801",
+              "floor_number": 8,
+              "sequence_on_floor": 1,
+              "layout_type": "studio",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_801_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_801_kitchenette",
+                  "space_type": "kitchenette",
+                  "space_number": null,
+                  "display_name": "Kitchenette",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_801_living_bedroom",
+                  "space_type": "living_bedroom",
+                  "space_number": null,
+                  "display_name": "Living room and sleeping area",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_801_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_801_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 5
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_802",
+              "apartment_number": "802",
+              "floor_number": 8,
+              "sequence_on_floor": 2,
+              "layout_type": "two_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_802_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_802_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_802_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_802_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_802_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_802_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_802_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_802_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_802_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 9
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_803",
+              "apartment_number": "803",
+              "floor_number": 8,
+              "sequence_on_floor": 3,
+              "layout_type": "three_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_bedroom_3",
+                  "space_type": "bedroom",
+                  "space_number": 3,
+                  "display_name": "Bedroom 3",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_utility_room",
+                  "space_type": "utility_room",
+                  "space_number": null,
+                  "display_name": "Utility room",
+                  "sequence": 9
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_walk_in_closet",
+                  "space_type": "walk_in_closet",
+                  "space_number": null,
+                  "display_name": "Walk-in closet",
+                  "sequence": 10
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 11
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_803_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 12
+                }
+              ]
+            }
+          ],
+          "shared_spaces": [
+            {
+              "space_id": "bldg_triolitie_2b_floor_8_stairwell",
+              "space_type": "stairwell",
+              "display_name": "Stairwell"
+            },
+            {
+              "space_id": "bldg_triolitie_2b_floor_8_corridor",
+              "space_type": "corridor",
+              "display_name": "Shared corridor"
+            }
+          ]
+        },
+        {
+          "floor_id": "bldg_triolitie_2b_floor_9",
+          "floor_number": 9,
+          "floor_label": "Floor 9",
+          "apartments": [
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_901",
+              "apartment_number": "901",
+              "floor_number": 9,
+              "sequence_on_floor": 1,
+              "layout_type": "two_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_901_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_901_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_901_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_901_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_901_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_901_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_901_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_901_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_901_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 9
+                }
+              ]
+            },
+            {
+              "apartment_id": "bldg_triolitie_2b_apt_902",
+              "apartment_number": "902",
+              "floor_number": 9,
+              "sequence_on_floor": 2,
+              "layout_type": "three_bedroom_sauna",
+              "spaces": [
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_entrance_hall",
+                  "space_type": "entrance_hall",
+                  "space_number": null,
+                  "display_name": "Entrance hall",
+                  "sequence": 1
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_kitchen",
+                  "space_type": "kitchen",
+                  "space_number": null,
+                  "display_name": "Kitchen",
+                  "sequence": 2
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_living_room",
+                  "space_type": "living_room",
+                  "space_number": null,
+                  "display_name": "Living room",
+                  "sequence": 3
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_bedroom_1",
+                  "space_type": "bedroom",
+                  "space_number": 1,
+                  "display_name": "Bedroom 1",
+                  "sequence": 4
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_bedroom_2",
+                  "space_type": "bedroom",
+                  "space_number": 2,
+                  "display_name": "Bedroom 2",
+                  "sequence": 5
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_bedroom_3",
+                  "space_type": "bedroom",
+                  "space_number": 3,
+                  "display_name": "Bedroom 3",
+                  "sequence": 6
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_bathroom",
+                  "space_type": "bathroom",
+                  "space_number": null,
+                  "display_name": "Bathroom",
+                  "sequence": 7
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_wc",
+                  "space_type": "wc",
+                  "space_number": null,
+                  "display_name": "WC",
+                  "sequence": 8
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_utility_room",
+                  "space_type": "utility_room",
+                  "space_number": null,
+                  "display_name": "Utility room",
+                  "sequence": 9
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_walk_in_closet",
+                  "space_type": "walk_in_closet",
+                  "space_number": null,
+                  "display_name": "Walk-in closet",
+                  "sequence": 10
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_sauna",
+                  "space_type": "sauna",
+                  "space_number": null,
+                  "display_name": "Sauna",
+                  "sequence": 11
+                },
+                {
+                  "space_id": "bldg_triolitie_2b_apt_902_balcony",
+                  "space_type": "balcony",
+                  "space_number": null,
+                  "display_name": "Balcony",
+                  "sequence": 12
+                }
+              ]
+            }
+          ],
+          "shared_spaces": [
+            {
+              "space_id": "bldg_triolitie_2b_floor_9_stairwell",
+              "space_type": "stairwell",
+              "display_name": "Stairwell"
+            },
+            {
+              "space_id": "bldg_triolitie_2b_floor_9_corridor",
+              "space_type": "corridor",
+              "display_name": "Shared corridor"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "workTypes": [
+    {
+      "work_type_id": "wt_general_construction",
+      "name": "General construction",
+      "description": "General building work, coordination, and non-specialist repairs.",
+      "aliases_en": [
+        "general repair",
+        "construction repair",
+        "building repair",
+        "unfinished construction work",
+        "site coordination"
+      ],
+      "example_issues_en": [
+        "unfinished wall opening",
+        "damaged partition",
+        "general repair required"
+      ]
+    },
+    {
+      "work_type_id": "wt_painting_finishing",
+      "name": "Painting and surface finishing",
+      "description": "Painting, touch-up work, and wall or ceiling surface corrections.",
+      "aliases_en": [
+        "paint damage",
+        "wall scratch",
+        "uneven paint",
+        "paint peeling",
+        "repaint",
+        "touch up",
+        "surface defect",
+        "poor finish"
+      ],
+      "example_issues_en": [
+        "paint is damaged beside the window",
+        "the wall finish is uneven",
+        "the ceiling needs repainting"
+      ]
+    },
+    {
+      "work_type_id": "wt_plumbing",
+      "name": "Plumbing",
+      "description": "Pipes, drains, water fixtures, toilets, sinks, and visible leaks.",
+      "aliases_en": [
+        "pipe",
+        "water pipe",
+        "leak",
+        "sink leak",
+        "drain",
+        "toilet",
+        "tap",
+        "faucet",
+        "water fixture",
+        "plumbing"
+      ],
+      "example_issues_en": [
+        "water is leaking under the sink",
+        "the toilet connection is loose",
+        "the drain is blocked"
+      ]
+    },
+    {
+      "work_type_id": "wt_electrical",
+      "name": "Electrical work",
+      "description": "Sockets, switches, lighting, wiring, cables, and electrical safety.",
+      "aliases_en": [
+        "socket",
+        "power outlet",
+        "switch",
+        "light",
+        "lighting",
+        "wire",
+        "wiring",
+        "cable",
+        "electrical panel",
+        "exposed wire"
+      ],
+      "example_issues_en": [
+        "the socket is loose",
+        "the ceiling light does not work",
+        "an electrical cable is exposed"
+      ]
+    },
+    {
+      "work_type_id": "wt_hvac_ventilation",
+      "name": "HVAC and ventilation",
+      "description": "Ventilation terminals, airflow, heating, cooling, and HVAC adjustments.",
+      "aliases_en": [
+        "ventilation",
+        "airflow",
+        "air flow",
+        "vent",
+        "air valve",
+        "heating",
+        "radiator",
+        "thermostat",
+        "HVAC"
+      ],
+      "example_issues_en": [
+        "there is no airflow from the vent",
+        "the radiator is not heating",
+        "the ventilation valve is loose"
+      ]
+    },
+    {
+      "work_type_id": "wt_tiling",
+      "name": "Tiling",
+      "description": "Wall and floor tiles, grout, and tile finishing.",
+      "aliases_en": [
+        "tile",
+        "floor tile",
+        "wall tile",
+        "cracked tile",
+        "loose tile",
+        "grout",
+        "missing grout"
+      ],
+      "example_issues_en": [
+        "a bathroom tile is cracked",
+        "the floor tile is loose",
+        "grout is missing beside the shower"
+      ]
+    },
+    {
+      "work_type_id": "wt_sealing_waterproofing",
+      "name": "Sealing and waterproofing",
+      "description": "Silicone joints, sealants, waterproofing, thresholds, and wet-area sealing.",
+      "aliases_en": [
+        "silicone",
+        "seal",
+        "sealant",
+        "waterproofing",
+        "waterproof membrane",
+        "joint sealing",
+        "missing silicone"
+      ],
+      "example_issues_en": [
+        "silicone is missing around the shower",
+        "the balcony door seal is damaged",
+        "waterproofing needs inspection"
+      ]
+    },
+    {
+      "work_type_id": "wt_doors_windows",
+      "name": "Doors and windows",
+      "description": "Doors, windows, handles, locks, hinges, seals, and adjustments.",
+      "aliases_en": [
+        "door",
+        "window",
+        "handle",
+        "lock",
+        "hinge",
+        "does not close",
+        "does not open",
+        "balcony door",
+        "window seal"
+      ],
+      "example_issues_en": [
+        "the balcony door does not close",
+        "the window handle is loose",
+        "the apartment door needs adjustment"
+      ]
+    },
+    {
+      "work_type_id": "wt_cleaning",
+      "name": "Cleaning",
+      "description": "Construction cleaning, dust removal, waste removal, and final cleaning.",
+      "aliases_en": [
+        "dirty",
+        "dust",
+        "construction dust",
+        "waste",
+        "debris",
+        "cleaning",
+        "final cleaning",
+        "remove rubbish"
+      ],
+      "example_issues_en": [
+        "construction dust remains in the bedroom",
+        "waste must be removed from the corridor",
+        "the apartment needs final cleaning"
+      ]
+    },
+    {
+      "work_type_id": "wt_flooring",
+      "name": "Flooring",
+      "description": "Laminate, parquet, vinyl, floor surfaces, skirting boards, and floor repairs.",
+      "aliases_en": [
+        "floor",
+        "flooring",
+        "laminate",
+        "parquet",
+        "vinyl",
+        "floor scratch",
+        "loose floor",
+        "skirting board"
+      ],
+      "example_issues_en": [
+        "the laminate is loose",
+        "the floor is scratched",
+        "the skirting board is missing"
+      ]
+    }
+  ],
+  "companies": [
+    {
+      "company_id": "c_main_builder",
+      "company_name": "Main Builder Oy",
+      "company_type": "main_contractor",
+      "general_capability_work_type_ids": [
+        "wt_general_construction"
+      ],
+      "home_city": "Oulu",
+      "company_status": "active",
+      "company_description": "Main contractor responsible for site coordination and general construction."
+    },
+    {
+      "company_id": "c_pintafix",
+      "company_name": "PintaFix Oy",
+      "company_type": "subcontractor",
+      "general_capability_work_type_ids": [
+        "wt_painting_finishing"
+      ],
+      "home_city": "Oulu",
+      "company_status": "active",
+      "company_description": "Painting and apartment-level surface correction contractor."
+    },
+    {
+      "company_id": "c_aquapipe",
+      "company_name": "AquaPipe Finland Oy",
+      "company_type": "subcontractor",
+      "general_capability_work_type_ids": [
+        "wt_plumbing"
+      ],
+      "home_city": "Oulu",
+      "company_status": "active",
+      "company_description": "Plumbing installation and repair contractor."
+    },
+    {
+      "company_id": "c_northvolt",
+      "company_name": "NorthVolt Electrical Oy",
+      "company_type": "subcontractor",
+      "general_capability_work_type_ids": [
+        "wt_electrical"
+      ],
+      "home_city": "Oulu",
+      "company_status": "active",
+      "company_description": "Electrical installation, finishing, and safety contractor."
+    },
+    {
+      "company_id": "c_hvacpro",
+      "company_name": "HVACPro Oulu Oy",
+      "company_type": "subcontractor",
+      "general_capability_work_type_ids": [
+        "wt_hvac_ventilation"
+      ],
+      "home_city": "Oulu",
+      "company_status": "active",
+      "company_description": "HVAC and ventilation installation and adjustment contractor."
+    },
+    {
+      "company_id": "c_tilepro",
+      "company_name": "TilePro Oulu Oy",
+      "company_type": "specialist_subcontractor",
+      "general_capability_work_type_ids": [
+        "wt_tiling"
+      ],
+      "home_city": "Oulu",
+      "company_status": "active",
+      "company_description": "Wet-area and apartment tiling contractor."
+    },
+    {
+      "company_id": "c_sealsafe",
+      "company_name": "SealSafe Oy",
+      "company_type": "specialist_subcontractor",
+      "general_capability_work_type_ids": [
+        "wt_sealing_waterproofing"
+      ],
+      "home_city": "Oulu",
+      "company_status": "active",
+      "company_description": "Sealing, silicone, and waterproofing specialist."
+    },
+    {
+      "company_id": "c_doorwindow",
+      "company_name": "DoorWindow Fix Oy",
+      "company_type": "specialist_subcontractor",
+      "general_capability_work_type_ids": [
+        "wt_doors_windows"
+      ],
+      "home_city": "Oulu",
+      "company_status": "active",
+      "company_description": "Door and window installation and adjustment specialist."
+    },
+    {
+      "company_id": "c_cleansite",
+      "company_name": "CleanSite Oy",
+      "company_type": "subcontractor",
+      "general_capability_work_type_ids": [
+        "wt_cleaning"
+      ],
+      "home_city": "Oulu",
+      "company_status": "active",
+      "company_description": "Construction and final cleaning contractor."
+    },
+    {
+      "company_id": "c_floorfix",
+      "company_name": "FloorFix Oy",
+      "company_type": "specialist_subcontractor",
+      "general_capability_work_type_ids": [
+        "wt_flooring"
+      ],
+      "home_city": "Oulu",
+      "company_status": "active",
+      "company_description": "Flooring, laminate, parquet, and skirting-board repair specialist."
+    }
+  ],
+  "projectCompanyContext": [
+    {
+      "context_id": "p1_ctx_main_builder",
+      "project_id": "p1_alppila_residential",
+      "company_id": "c_main_builder",
+      "project_role": "main_contractor",
+      "responsibility_description": "General building work, coordination, and repairs not assigned to a specialist subcontractor.",
+      "work_type_ids": [
+        "wt_general_construction"
+      ],
+      "site_ids": [
+        "site_triolitie_2"
+      ],
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "level_scope": {
+        "scope_type": "whole_building",
+        "floor_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "includes_basement": true,
+        "scope_description": "Basement and all residential floors from Floor 1 to Floor 9."
+      },
+      "apartment_scope": {
+        "scope_type": "all_apartments",
+        "apartment_ids": [],
+        "scope_description": "All apartments within the included building levels."
+      },
+      "space_type_scope": {
+        "scope_type": "all_space_types",
+        "space_types": [],
+        "scope_description": "All space types within the included levels and apartments."
+      },
+      "agreement_start_date": "2026-01-01",
+      "agreement_end_date": "2027-12-31",
+      "status": "active",
+      "scope_notes": "Whole-building responsibility for general construction and coordination."
+    },
+    {
+      "context_id": "p1_ctx_pintafix",
+      "project_id": "p1_alppila_residential",
+      "company_id": "c_pintafix",
+      "project_role": "trade_contractor",
+      "responsibility_description": "Interior painting, touch-up work, and surface corrections in apartments and shared indoor spaces.",
+      "work_type_ids": [
+        "wt_painting_finishing"
+      ],
+      "site_ids": [
+        "site_triolitie_2"
+      ],
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "level_scope": {
+        "scope_type": "specific_floors",
+        "floor_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "includes_basement": false,
+        "scope_description": "All residential floors from Floor 1 to Floor 9; basement excluded."
+      },
+      "apartment_scope": {
+        "scope_type": "all_apartments",
+        "apartment_ids": [],
+        "scope_description": "All apartments within the included building levels."
+      },
+      "space_type_scope": {
+        "scope_type": "specific_space_types",
+        "space_types": [
+          "entrance_hall",
+          "kitchen",
+          "kitchenette",
+          "living_room",
+          "living_bedroom",
+          "bedroom",
+          "corridor",
+          "stairwell"
+        ],
+        "scope_description": "Only the listed space types."
+      },
+      "agreement_start_date": "2026-02-01",
+      "agreement_end_date": "2027-06-30",
+      "status": "active",
+      "scope_notes": "Covers apartment and shared-space painting on Floors 1-9."
+    },
+    {
+      "context_id": "p1_ctx_aquapipe",
+      "project_id": "p1_alppila_residential",
+      "company_id": "c_aquapipe",
+      "project_role": "trade_contractor",
+      "responsibility_description": "Pipes, drains, sinks, toilets, taps, water fixtures, and visible plumbing leaks.",
+      "work_type_ids": [
+        "wt_plumbing"
+      ],
+      "site_ids": [
+        "site_triolitie_2"
+      ],
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "level_scope": {
+        "scope_type": "whole_building",
+        "floor_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "includes_basement": true,
+        "scope_description": "Basement and all residential floors from Floor 1 to Floor 9."
+      },
+      "apartment_scope": {
+        "scope_type": "all_apartments",
+        "apartment_ids": [],
+        "scope_description": "All apartments within the included building levels."
+      },
+      "space_type_scope": {
+        "scope_type": "specific_space_types",
+        "space_types": [
+          "kitchen",
+          "kitchenette",
+          "bathroom",
+          "wc",
+          "utility_room",
+          "sauna",
+          "laundry_room",
+          "technical_room"
+        ],
+        "scope_description": "Only the listed space types."
+      },
+      "agreement_start_date": "2026-01-15",
+      "agreement_end_date": "2027-09-30",
+      "status": "active",
+      "scope_notes": "Covers plumbing systems in wet areas, kitchens, basement service spaces, and technical rooms."
+    },
+    {
+      "context_id": "p1_ctx_northvolt",
+      "project_id": "p1_alppila_residential",
+      "company_id": "c_northvolt",
+      "project_role": "trade_contractor",
+      "responsibility_description": "Electrical installation, sockets, switches, lighting, cables, and electrical safety.",
+      "work_type_ids": [
+        "wt_electrical"
+      ],
+      "site_ids": [
+        "site_triolitie_2"
+      ],
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "level_scope": {
+        "scope_type": "whole_building",
+        "floor_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "includes_basement": true,
+        "scope_description": "Basement and all residential floors from Floor 1 to Floor 9."
+      },
+      "apartment_scope": {
+        "scope_type": "all_apartments",
+        "apartment_ids": [],
+        "scope_description": "All apartments within the included building levels."
+      },
+      "space_type_scope": {
+        "scope_type": "all_space_types",
+        "space_types": [],
+        "scope_description": "All space types within the included levels and apartments."
+      },
+      "agreement_start_date": "2026-01-15",
+      "agreement_end_date": "2027-09-30",
+      "status": "active",
+      "scope_notes": "Whole-building electrical responsibility."
+    },
+    {
+      "context_id": "p1_ctx_hvacpro",
+      "project_id": "p1_alppila_residential",
+      "company_id": "c_hvacpro",
+      "project_role": "trade_contractor",
+      "responsibility_description": "Ventilation terminals, airflow, heating, thermostats, and HVAC adjustments.",
+      "work_type_ids": [
+        "wt_hvac_ventilation"
+      ],
+      "site_ids": [
+        "site_triolitie_2"
+      ],
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "level_scope": {
+        "scope_type": "whole_building",
+        "floor_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "includes_basement": true,
+        "scope_description": "Basement and all residential floors from Floor 1 to Floor 9."
+      },
+      "apartment_scope": {
+        "scope_type": "all_apartments",
+        "apartment_ids": [],
+        "scope_description": "All apartments within the included building levels."
+      },
+      "space_type_scope": {
+        "scope_type": "all_space_types",
+        "space_types": [],
+        "scope_description": "All space types within the included levels and apartments."
+      },
+      "agreement_start_date": "2026-03-01",
+      "agreement_end_date": "2027-10-31",
+      "status": "active",
+      "scope_notes": "Whole-building HVAC and ventilation responsibility."
+    },
+    {
+      "context_id": "p1_ctx_tilepro",
+      "project_id": "p1_alppila_residential",
+      "company_id": "c_tilepro",
+      "project_role": "specialist_trade_contractor",
+      "responsibility_description": "Wall and floor tiling, grout, and tile finishing in wet areas and selected entrance areas.",
+      "work_type_ids": [
+        "wt_tiling"
+      ],
+      "site_ids": [
+        "site_triolitie_2"
+      ],
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "level_scope": {
+        "scope_type": "specific_floors",
+        "floor_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "includes_basement": false,
+        "scope_description": "All residential floors from Floor 1 to Floor 9; basement excluded."
+      },
+      "apartment_scope": {
+        "scope_type": "all_apartments",
+        "apartment_ids": [],
+        "scope_description": "All apartments within the included building levels."
+      },
+      "space_type_scope": {
+        "scope_type": "specific_space_types",
+        "space_types": [
+          "bathroom",
+          "wc",
+          "sauna",
+          "entrance_hall"
+        ],
+        "scope_description": "Only the listed space types."
+      },
+      "agreement_start_date": "2026-03-15",
+      "agreement_end_date": "2027-05-31",
+      "status": "active",
+      "scope_notes": "Apartment wet-area and entrance-hall tiling."
+    },
+    {
+      "context_id": "p1_ctx_sealsafe",
+      "project_id": "p1_alppila_residential",
+      "company_id": "c_sealsafe",
+      "project_role": "specialist_trade_contractor",
+      "responsibility_description": "Silicone joints, sealants, waterproofing, thresholds, and balcony sealing details.",
+      "work_type_ids": [
+        "wt_sealing_waterproofing"
+      ],
+      "site_ids": [
+        "site_triolitie_2"
+      ],
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "level_scope": {
+        "scope_type": "specific_floors",
+        "floor_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "includes_basement": false,
+        "scope_description": "All residential floors from Floor 1 to Floor 9; basement excluded."
+      },
+      "apartment_scope": {
+        "scope_type": "all_apartments",
+        "apartment_ids": [],
+        "scope_description": "All apartments within the included building levels."
+      },
+      "space_type_scope": {
+        "scope_type": "specific_space_types",
+        "space_types": [
+          "bathroom",
+          "wc",
+          "sauna",
+          "balcony",
+          "utility_room"
+        ],
+        "scope_description": "Only the listed space types."
+      },
+      "agreement_start_date": "2026-04-01",
+      "agreement_end_date": "2027-06-30",
+      "status": "active",
+      "scope_notes": "Wet-area and balcony sealing and waterproofing."
+    },
+    {
+      "context_id": "p1_ctx_doorwindow",
+      "project_id": "p1_alppila_residential",
+      "company_id": "c_doorwindow",
+      "project_role": "specialist_trade_contractor",
+      "responsibility_description": "Apartment doors, balcony doors, windows, handles, hinges, locks, seals, and adjustments.",
+      "work_type_ids": [
+        "wt_doors_windows"
+      ],
+      "site_ids": [
+        "site_triolitie_2"
+      ],
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "level_scope": {
+        "scope_type": "specific_floors",
+        "floor_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "includes_basement": false,
+        "scope_description": "All residential floors from Floor 1 to Floor 9; basement excluded."
+      },
+      "apartment_scope": {
+        "scope_type": "all_apartments",
+        "apartment_ids": [],
+        "scope_description": "All apartments within the included building levels."
+      },
+      "space_type_scope": {
+        "scope_type": "specific_space_types",
+        "space_types": [
+          "entrance_hall",
+          "kitchen",
+          "living_room",
+          "living_bedroom",
+          "bedroom",
+          "balcony",
+          "corridor",
+          "stairwell"
+        ],
+        "scope_description": "Only the listed space types."
+      },
+      "agreement_start_date": "2026-04-15",
+      "agreement_end_date": "2027-07-31",
+      "status": "active",
+      "scope_notes": "Covers apartment and shared-space doors and windows."
+    },
+    {
+      "context_id": "p1_ctx_cleansite",
+      "project_id": "p1_alppila_residential",
+      "company_id": "c_cleansite",
+      "project_role": "handover_cleaning_contractor",
+      "responsibility_description": "Construction cleaning, dust removal, waste removal, and final cleaning.",
+      "work_type_ids": [
+        "wt_cleaning"
+      ],
+      "site_ids": [
+        "site_triolitie_2"
+      ],
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "level_scope": {
+        "scope_type": "whole_building",
+        "floor_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "includes_basement": true,
+        "scope_description": "Basement and all residential floors from Floor 1 to Floor 9."
+      },
+      "apartment_scope": {
+        "scope_type": "all_apartments",
+        "apartment_ids": [],
+        "scope_description": "All apartments within the included building levels."
+      },
+      "space_type_scope": {
+        "scope_type": "all_space_types",
+        "space_types": [],
+        "scope_description": "All space types within the included levels and apartments."
+      },
+      "agreement_start_date": "2026-06-01",
+      "agreement_end_date": "2027-12-31",
+      "status": "active",
+      "scope_notes": "Whole-building construction and final cleaning."
+    },
+    {
+      "context_id": "p1_ctx_floorfix",
+      "project_id": "p1_alppila_residential",
+      "company_id": "c_floorfix",
+      "project_role": "specialist_trade_contractor",
+      "responsibility_description": "Laminate, parquet, vinyl, floor surfaces, skirting boards, and floor repairs.",
+      "work_type_ids": [
+        "wt_flooring"
+      ],
+      "site_ids": [
+        "site_triolitie_2"
+      ],
+      "building_ids": [
+        "bldg_triolitie_2b"
+      ],
+      "level_scope": {
+        "scope_type": "specific_floors",
+        "floor_numbers": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "includes_basement": false,
+        "scope_description": "All residential floors from Floor 1 to Floor 9; basement excluded."
+      },
+      "apartment_scope": {
+        "scope_type": "all_apartments",
+        "apartment_ids": [],
+        "scope_description": "All apartments within the included building levels."
+      },
+      "space_type_scope": {
+        "scope_type": "specific_space_types",
+        "space_types": [
+          "entrance_hall",
+          "kitchen",
+          "kitchenette",
+          "living_room",
+          "living_bedroom",
+          "bedroom",
+          "walk_in_closet",
+          "corridor"
+        ],
+        "scope_description": "Only the listed space types."
+      },
+      "agreement_start_date": "2026-03-15",
+      "agreement_end_date": "2027-06-30",
+      "status": "active",
+      "scope_notes": "Covers dry-area flooring and skirting boards."
+    }
+  ],
+  "users": [
+    {
+      "user_id": "u_timmo",
+      "display_name": "Timmo",
+      "role_type": "quality_inspector",
+      "employer_company_id": "c_main_builder",
+      "active_project_id": "p1_alppila_residential",
+      "default_building_id": "bldg_triolitie_2b",
+      "default_floor_number": 3,
+      "default_language": "en",
+      "user_description": "Main-contractor quality inspector."
+    },
+    {
+      "user_id": "u_jari",
+      "display_name": "Jari",
+      "role_type": "painting_foreman",
+      "employer_company_id": "c_pintafix",
+      "active_project_id": "p1_alppila_residential",
+      "default_building_id": "bldg_triolitie_2b",
+      "default_floor_number": 4,
+      "default_language": "en",
+      "user_description": "Painting foreman responsible for apartment finishing work."
+    },
+    {
+      "user_id": "u_sari",
+      "display_name": "Sari",
+      "role_type": "electrical_worker",
+      "employer_company_id": "c_northvolt",
+      "active_project_id": "p1_alppila_residential",
+      "default_building_id": "bldg_triolitie_2b",
+      "default_floor_number": 2,
+      "default_language": "en",
+      "user_description": "Electrical worker who may also report issues outside the electrical trade."
+    },
+    {
+      "user_id": "u_pekka",
+      "display_name": "Pekka",
+      "role_type": "plumbing_technician",
+      "employer_company_id": "c_aquapipe",
+      "active_project_id": "p1_alppila_residential",
+      "default_building_id": "bldg_triolitie_2b",
+      "default_floor_number": 5,
+      "default_language": "en",
+      "user_description": "Plumbing technician working in apartment kitchens and wet areas."
+    },
+    {
+      "user_id": "u_aino",
+      "display_name": "Aino",
+      "role_type": "cleaning_supervisor",
+      "employer_company_id": "c_cleansite",
+      "active_project_id": "p1_alppila_residential",
+      "default_building_id": "bldg_triolitie_2b",
+      "default_floor_number": 8,
+      "default_language": "en",
+      "user_description": "Cleaning supervisor who can identify finishing and safety issues during handover cleaning."
+    }
+  ]
+}

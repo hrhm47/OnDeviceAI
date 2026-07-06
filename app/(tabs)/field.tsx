@@ -11,11 +11,19 @@ import {
   type Phase4SeedUser,
 } from "@/src/features/phase4/data/phase4SeedData";
 import {
-  extractGeneralTaskFormDraft,
+  buildSimpleGeneralTaskFormDraft,
+  type FormSelection,
+  type SimpleGeneralTaskFormDraft,
+} from "@/src/features/phase4/draft/buildSimpleGeneralTaskFormDraft";
+import {
   type Phase4ExtractionProgressStep,
   type Phase4ExtractionResult,
 } from "@/src/features/phase4/draft/phase4TaskDraftBuilder";
-import { phase4LocalLLMProvider } from "@/src/features/phase4/llm/phase4LocalLLMProvider";
+import {
+  MistalCallFunc,
+  parseMistralExtraction,
+} from "@/src/features/phase4/https/mistralAi";
+import { resolveConstructionExtraction } from "@/src/features/phase4/retrieval/misteralStructuralData";
 import { savePhase4ExtractionResult } from "@/src/features/phase4/storage/phase4ExtractionStorage";
 import { preparePhase4HybridRagRuntime } from "@/src/features/phase4/storage/phase4HybridRagRuntime";
 import type {
@@ -53,8 +61,11 @@ type FieldWorkflowStatus =
   | "error";
 
 type EditableDraft = {
+  source: "phase4_result" | "mistral_db";
+  list: string;
   company: string;
   companyId: string | null;
+  companySuggestions: FormSelection[];
   description: string;
   area: string;
   areaId: string | null;
@@ -306,30 +317,30 @@ export default function FieldScreen() {
     setMessage("Preparing transcript.");
     await waitForPaint();
 
-    try {
-      const nextResult = await extractGeneralTaskFormDraft({
-        phase3ResultId: transcriptionResult?.id ?? latestResult?.id ?? null,
-        transcript: finalTranscript,
-        phase4UserId: selectedUserId,
-        language,
-        provider: phase4LocalLLMProvider,
-        onProgress: (step) => {
-          const nextStatus = fieldStatusForExtractionStep(step);
-          console.log("Extraction step:", step, "->", nextStatus);
-          setWorkflowStatus(nextStatus);
-          setMessage(messageForExtractionStep(step));
-        },
-      });
+    // try {
+    //   const nextResult = await extractGeneralTaskFormDraft({
+    //     phase3ResultId: transcriptionResult?.id ?? latestResult?.id ?? null,
+    //     transcript: finalTranscript,
+    //     phase4UserId: selectedUserId,
+    //     language,
+    //     provider: phase4LocalLLMProvider,
+    //     onProgress: (step) => {
+    //       const nextStatus = fieldStatusForExtractionStep(step);
+    //       console.log("Extraction step:", step, "->", nextStatus);
+    //       setWorkflowStatus(nextStatus);
+    //       setMessage(messageForExtractionStep(step));
+    //     },
+    //   });
 
-      setResult(nextResult);
-      setEditableDraft(createEditableDraft(nextResult));
-      setWorkflowStatus("ready");
-      setMessage("Draft ready for review.");
-    } catch (error) {
-      const text = error instanceof Error ? error.message : String(error);
-      setWorkflowStatus("error");
-      setMessage(text);
-    }
+    //   setResult(nextResult);
+    // setEditableDraft(createEditableDraft(nextResult));
+    //   setWorkflowStatus("ready");
+    //   setMessage("Draft ready for review.");
+    // } catch (error) {
+    //   const text = error instanceof Error ? error.message : String(error);
+    //   setWorkflowStatus("error");
+    //   setMessage(text);
+    // }
   };
 
   const saveDraft = async () => {
@@ -362,6 +373,70 @@ export default function FieldScreen() {
     setSelectedUserId(userId);
   };
 
+  // new mistral ai functions for testing
+
+  const mistralStopRecordingExtractBuildForm = async () => {
+    if (!isRecording) {
+      return;
+    }
+
+    setWorkflowStatus("transcribing");
+    setMessage("Finalizing recorded speech.");
+
+    const transcriptionResult = await stopRecordingAndTranscribe();
+    console.log("Transcription result:", transcriptionResult);
+    const finalTranscript =
+      transcriptionResult?.transcript.trim() ||
+      latestResult?.transcript.trim() ||
+      transcript.trim();
+
+    // setTranscript(finalTranscript);
+
+    // if (!finalTranscript) {
+    //   setWorkflowStatus("error");
+    //   setMessage(
+    //     "No transcript was captured. Record again before creating a draft.",
+    //   );
+    //   return;
+    // }
+
+    setWorkflowStatus("preparing_transcript");
+    // setMessage("Preparing transcript.");
+    // await waitForPaint();
+
+    const wait = await MistalCallFunc(finalTranscript);
+    // setWorkflowStatus("preparing_transcript");
+
+    if (wait.result) {
+      const extraction = parseMistralExtraction(wait.result);
+
+      console.log("Parsed Mistral extraction:", extraction);
+
+      const resolved = await resolveConstructionExtraction(extraction, {
+        projectId: selectedUser?.active_project_id ?? "p1_alppila_residential",
+        defaultBuildingId: selectedUser?.default_building_id ?? null,
+      });
+
+      console.log("Resolved DB result:", JSON.stringify(resolved, null, 2));
+
+      const draft = buildSimpleGeneralTaskFormDraft({
+        extraction,
+        resolution: resolved,
+      });
+      setResult(null);
+      setEditableDraft(createEditableDraftFromSimpleDraft(draft));
+      setWorkflowStatus("ready");
+      // setSimpleDraft(draft);
+      // setSimpleResolutionStatus(resolved.location.status);
+
+      console.log("Simple form draft:", JSON.stringify(draft, null, 2));
+
+      setMessage(
+        `Mistral + DB + draft completed. Status: ${resolved.location.status}`,
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -388,7 +463,7 @@ export default function FieldScreen() {
             onSelect={selectUser}
           />
 
-          <View style={styles.languageRow}>
+          {/* <View style={styles.languageRow}>
             <ModeChip
               label="English"
               selected={language === "en"}
@@ -401,13 +476,18 @@ export default function FieldScreen() {
               disabled={languageDisabled}
               onPress={() => setLanguage("fi")}
             />
-          </View>
+          </View> */}
 
           <WorkflowSteps status={workflowStatus} />
 
           <View style={styles.recorderPanel}>
             <Pressable
-              onPress={isRecording ? stopAndExtract : beginRecording}
+              // onPress={isRecording ? stopAndExtract : beginRecording}
+              onPress={
+                isRecording
+                  ? mistralStopRecordingExtractBuildForm
+                  : beginRecording
+              }
               disabled={micDisabled}
               style={[
                 styles.micButton,
@@ -415,15 +495,15 @@ export default function FieldScreen() {
                 micDisabled && styles.micButtonDisabled,
               ]}
             >
-              {showProcessingPanel ? (
+              {/* {showProcessingPanel ? (
                 <ActivityIndicator size="large" color="#FFFFFF" />
-              ) : (
-                <IconSymbol
-                  name={isRecording ? "stop.fill" : "mic.fill"}
-                  size={48}
-                  color="#FFFFFF"
-                />
-              )}
+              ) : ( */}
+              <IconSymbol
+                name={isRecording ? "stop.fill" : "mic.fill"}
+                size={48}
+                color="#FFFFFF"
+              />
+              {/* )} */}
             </Pressable>
             <Text style={styles.recorderStatus}>
               {statusLabel(workflowStatus, asrStatus)}
@@ -433,12 +513,12 @@ export default function FieldScreen() {
             ) : null}
           </View>
 
-          {showProcessingPanel ? (
+          {/* {showProcessingPanel ? (
             <ProcessingPanel
               status={workflowStatus}
               detail={embeddingIndexProgress ?? message}
             />
-          ) : null}
+          ) : null} */}
 
           {projectContext ? (
             <View style={styles.contextPanel}>
@@ -460,7 +540,7 @@ export default function FieldScreen() {
             </Text>
           </View>
 
-          {message ? (
+          {/* {message ? (
             <Text
               style={[
                 styles.message,
@@ -469,26 +549,38 @@ export default function FieldScreen() {
             >
               {message}
             </Text>
-          ) : null}
+          ) : null} */}
 
-          {result && editableDraft ? (
+          {editableDraft ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Draft preview</Text>
-              <ReadOnlyRow label="List" value={result.draft.list.value} />
+              <ReadOnlyRow label="List" value={editableDraft.list} />
               <EditableField
                 label="Company"
                 value={editableDraft.company}
-                status={friendlyFieldStatus(result.draft.company.status)}
-                suggestions={companyInlineSuggestions(
-                  result,
-                  editableDraft.companyId,
-                  (suggestion) =>
-                    setEditableDraft({
-                      ...editableDraft,
-                      company: suggestion.label,
-                      companyId: suggestion.companyId,
-                    }),
-                )}
+                status={editableCompanyStatus(result, editableDraft)}
+                suggestions={
+                  result
+                    ? companyInlineSuggestions(
+                        result,
+                        editableDraft.companyId,
+                        (suggestion) =>
+                          setEditableDraft({
+                            ...editableDraft,
+                            company: suggestion.label,
+                            companyId: suggestion.companyId,
+                          }),
+                      )
+                    : simpleCompanyInlineSuggestions(
+                        editableDraft,
+                        (suggestion) =>
+                          setEditableDraft({
+                            ...editableDraft,
+                            company: suggestion.label,
+                            companyId: suggestion.companyId,
+                          }),
+                      )
+                }
                 onChangeText={(company) =>
                   setEditableDraft({
                     ...editableDraft,
@@ -500,7 +592,10 @@ export default function FieldScreen() {
               <EditableField
                 label="Description"
                 value={editableDraft.description}
-                status={friendlyFieldStatus(result.draft.description.status)}
+                status={editableValueStatus(
+                  result?.draft.description.status,
+                  editableDraft.description,
+                )}
                 multiline
                 onChangeText={(description) =>
                   setEditableDraft({ ...editableDraft, description })
@@ -509,17 +604,25 @@ export default function FieldScreen() {
               <EditableField
                 label="Area"
                 value={editableDraft.area}
-                status={friendlyFieldStatus(result.draft.area.status)}
-                suggestions={areaInlineSuggestions(
-                  result,
-                  editableDraft.areaId,
-                  (suggestion) =>
-                    setEditableDraft({
-                      ...editableDraft,
-                      area: suggestion.label,
-                      areaId: suggestion.areaId,
-                    }),
+                status={editableValueStatus(
+                  result?.draft.area.status,
+                  editableDraft.area,
                 )}
+                multiline
+                suggestions={
+                  result
+                    ? areaInlineSuggestions(
+                        result,
+                        editableDraft.areaId,
+                        (suggestion) =>
+                          setEditableDraft({
+                            ...editableDraft,
+                            area: suggestion.label,
+                            areaId: suggestion.areaId,
+                          }),
+                      )
+                    : []
+                }
                 onChangeText={(area) =>
                   setEditableDraft({ ...editableDraft, area, areaId: null })
                 }
@@ -527,7 +630,10 @@ export default function FieldScreen() {
               <EditableField
                 label="Required action"
                 value={editableDraft.requiredAction}
-                status={friendlyFieldStatus(result.draft.requiredAction.status)}
+                status={editableValueStatus(
+                  result?.draft.requiredAction.status,
+                  editableDraft.requiredAction,
+                )}
                 onChangeText={(requiredAction) =>
                   setEditableDraft({ ...editableDraft, requiredAction })
                 }
@@ -535,10 +641,11 @@ export default function FieldScreen() {
               <EditableField
                 label="Due date"
                 value={editableDraft.dueDate}
-                status={friendlyFieldStatus(
-                  result.draft.requiredActionDueDate.status,
+                status={editableValueStatus(
+                  result?.draft.requiredActionDueDate.status,
+                  editableDraft.dueDate,
                 )}
-                suggestions={dueDateInlineSuggestions(result)}
+                suggestions={result ? dueDateInlineSuggestions(result) : []}
                 onChangeText={(dueDate) =>
                   setEditableDraft({ ...editableDraft, dueDate })
                 }
@@ -552,15 +659,22 @@ export default function FieldScreen() {
               <EditableField
                 label="Tags"
                 value={editableDraft.tags}
-                status={friendlyFieldStatus(result.draft.tags.status)}
-                suggestions={tagInlineSuggestions(
-                  result,
-                  editableDraft.tagCodes,
-                  (suggestion) =>
-                    setEditableDraft(
-                      toggleEditableDraftTag(editableDraft, suggestion),
-                    ),
+                status={editableValueStatus(
+                  result?.draft.tags.status,
+                  editableDraft.tags,
                 )}
+                suggestions={
+                  result
+                    ? tagInlineSuggestions(
+                        result,
+                        editableDraft.tagCodes,
+                        (suggestion) =>
+                          setEditableDraft(
+                            toggleEditableDraftTag(editableDraft, suggestion),
+                          ),
+                      )
+                    : []
+                }
                 onChangeText={(tags) =>
                   setEditableDraft({ ...editableDraft, tags, tagCodes: [] })
                 }
@@ -568,14 +682,16 @@ export default function FieldScreen() {
               <ReadOnlyRow label="Marker" value="Manual" />
               <ReadOnlyRow label="Photos" value="Skipped" />
               <ReadOnlyRow label="Notifications" value="False" />
-              <Pressable style={styles.saveButton} onPress={saveDraft}>
-                <IconSymbol
-                  name="tray.and.arrow.down.fill"
-                  size={19}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.saveButtonText}>Save draft</Text>
-              </Pressable>
+              {result ? (
+                <Pressable style={styles.saveButton} onPress={saveDraft}>
+                  <IconSymbol
+                    name="tray.and.arrow.down.fill"
+                    size={19}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.saveButtonText}>Save draft</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
         </ScrollView>
@@ -587,8 +703,11 @@ export default function FieldScreen() {
 const createEditableDraft = (
   result: Phase4ExtractionResult,
 ): EditableDraft => ({
+  source: "phase4_result",
+  list: result.draft.list.value,
   company: result.draft.company.value ?? "",
   companyId: result.draft.company.companyId,
+  companySuggestions: [],
   description: result.draft.description.value,
   area: result.draft.area.value ?? "",
   areaId: result.draft.area.areaId ?? null,
@@ -596,6 +715,23 @@ const createEditableDraft = (
   dueDate: result.draft.requiredActionDueDate.value ?? "",
   tags: result.draft.tags.value.join(", "),
   tagCodes: result.draft.tags.tagCodes ?? [],
+});
+
+const createEditableDraftFromSimpleDraft = (
+  draft: SimpleGeneralTaskFormDraft,
+): EditableDraft => ({
+  source: "mistral_db",
+  list: draft.list.label,
+  company: draft.company.selected?.label ?? "",
+  companyId: draft.company.selected?.id ?? null,
+  companySuggestions: draft.company.suggestions,
+  description: draft.description,
+  area: draft.area?.label ?? "",
+  areaId: draft.area?.id ?? null,
+  requiredAction: draft.requiredAction?.label ?? "",
+  dueDate: draft.requiredActionDueDate ?? "",
+  tags: draft.tags.map((tag) => tag.label).join(", "),
+  tagCodes: draft.tags.map((tag) => tag.id),
 });
 
 const applyEditsToResult = (
@@ -669,6 +805,17 @@ const companyInlineSuggestions = (
       }),
   }));
 
+const simpleCompanyInlineSuggestions = (
+  draft: EditableDraft,
+  onSelect: (suggestion: { label: string; companyId: string }) => void,
+): InlineSuggestion[] =>
+  draft.companySuggestions.map((item) => ({
+    id: item.id,
+    label: item.label,
+    selected: item.id === draft.companyId,
+    onPress: () => onSelect({ label: item.label, companyId: item.id }),
+  }));
+
 const areaInlineSuggestions = (
   result: Phase4ExtractionResult,
   selectedAreaId: string | null,
@@ -710,6 +857,29 @@ const tagInlineSuggestions = (
 
 const friendlySuggestionMeta = (matchType: string, confidence: string) =>
   `${matchType} / ${confidence}`;
+
+const editableValueStatus = (
+  resultStatus: string | undefined,
+  value: string,
+) =>
+  resultStatus
+    ? friendlyFieldStatus(resultStatus)
+    : value.trim()
+      ? "Ready"
+      : "Manual";
+
+const editableCompanyStatus = (
+  result: Phase4ExtractionResult | null,
+  draft: EditableDraft,
+) => {
+  if (result) {
+    return friendlyFieldStatus(result.draft.company.status);
+  }
+  if (!draft.company.trim() && draft.companySuggestions.length > 1) {
+    return "Review";
+  }
+  return editableValueStatus(undefined, draft.company);
+};
 
 const toggleEditableDraftTag = (
   draft: EditableDraft,

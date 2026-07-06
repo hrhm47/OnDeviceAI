@@ -1,50 +1,13 @@
-# Welcome to your Expo app 👋
+# OnDevice AI V2
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+V2 introduces significant architectural changes. The original OnDevice AI idea has gradually moved toward a cloud-based approach because of limited on-device resources.
 
-## Get started
+In the cloud version, Mistral AI performs the same task that was previously handled on-device by Qwen2.5 1.5B. In testing, this cloud setup is about 20x faster and can fill forms with mostly accurate fields in less than 2 seconds.
 
-1. Install dependencies
+## Dataset
 
-   ```bash
-   npm install
-   ```
+This V2 dataset is small and currently covers 1 building. The dataset follows the Congrid style, and most dataset entities are connected to related entities.
 
-2. Start the app
+The dataset is used to test how recorded observations can be converted into structured form data. Mistral AI extracts the required JSON schema from the user's recorded observation and performs semantic matching against the available work types and issue types.
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+It also extracts spoken location information, such as space type, unit number, and room names like bathrooms, bedrooms, and corridors.

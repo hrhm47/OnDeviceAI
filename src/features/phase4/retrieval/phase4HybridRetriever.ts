@@ -162,16 +162,7 @@ const findProjectAreaExactHits = (input: {
 };
 
 const defaultBuildingId = (context: ProjectContextPackage) => {
-  const defaultArea = context.activeUser.default_area_id
-    ? context.areas.find((area) => area.area_id === context.activeUser.default_area_id)
-    : null;
-  if (!defaultArea?.building_name) {
-    return null;
-  }
-
-  return getGeneratedAreasForProject(context.project.project_id).find(
-    (area) => area.buildingName === defaultArea.building_name,
-  )?.buildingId ?? null;
+  return context.activeUser.default_building_id ?? null;
 };
 
 const exactAreaScore = (confidence: Phase4CandidateConfidence) => {

@@ -1,54 +1,12 @@
 import type { ProjectContextPackage } from "../context/activeProjectContextLoader";
-import keywordSeed from "../data/construction_retrieval_keywords_v1.json";
+import type { Phase4DerivedArea } from "../data/phase4DerivedAreas";
+import type { Phase4SeedWorkType } from "../data/phase4SeedData";
 import type { Phase4RetrievalItem } from "./phase4RetrievalTypes";
-
-type KeywordGroup = {
-  group_id: string;
-  item_type: "work_type";
-  work_type_code: string;
-  keywords_en?: string[];
-  keywords_fi?: string[];
-  example_phrases_en?: string[];
-  example_phrases_fi?: string[];
-};
 
 export const buildPhase4RetrievalItems = (
   context: ProjectContextPackage,
 ): Phase4RetrievalItem[] => [
-  ...context.areas.map((area): Phase4RetrievalItem => {
-    const generatedMetadata = parseGeneratedAreaMetadata(area.area_note);
-    const strongAliases = compact([
-      area.area_label,
-      ...splitExamples(area.spoken_location_examples),
-    ]);
-    const weakAliases = compact([area.building_name, String(area.floor_or_zone ?? "")]);
-    const aliases = Array.from(new Set([...strongAliases, ...weakAliases]));
-    return {
-      itemId: `area:${area.area_id}`,
-      projectId: context.project.project_id,
-      itemType: "area",
-      sourceTable: generatedMetadata ? "generated_areas" : "areas",
-      sourceId: area.area_id,
-      displayName: area.area_label,
-      exactAliases: aliases,
-      searchText:
-        stringValue(generatedMetadata?.searchText) ??
-        compact([...aliases, area.area_type, area.area_note]).join(" "),
-      metadata: {
-        areaId: area.area_id,
-        projectId: area.project_id,
-        buildingName: area.building_name,
-        buildingPhase: area.building_phase,
-        floorOrZone: area.floor_or_zone,
-        areaType: area.area_type,
-        parentAreaId: area.parent_area_id,
-        strongAliases,
-        weakAliases,
-        specificity: areaSpecificity(area.area_type, area.area_label),
-        ...generatedMetadata,
-      },
-    };
-  }),
+  ...context.areas.map((area) => areaRetrievalItem(area, context.project.project_id)),
   ...context.projectCompanyContext.flatMap((projectContext) => {
     const company = context.companies.find(
       (item) => item.company_id === projectContext.company_id,
@@ -56,63 +14,66 @@ export const buildPhase4RetrievalItems = (
     if (!company) {
       return [];
     }
-    const triggerKeywords = splitSemicolonText(projectContext.trigger_keywords_en_fi);
-    const aliases = compact([
+
+    const workTypes = workTypesForIds(
+      context.workTypes,
+      projectContext.work_type_ids ?? company.general_capability_work_type_ids ?? [],
+    );
+    const workTypeTerms = workTypes.flatMap(workTypeTermsForSearch);
+    const workTypeIds = workTypes.map((workType) => workType.work_type_id);
+    const aliases = uniqueCompact([
       company.company_name,
-      company.primary_trade_group,
-      projectContext.work_type_code,
-      ...triggerKeywords,
+      company.company_type,
+      projectContext.project_role,
+      ...workTypeIds,
+      ...workTypes.map((workType) => workType.name),
+      ...workTypes.flatMap((workType) => workType.aliases_en ?? []),
     ]);
     const item: Phase4RetrievalItem = {
       itemId: `company_context:${projectContext.context_id}`,
       projectId: context.project.project_id,
       itemType: "company_context",
-      sourceTable: "project_company_context",
+      sourceTable: "project_company_contexts",
       sourceId: projectContext.context_id,
       displayName: company.company_name,
       exactAliases: aliases,
-      searchText: compact([
-        company.company_name,
-        company.company_note,
-        projectContext.work_type_code,
-        projectContext.project_role,
-        projectContext.agreement_scope,
-        projectContext.building_scope,
-        String(projectContext.floor_or_zone_scope ?? ""),
-        projectContext.phase_scope,
-        projectContext.candidate_match_note,
-        projectContext.note_count_interpretation,
-        ...triggerKeywords,
+      searchText: uniqueCompact([
+        ...aliases,
+        company.company_description,
+        projectContext.responsibility_description,
+        projectContext.scope_notes,
+        projectContext.level_scope?.scope_description,
+        projectContext.apartment_scope?.scope_description,
+        projectContext.space_type_scope?.scope_description,
+        ...(projectContext.space_type_scope?.space_types ?? []),
+        ...workTypeTerms,
       ]).join(" "),
       metadata: {
         companyId: company.company_id,
-        workTypeCode: projectContext.work_type_code,
+        workTypeCode: workTypeIds[0] ?? null,
+        workTypeIds,
         projectRole: projectContext.project_role,
-        buildingScope: projectContext.building_scope,
-        floorOrZoneScope: projectContext.floor_or_zone_scope,
-        similarIssueNoteCount: projectContext.similar_issue_note_count,
+        buildingIds: projectContext.building_ids ?? [],
+        siteIds: projectContext.site_ids ?? [],
+        levelScope: projectContext.level_scope ?? null,
+        apartmentScope: projectContext.apartment_scope ?? null,
+        spaceTypeScope: projectContext.space_type_scope ?? null,
       },
     };
     return [item];
   }),
-  ...keywordGroups().map((group): Phase4RetrievalItem => {
-    const terms = compact([
-      group.work_type_code,
-      ...(group.keywords_en ?? []),
-      ...(group.keywords_fi ?? []),
-      ...(group.example_phrases_en ?? []),
-      ...(group.example_phrases_fi ?? []),
-    ]);
+  ...context.workTypes.map((workType): Phase4RetrievalItem => {
+    const terms = workTypeTermsForSearch(workType);
     return {
-      itemId: `work_type:${context.project.project_id}:${group.work_type_code}`,
+      itemId: `work_type:${context.project.project_id}:${workType.work_type_id}`,
       projectId: context.project.project_id,
       itemType: "work_type",
-      sourceTable: "construction_retrieval_keywords_v1",
-      sourceId: group.group_id,
-      displayName: group.work_type_code.replace(/_/g, " "),
+      sourceTable: "work_types",
+      sourceId: workType.work_type_id,
+      displayName: workType.name,
       exactAliases: terms,
       searchText: terms.join(" "),
-      metadata: { workTypeCode: group.work_type_code },
+      metadata: { workTypeCode: workType.work_type_id },
     };
   }),
   ...context.referenceData.requiredActions.map((action): Phase4RetrievalItem => ({
@@ -149,6 +110,56 @@ export const buildPhase4RetrievalItems = (
     metadata: {},
   })),
 ];
+
+const areaRetrievalItem = (
+  area: Phase4DerivedArea,
+  projectId: string,
+): Phase4RetrievalItem => {
+  const strongAliases = compact([
+    area.area_label,
+    ...(area.spoken_location_examples ?? []),
+  ]);
+  const weakAliases = compact([area.building_name, area.floor_or_zone]);
+  const aliases = Array.from(new Set([...strongAliases, ...weakAliases]));
+  return {
+    itemId: `area:${area.area_id}`,
+    projectId,
+    itemType: "area",
+    sourceTable: area.sourceTable,
+    sourceId: area.sourceId,
+    displayName: area.area_label,
+    exactAliases: aliases,
+    searchText: compact([...aliases, area.area_type, area.area_note]).join(" "),
+    metadata: {
+      areaId: area.area_id,
+      projectId: area.project_id,
+      buildingId: area.building_id,
+      buildingName: area.building_name,
+      floorOrZone: area.floor_or_zone,
+      areaType: area.area_type,
+      parentAreaId: area.parent_area_id,
+      strongAliases,
+      weakAliases,
+      specificity: areaSpecificity(area.area_type, area.area_label),
+    },
+  };
+};
+
+const workTypesForIds = (workTypes: Phase4SeedWorkType[], workTypeIds: string[]) =>
+  workTypeIds
+    .map((workTypeId) =>
+      workTypes.find((workType) => workType.work_type_id === workTypeId),
+    )
+    .filter((workType): workType is Phase4SeedWorkType => Boolean(workType));
+
+const workTypeTermsForSearch = (workType: Phase4SeedWorkType) =>
+  uniqueCompact([
+    workType.work_type_id,
+    workType.name,
+    workType.description,
+    ...(workType.aliases_en ?? []),
+    ...(workType.example_issues_en ?? []),
+  ]);
 
 const dueDateAliases: Record<string, string[]> = {
   Now: ["today", "tänään", "now"],
@@ -192,38 +203,11 @@ const tagAliases: Record<string, string[]> = {
   Environment: ["environment", "waste", "dust", "debris", "ymparisto"],
 };
 
-const keywordGroups = () =>
-  ((keywordSeed as { groups?: KeywordGroup[] }).groups ?? []).filter(
-    (group) => group.item_type === "work_type",
-  );
-
-const splitExamples = (examples: string[] | undefined) =>
-  examples?.flatMap(splitSemicolonText) ?? [];
-
-const splitSemicolonText = (value: string | null | undefined) =>
-  value?.split(";").map((item) => item.trim()).filter(Boolean) ?? [];
+const uniqueCompact = (values: (string | number | null | undefined)[]) =>
+  Array.from(new Set(compact(values)));
 
 const compact = (values: (string | number | null | undefined)[]) =>
   values.map((value) => String(value ?? "").trim()).filter(Boolean);
-
-const GENERATED_AREA_NOTE_PREFIX = "generated_area_metadata:";
-
-const parseGeneratedAreaMetadata = (value: string | null | undefined) => {
-  if (!value?.startsWith(GENERATED_AREA_NOTE_PREFIX)) {
-    return null;
-  }
-  try {
-    return JSON.parse(value.slice(GENERATED_AREA_NOTE_PREFIX.length)) as Record<
-      string,
-      unknown
-    >;
-  } catch {
-    return null;
-  }
-};
-
-const stringValue = (value: unknown) =>
-  typeof value === "string" && value.trim() ? value : null;
 
 const areaSpecificity = (
   areaType: string | null | undefined,
@@ -234,17 +218,14 @@ const areaSpecificity = (
     text.includes("room") ||
     text.includes("bathroom") ||
     text.includes("kitchen") ||
-    text.includes("staircase") ||
-    text.includes("trench") ||
+    text.includes("apartment") ||
+    text.includes("stairwell") ||
     text.includes("corridor") ||
-    text.includes("crane") ||
-    text.includes("temporary power") ||
-    text.includes("slab") ||
-    /[a-z]\d{3}/i.test(text)
+    /apt[_\s-]?\d+/i.test(text)
   ) {
     return 35;
   }
-  if (text.includes("floor") || text.includes("zone")) {
+  if (text.includes("floor") || text.includes("basement")) {
     return 15;
   }
   return 0;

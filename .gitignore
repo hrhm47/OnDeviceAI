@@ -60,5 +60,5 @@ models/llm/**/*.gguf
 *.sqlite3
 
 
-alppila_building_dataset_v2
-alppila_building_dataset_v2.zip
+#envrionment files
+.env

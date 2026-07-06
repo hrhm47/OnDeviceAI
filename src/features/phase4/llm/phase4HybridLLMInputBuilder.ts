@@ -22,7 +22,7 @@ export function buildPhase4HybridLLMInput(input: {
     project: {
       projectId: input.context.project.project_id,
       projectName: input.context.project.project_name,
-      activePhase: input.context.project.active_phase ?? null,
+      activePhase: null,
     },
     retrieval: {
       confidence: retrievalConfidence(input.hybridRetrieval),
