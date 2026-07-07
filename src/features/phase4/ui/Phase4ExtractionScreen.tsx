@@ -49,6 +49,7 @@ import {
 } from "../draft/buildSimpleGeneralTaskFormDraft";
 import { MistalCallFunc, parseMistralExtraction } from "../https/mistralAi";
 import {
+  ConstructionMultiExtraction,
   resolveConstructionExtraction,
   testResolveConstructionExtraction,
 } from "../retrieval/misteralStructuralData";
@@ -101,12 +102,23 @@ export default function Phase4ExtractionScreen() {
     "The entrance door of apartment 204 rubs against the frame and the lock is difficult to turn.",
     "In the apartment the in the entrance door of apartment 204 is not properly locking and it is difficult to turn as well",
   ]);
+
+  const [multiIssueTranscript, setMultiIssueTranscript] = useState([
+    "There is a pipe leak in apartment 301 bathroom.",
+    "In apartment 301, the kitchen socket is missing and the bedroom wall paint is damaged.",
+    "Apartment 301 has a bathroom leak and apartment 302 has a broken balcony door.",
+    "The bathroom pipe is leaking and water is spreading on the floor.",
+    "kitchen socket is loose and the balcony door does not close in apartment 701.",
+    "The bathroom tile is cracked in apartment 302 and the balcony light does not work in apartment 701.",
+    "In apartment 301 bathroom, the pipe is leaking and the door does not close properly.",
+  ]);
   const [language, setLanguage] = useState<Phase4Language>("en");
   const [providerChoice, setProviderChoice] = useState<ProviderChoice>("mock");
   const [selectedUserId, setSelectedUserId] = useState(PHASE4_DEFAULT_USER_ID);
   const [result, setResult] = useState<Phase4ExtractionResult | null>(null);
-  const [simpleDraft, setSimpleDraft] =
-    useState<SimpleGeneralTaskFormDraft | null>(null);
+  const [simpleDraft, setSimpleDraft] = useState<
+    SimpleGeneralTaskFormDraft[] | null
+  >(null);
   const [simpleResolutionStatus, setSimpleResolutionStatus] = useState<
     string | null
   >(null);
@@ -578,8 +590,8 @@ Output:
                       extraction,
                       resolution: resolved,
                     });
-                    setSimpleDraft(draft);
-                    setSimpleResolutionStatus(resolved.location.status);
+                    setSimpleDraft([draft]);
+                    // setSimpleResolutionStatus(resolved.location.status);
 
                     console.log(
                       "Simple form draft:",
@@ -594,6 +606,127 @@ Output:
               />
             ))}
           </View>
+
+          <View style={[styles.header, { marginVertical: 8 }]}>
+            <Text style={styles.eyebrow}>Multi-issue Phrases Section</Text>
+          </View>
+
+          <View style={styles.row}>
+            {multiIssueTranscript.map((trans, index) => (
+              <Chip
+                key={index}
+                selected={trans === transcript}
+                label={"Multi-issue " + (index + 1)}
+                onPress={async () => {
+                  setTranscript(trans);
+                  setSimpleDraft(null);
+                  setSimpleResolutionStatus(null);
+                  // setMessage("Mistral call in progress...");
+                  const wait = await MistalCallFunc(trans);
+
+                  if (wait.result) {
+                    const extraction = parseMistralExtraction(wait.result);
+
+                    console.log(
+                      "Parsed Mistral extraction:",
+                      JSON.stringify(extraction, null, 2),
+                    );
+
+                    const dt: ConstructionMultiExtraction = {
+                      issues: [
+                        {
+                          issue: "cracked tile",
+                          location: "apartment 302 bathroom",
+                          buildingIdentifier: null,
+                          unitIdentifier: "302",
+                          levelIdentifier: null,
+                          spaceType: "bathroom",
+                          timeframe: null,
+                          workType: "tiling",
+                          requiredAction: "action_replace",
+                          tags: ["tag_quality"],
+                        },
+                        {
+                          issue: "balcony light does not work",
+                          location: "apartment 701 balcony",
+                          buildingIdentifier: null,
+                          unitIdentifier: "701",
+                          levelIdentifier: null,
+                          spaceType: "balcony",
+                          timeframe: null,
+                          workType: "electrical",
+                          requiredAction: "action_repair",
+                          tags: ["tag_quality"],
+                        },
+                      ],
+                    };
+
+                    const resolvedIssues = await Promise.all(
+                      dt.issues.map(async (issue, idx) => {
+                        // console.log(
+                        //   `Issue ${idx + 1}:`,
+                        //   JSON.stringify(issue, null, 2),
+                        // );
+                        // const resolved =
+                        return await resolveConstructionExtraction(issue, {
+                          projectId:
+                            selectedUser?.active_project_id ??
+                            "p1_alppila_residential",
+                          defaultBuildingId:
+                            selectedUser?.default_building_id ?? null,
+                        });
+
+                        // console.log(
+                        //   "Resolved DB result:",
+                        //   JSON.stringify(resolved, null, 2),
+                        // );
+                      }),
+                    );
+                    // const resolved = await resolveConstructionExtraction(
+                    //   dt.issues[0],
+                    //   {
+                    //     projectId:
+                    //       selectedUser?.active_project_id ??
+                    //       "p1_alppila_residential",
+                    //     defaultBuildingId:
+                    //       selectedUser?.default_building_id ?? null,
+                    //   },
+                    // );
+
+                    console.log(resolvedIssues.length);
+
+                    // console.log(
+                    //   "Resolved DB result:",
+                    //   JSON.stringify(resolved, null, 2),
+                    // );
+
+                    const drafts = await Promise.all(
+                      resolvedIssues.map(async (resolved, idx) => {
+                        return buildSimpleGeneralTaskFormDraft({
+                          // extraction,
+                          extraction: dt.issues[idx],
+                          resolution: resolved,
+                        });
+                      }),
+                    );
+
+                    setSimpleDraft(drafts);
+                    // setSimpleResolutionStatus(resolved.location.status);
+
+                    console.log(
+                      "Simple form draft:",
+                      JSON.stringify(drafts, null, 2),
+                    );
+
+                    setMessage(
+                      `Mistral + DB + draft completed. Status: ${resolvedIssues[0].location.status}`,
+                    );
+                  }
+                }}
+              />
+            ))}
+          </View>
+
           <Text style={styles.note}>
             {selectedUser?.display_name ?? "Unknown user"} /{" "}
             {selectedProject?.project_name ?? "Unknown project"}
@@ -741,50 +874,64 @@ Output:
           <Text style={styles.note}>{embeddingIndexProgress}</Text>
         ) : null}
         {checkSummary ? <Text style={styles.note}>{checkSummary}</Text> : null}
-
         {simpleDraft ? (
-          <Section title="Mistral DB Form Draft">
+          <Section
+            title={`Mistral DB Form Draft${simpleDraft.length > 1 ? "s" : ""}`}
+          >
             {simpleResolutionStatus ? (
               <Text style={styles.note}>
                 Location status: {simpleResolutionStatus}
               </Text>
             ) : null}
-            <SimpleField label="List" value={simpleDraft.list.label} />
-            <SimpleField
-              label="Company"
-              value={simpleDraft.company.selected?.label ?? "Manual"}
-            />
-            <SimpleField label="Description" value={simpleDraft.description} />
-            <SimpleField
-              label="Area"
-              value={simpleDraft.area?.label ?? "Manual"}
-            />
-            <SimpleField
-              label="Required action"
-              value={simpleDraft.requiredAction?.label ?? "Manual"}
-            />
-            <SimpleField
-              label="Due date"
-              value={simpleDraft.requiredActionDueDate ?? "Manual"}
-            />
-            <SimpleField
-              label="Tags"
-              value={
-                simpleDraft.tags.map((tag) => tag.label).join(", ") || "Manual"
-              }
-            />
-            <SimpleField label="Notifications" value="Not Available" />
-            {!simpleDraft.company.selected &&
-            simpleDraft.company.suggestions.length > 0 ? (
-              <View style={styles.selectionBox}>
-                <Text style={styles.suggestionTitle}>Company suggestions</Text>
-                {simpleDraft.company.suggestions.map((company) => (
-                  <Text key={company.id} style={styles.note}>
-                    {company.label}
-                  </Text>
-                ))}
+
+            {simpleDraft.map((draft, index) => (
+              <View
+                key={`${draft.area?.id ?? "manual-area"}-${draft.description}-${index}`}
+                style={styles.draftGroup}
+              >
+                {simpleDraft.length > 1 ? (
+                  <Text style={styles.suggestionTitle}>Draft {index + 1}</Text>
+                ) : null}
+                <SimpleField label="List" value={draft.list.label} />
+                <SimpleField
+                  label="Company"
+                  value={draft.company.selected?.label ?? "Manual"}
+                />
+                <SimpleField label="Description" value={draft.description} />
+                <SimpleField
+                  label="Area"
+                  value={draft.area?.label ?? "Manual"}
+                />
+                <SimpleField
+                  label="Required action"
+                  value={draft.requiredAction?.label ?? "Manual"}
+                />
+                <SimpleField
+                  label="Due date"
+                  value={draft.requiredActionDueDate ?? "Manual"}
+                />
+                <SimpleField
+                  label="Tags"
+                  value={
+                    draft.tags.map((tag) => tag.label).join(", ") || "Manual"
+                  }
+                />
+                <SimpleField label="Notifications" value="Not Available" />
+                {!draft.company.selected &&
+                draft.company.suggestions.length > 0 ? (
+                  <View style={styles.selectionBox}>
+                    <Text style={styles.suggestionTitle}>
+                      Company suggestions
+                    </Text>
+                    {draft.company.suggestions.map((company) => (
+                      <Text key={company.id} style={styles.note}>
+                        {company.label}
+                      </Text>
+                    ))}
+                  </View>
+                ) : null}
               </View>
-            ) : null}
+            ))}
           </Section>
         ) : null}
 
@@ -1292,6 +1439,7 @@ const styles = StyleSheet.create({
   },
   fieldValue: { color: C.text, fontSize: 15, lineHeight: 21 },
   status: { color: C.primary, fontSize: 12, fontWeight: "800" },
+  draftGroup: { gap: 10 },
   suggestionBox: {
     borderWidth: 1,
     borderColor: C.border,
