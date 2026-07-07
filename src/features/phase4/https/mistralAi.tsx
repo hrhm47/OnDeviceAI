@@ -1,6 +1,8 @@
 // import { Mistral } from "@mistralai/mistralai";
 
-import { ConstructionExtraction } from "../retrieval/misteralStructuralData";
+import {
+  ConstructionMultiExtraction
+} from "../retrieval/misteralStructuralData";
 import { MistralInstructions } from "./mistralInstructions";
 
 // const client = new Mistral({
@@ -467,7 +469,9 @@ export const MistalCallFunc = async (chatInput: string) => {
   return { result: JSON.parse(text), responseStatus: response.status };
 };
 
-export const parseMistralExtraction = (result: any): ConstructionExtraction => {
+export const parseMistralExtraction = (
+  result: any,
+): ConstructionMultiExtraction => {
   const content =
     result?.outputs?.[0]?.content ?? result?.output ?? result?.content;
 
@@ -482,5 +486,5 @@ export const parseMistralExtraction = (result: any): ConstructionExtraction => {
     throw new Error("Could not find Mistral extraction JSON in response.");
   }
 
-  return JSON.parse(text) as ConstructionExtraction;
+  return JSON.parse(text) as ConstructionMultiExtraction;
 };

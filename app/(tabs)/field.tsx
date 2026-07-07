@@ -24,7 +24,6 @@ import {
   parseMistralExtraction,
 } from "@/src/features/phase4/https/mistralAi";
 import { resolveConstructionExtraction } from "@/src/features/phase4/retrieval/misteralStructuralData";
-import { savePhase4ExtractionResult } from "@/src/features/phase4/storage/phase4ExtractionStorage";
 import { preparePhase4HybridRagRuntime } from "@/src/features/phase4/storage/phase4HybridRagRuntime";
 import type {
   Phase4AllowedDueDate,
@@ -35,7 +34,6 @@ import type {
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -121,9 +119,10 @@ export default function FieldScreen() {
     useState<FieldWorkflowStatus>("loading_context");
   const [transcript, setTranscript] = useState("");
   const [result, setResult] = useState<Phase4ExtractionResult | null>(null);
-  const [editableDraft, setEditableDraft] = useState<EditableDraft | null>(
+  const [editableDraft, setEditableDraft] = useState<EditableDraft[] | null>(
     null,
   );
+  const [nextEditableDraftIndex, setNextEditableDraftIndex] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [embeddingIndexProgress, setEmbeddingIndexProgress] = useState<
     string | null
@@ -164,6 +163,65 @@ export default function FieldScreen() {
 
   useEffect(() => {
     let active = true;
+    // setEditableDraft([
+    //   {
+    //     source: "mistral_db",
+    //     list: "Hallo",
+    //     company: "AquaPipe Finland Oy",
+    //     companyId: "c_aquapipe",
+    //     companySuggestions: [
+    //       {
+    //         id: "c_aquapipe",
+    //         label: "AquaPipe Finland Oy",
+    //       },
+    //     ],
+    //     description: "leaking sink",
+    //     area: "Triolintie 2B / Floor 3 / Apartment 301 / Kitchen",
+    //     areaId: "bldg_triolitie_2b_apt_301_kitchen",
+    //     requiredAction: "Repair",
+    //     dueDate: "",
+    //     tags: "Quality",
+    //     tagCodes: ["tag_quality"],
+    //   },
+    //   {
+    //     source: "mistral_db",
+    //     list: "Hallo",
+    //     company: "Main Builder Oy",
+    //     companyId: "c_main_builder",
+    //     companySuggestions: [
+    //       {
+    //         id: "c_main_builder",
+    //         label: "Main Builder Oy",
+    //       },
+    //     ],
+    //     description: "missing fridge",
+    //     area: "Triolintie 2B / Floor 3 / Apartment 301 / Kitchen",
+    //     areaId: "bldg_triolitie_2b_apt_301_kitchen",
+    //     requiredAction: "Install",
+    //     dueDate: "",
+    //     tags: "Quality",
+    //     tagCodes: ["tag_quality"],
+    //   },
+    //   {
+    //     source: "mistral_db",
+    //     list: "Hallo",
+    //     company: "FloorFix Oy",
+    //     companyId: "c_floorfix",
+    //     companySuggestions: [
+    //       {
+    //         id: "c_floorfix",
+    //         label: "FloorFix Oy",
+    //       },
+    //     ],
+    //     description: "cracked floor",
+    //     area: "Triolintie 2B / Floor 3 / Apartment 301 / Shared corridor",
+    //     areaId: "bldg_triolitie_2b_floor_3_corridor",
+    //     requiredAction: "Repair",
+    //     dueDate: "today",
+    //     tags: "Quality",
+    //     tagCodes: ["tag_quality"],
+    //   },
+    // ]);
 
     const loadProjectContext = async () => {
       setWorkflowStatus("loading_context");
@@ -343,27 +401,27 @@ export default function FieldScreen() {
     // }
   };
 
-  const saveDraft = async () => {
-    if (!result || !editableDraft) {
-      return;
-    }
+  // const saveDraft = async () => {
+  //   if (!result || !editableDraft) {
+  //     return;
+  //   }
 
-    try {
-      const editedResult = applyEditsToResult(
-        result,
-        editableDraft,
-        referenceData.companies,
-      );
-      await savePhase4ExtractionResult(editedResult);
-      setResult(editedResult);
-      setWorkflowStatus("saved");
-      setMessage("Draft saved locally.");
-    } catch (error) {
-      const text = error instanceof Error ? error.message : String(error);
-      setMessage(text);
-      Alert.alert("Save failed", text);
-    }
-  };
+  //   try {
+  //     const editedResult = applyEditsToResult(
+  //       result,
+  //       editableDraft,
+  //       referenceData.companies,
+  //     );
+  //     await savePhase4ExtractionResult(editedResult);
+  //     setResult(editedResult);
+  //     setWorkflowStatus("saved");
+  //     setMessage("Draft saved locally.");
+  //   } catch (error) {
+  //     const text = error instanceof Error ? error.message : String(error);
+  //     setMessage(text);
+  //     Alert.alert("Save failed", text);
+  //   }
+  // };
 
   const selectUser = (userId: string) => {
     if (userControlsDisabled || selectedUserId === userId) {
@@ -412,30 +470,65 @@ export default function FieldScreen() {
 
       console.log("Parsed Mistral extraction:", extraction);
 
-      const resolved = await resolveConstructionExtraction(extraction, {
-        projectId: selectedUser?.active_project_id ?? "p1_alppila_residential",
-        defaultBuildingId: selectedUser?.default_building_id ?? null,
-      });
+      const resolvedIssues = await Promise.all(
+        extraction?.issues.map(async (issue, idx) => {
+          return await resolveConstructionExtraction(issue, {
+            projectId:
+              selectedUser?.active_project_id ?? "p1_alppila_residential",
+            defaultBuildingId: selectedUser?.default_building_id ?? null,
+          });
+        }),
+      );
 
-      console.log("Resolved DB result:", JSON.stringify(resolved, null, 2));
+      // const resolved = await resolveConstructionExtraction(extraction, {
+      //   projectId: selectedUser?.active_project_id ?? "p1_alppila_residential",
+      //   defaultBuildingId: selectedUser?.default_building_id ?? null,
+      // });
 
-      const draft = buildSimpleGeneralTaskFormDraft({
-        extraction,
-        resolution: resolved,
-      });
+      console.log(
+        "Resolved DB result:",
+        JSON.stringify(resolvedIssues, null, 2),
+      );
+
+      const drafts = await Promise.all(
+        resolvedIssues.map(async (resolved, idx) => {
+          return buildSimpleGeneralTaskFormDraft({
+            extraction: extraction.issues[idx],
+            resolution: resolved,
+          });
+        }),
+      );
+
+      console.log(
+        "\n\n\n ================= \n Simple form draft:",
+        JSON.stringify(drafts, null, 2),
+        "\n\n\n ================= \n",
+      );
+
+      // const draft = buildSimpleGeneralTaskFormDraft({
+      //   extraction,
+      //   resolution: resolved,
+      // });
       setResult(null);
-      setEditableDraft(createEditableDraftFromSimpleDraft(draft));
+      const draftsWithEdits = drafts.map((draft) =>
+        createEditableDraftFromSimpleDraft(draft),
+      );
+      console.log(
+        "Editable dafts logs: ",
+        JSON.stringify(draftsWithEdits, null, 2),
+      );
+      setEditableDraft(draftsWithEdits);
       setWorkflowStatus("ready");
-      // setSimpleDraft(draft);
-      // setSimpleResolutionStatus(resolved.location.status);
-
-      console.log("Simple form draft:", JSON.stringify(draft, null, 2));
+      // // setSimpleDraft(draft);
+      // setSimpleResolutionStatus(resolvedIssues[0].location.status);
 
       setMessage(
-        `Mistral + DB + draft completed. Status: ${resolved.location.status}`,
+        `Mistral + DB + draft completed. Status: ${resolvedIssues[0].location.status}`,
       );
     }
   };
+
+  console.log("Editable draft state:", editableDraft);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -553,136 +646,216 @@ export default function FieldScreen() {
 
           {editableDraft ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Draft preview</Text>
-              <ReadOnlyRow label="List" value={editableDraft.list} />
+              {/* <Text style={styles.sectionTitle}>Draft preview</Text> */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 8,
+                  justifyContent: "space-between",
+                }}
+              >
+                <Text style={styles.sectionTitle}>
+                  Draft preview {nextEditableDraftIndex + 1}
+                </Text>
+                {editableDraft.length > 1 ? (
+                  <Pressable
+                    style={{
+                      padding: 8,
+                      backgroundColor: C.primary,
+                      borderRadius: 4,
+                      marginRight: 8,
+                      width: "20%",
+                    }}
+                    onPress={() => {
+                      nextEditableDraftIndex < editableDraft.length - 1
+                        ? setNextEditableDraftIndex((value) => value + 1)
+                        : setNextEditableDraftIndex(0);
+                    }}
+                  >
+                    <Text style={[styles.sectionTitle, { color: "white" }]}>
+                      {nextEditableDraftIndex < editableDraft.length - 1
+                        ? "Next >"
+                        : "Prev <"}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              <ReadOnlyRow
+                label="List"
+                value={editableDraft[nextEditableDraftIndex].list}
+              />
               <EditableField
                 label="Company"
-                value={editableDraft.company}
-                status={editableCompanyStatus(result, editableDraft)}
+                value={editableDraft[nextEditableDraftIndex].company}
+                status={editableCompanyStatus(
+                  result,
+                  editableDraft[nextEditableDraftIndex],
+                )}
                 suggestions={
                   result
                     ? companyInlineSuggestions(
                         result,
-                        editableDraft.companyId,
+                        editableDraft[nextEditableDraftIndex].companyId,
                         (suggestion) =>
-                          setEditableDraft({
-                            ...editableDraft,
-                            company: suggestion.label,
-                            companyId: suggestion.companyId,
-                          }),
+                          setEditableDraft([
+                            {
+                              ...editableDraft[nextEditableDraftIndex],
+                              company: suggestion.label,
+                              companyId: suggestion.companyId,
+                            },
+                          ]),
                       )
                     : simpleCompanyInlineSuggestions(
-                        editableDraft,
+                        editableDraft[nextEditableDraftIndex],
                         (suggestion) =>
-                          setEditableDraft({
-                            ...editableDraft,
-                            company: suggestion.label,
-                            companyId: suggestion.companyId,
-                          }),
+                          setEditableDraft([
+                            {
+                              ...editableDraft[nextEditableDraftIndex],
+                              company: suggestion.label,
+                              companyId: suggestion.companyId,
+                            },
+                          ]),
                       )
                 }
                 onChangeText={(company) =>
-                  setEditableDraft({
-                    ...editableDraft,
-                    company,
-                    companyId: null,
-                  })
+                  setEditableDraft([
+                    {
+                      ...editableDraft[nextEditableDraftIndex],
+                      company,
+                      companyId: null,
+                    },
+                  ])
                 }
               />
               <EditableField
                 label="Description"
-                value={editableDraft.description}
+                value={editableDraft[nextEditableDraftIndex].description}
                 status={editableValueStatus(
                   result?.draft.description.status,
-                  editableDraft.description,
+                  editableDraft[nextEditableDraftIndex].description,
                 )}
                 multiline
                 onChangeText={(description) =>
-                  setEditableDraft({ ...editableDraft, description })
+                  setEditableDraft([
+                    {
+                      ...editableDraft[nextEditableDraftIndex],
+                      description,
+                    },
+                  ])
                 }
               />
               <EditableField
                 label="Area"
-                value={editableDraft.area}
+                value={editableDraft[nextEditableDraftIndex].area}
                 status={editableValueStatus(
                   result?.draft.area.status,
-                  editableDraft.area,
+                  editableDraft[nextEditableDraftIndex].area,
                 )}
                 multiline
                 suggestions={
                   result
                     ? areaInlineSuggestions(
                         result,
-                        editableDraft.areaId,
+                        editableDraft[nextEditableDraftIndex].areaId,
                         (suggestion) =>
-                          setEditableDraft({
-                            ...editableDraft,
-                            area: suggestion.label,
-                            areaId: suggestion.areaId,
-                          }),
+                          setEditableDraft([
+                            {
+                              ...editableDraft[nextEditableDraftIndex],
+                              area: suggestion.label,
+                              areaId: suggestion.areaId,
+                            },
+                          ]),
                       )
                     : []
                 }
                 onChangeText={(area) =>
-                  setEditableDraft({ ...editableDraft, area, areaId: null })
+                  setEditableDraft([
+                    {
+                      ...editableDraft[nextEditableDraftIndex],
+                      area,
+                      areaId: null,
+                    },
+                  ])
                 }
               />
               <EditableField
                 label="Required action"
-                value={editableDraft.requiredAction}
+                value={editableDraft[nextEditableDraftIndex].requiredAction}
                 status={editableValueStatus(
                   result?.draft.requiredAction.status,
-                  editableDraft.requiredAction,
+                  editableDraft[nextEditableDraftIndex].requiredAction,
                 )}
                 onChangeText={(requiredAction) =>
-                  setEditableDraft({ ...editableDraft, requiredAction })
+                  setEditableDraft([
+                    {
+                      ...editableDraft[nextEditableDraftIndex],
+                      requiredAction,
+                    },
+                  ])
                 }
               />
               <EditableField
                 label="Due date"
-                value={editableDraft.dueDate}
+                value={editableDraft[nextEditableDraftIndex].dueDate}
                 status={editableValueStatus(
                   result?.draft.requiredActionDueDate.status,
-                  editableDraft.dueDate,
+                  editableDraft[nextEditableDraftIndex].dueDate,
                 )}
                 suggestions={result ? dueDateInlineSuggestions(result) : []}
                 onChangeText={(dueDate) =>
-                  setEditableDraft({ ...editableDraft, dueDate })
+                  setEditableDraft([
+                    {
+                      ...editableDraft[nextEditableDraftIndex],
+                      dueDate,
+                    },
+                  ])
                 }
                 onSelectSuggestion={(suggestion) =>
-                  setEditableDraft({
-                    ...editableDraft,
-                    dueDate: suggestion.label,
-                  })
+                  setEditableDraft([
+                    {
+                      ...editableDraft[nextEditableDraftIndex],
+                      dueDate: suggestion.label,
+                    },
+                  ])
                 }
               />
               <EditableField
                 label="Tags"
-                value={editableDraft.tags}
+                value={editableDraft[nextEditableDraftIndex].tags}
                 status={editableValueStatus(
                   result?.draft.tags.status,
-                  editableDraft.tags,
+                  editableDraft[nextEditableDraftIndex].tags,
                 )}
                 suggestions={
                   result
                     ? tagInlineSuggestions(
                         result,
-                        editableDraft.tagCodes,
+                        editableDraft[nextEditableDraftIndex].tagCodes,
                         (suggestion) =>
-                          setEditableDraft(
-                            toggleEditableDraftTag(editableDraft, suggestion),
-                          ),
+                          setEditableDraft([
+                            toggleEditableDraftTag(
+                              editableDraft[nextEditableDraftIndex],
+                              suggestion,
+                            ),
+                          ]),
                       )
                     : []
                 }
                 onChangeText={(tags) =>
-                  setEditableDraft({ ...editableDraft, tags, tagCodes: [] })
+                  setEditableDraft([
+                    {
+                      ...editableDraft[nextEditableDraftIndex],
+                      tags,
+                      tagCodes: [],
+                    },
+                  ])
                 }
               />
               <ReadOnlyRow label="Marker" value="Manual" />
               <ReadOnlyRow label="Photos" value="Skipped" />
               <ReadOnlyRow label="Notifications" value="False" />
-              {result ? (
+              {/* {result ? (
                 <Pressable style={styles.saveButton} onPress={saveDraft}>
                   <IconSymbol
                     name="tray.and.arrow.down.fill"
@@ -691,7 +864,7 @@ export default function FieldScreen() {
                   />
                   <Text style={styles.saveButtonText}>Save draft</Text>
                 </Pressable>
-              ) : null}
+              ) : null} */}
             </View>
           ) : null}
         </ScrollView>
