@@ -57,6 +57,10 @@ export type ConstructionExtraction = {
     tags: string[];
 };
 
+export type ConstructionMultiExtraction = {
+    issues: ConstructionExtraction[];
+};
+
 export type ActiveContext = {
     projectId: string;
     defaultBuildingId: string | null;
