@@ -18,6 +18,7 @@ export type SimpleGeneralTaskFormDraft = {
   };
   description: string;
   area: FormSelection | null;
+  areaSuggestions: FormSelection[];
   marker: null;
   photos: [];
   requiredAction: FormSelection | null;
@@ -45,6 +46,7 @@ export const buildSimpleGeneralTaskFormDraft = (input: {
     },
     description: input.extraction.issue.trim(),
     area: buildAreaSelection(input.resolution),
+    areaSuggestions: buildAreaSuggestions(input.resolution),
     marker: null,
     photos: [],
     requiredAction: findSelectionById(
@@ -62,9 +64,14 @@ const buildAreaSelection = (
   resolution: ConstructionResolution,
 ): FormSelection | null => {
   const { location } = resolution;
+  const areaSuggestions = buildAreaSuggestions(resolution);
+
+  if (location.status === "selection_required") {
+    return areaSuggestions.length === 1 ? areaSuggestions[0] : null;
+  }
+
   if (
     !location.building ||
-    location.status === "selection_required" ||
     location.status === "conflict" ||
     location.status === "not_found"
   ) {
@@ -75,7 +82,9 @@ const buildAreaSelection = (
   let id = location.building.building_id;
 
   if (location.floor) {
-    parts.push(location.floor.level_label);
+    parts.push(
+      formatFloorLabel(location.floor.floor_number, location.floor.level_label),
+    );
     id = location.floor.level_id;
   }
 
@@ -94,6 +103,39 @@ const buildAreaSelection = (
     label: parts.join(" / "),
   };
 };
+
+const buildAreaSuggestions = (
+  resolution: ConstructionResolution,
+): FormSelection[] => {
+  const { location } = resolution;
+
+  if (!location.building) {
+    return [];
+  }
+
+  const buildingName = location.building.building_name;
+
+  return location.spaceCandidates.map((candidate) => {
+    const parts = [
+      buildingName,
+      formatFloorLabel(candidate.floor_number, candidate.level_label),
+    ];
+
+    if (candidate.apartment_number) {
+      parts.push(`Apartment ${candidate.apartment_number}`);
+    }
+
+    parts.push(candidate.display_name);
+
+    return {
+      id: candidate.space_id,
+      label: parts.join(" / "),
+    };
+  });
+};
+
+const formatFloorLabel = (floorNumber: number, levelLabel: string): string =>
+  floorNumber === -1 ? levelLabel : `Floor ${floorNumber}`;
 
 const findSelectionById = <T extends FormSelection>(
   options: readonly T[],

@@ -67,6 +67,7 @@ type EditableDraft = {
   description: string;
   area: string;
   areaId: string | null;
+  areaSuggestions: FormSelection[];
   requiredAction: string;
   dueDate: string;
   tags: string;
@@ -88,7 +89,7 @@ const workflowSteps = [
   { key: "loading_context", label: "Data" },
   { key: "recording", label: "Record" },
   { key: "transcribing", label: "Speech" },
-  { key: "retrieving_context", label: "RAG" },
+  { key: "retrieving_context", label: "Mistral Ext" },
   { key: "extracting_with_llm", label: "Draft" },
   { key: "ready", label: "Review" },
 ] as const;
@@ -767,7 +768,17 @@ export default function FieldScreen() {
                             },
                           ]),
                       )
-                    : []
+                    : simpleAreaInlineSuggestions(
+                        editableDraft[nextEditableDraftIndex],
+                        (suggestion) =>
+                          setEditableDraft([
+                            {
+                              ...editableDraft[nextEditableDraftIndex],
+                              area: suggestion.label,
+                              areaId: suggestion.areaId,
+                            },
+                          ]),
+                      )
                 }
                 onChangeText={(area) =>
                   setEditableDraft([
@@ -884,6 +895,7 @@ const createEditableDraft = (
   description: result.draft.description.value,
   area: result.draft.area.value ?? "",
   areaId: result.draft.area.areaId ?? null,
+  areaSuggestions: [],
   requiredAction: result.draft.requiredAction.value ?? "",
   dueDate: result.draft.requiredActionDueDate.value ?? "",
   tags: result.draft.tags.value.join(", "),
@@ -901,6 +913,7 @@ const createEditableDraftFromSimpleDraft = (
   description: draft.description,
   area: draft.area?.label ?? "",
   areaId: draft.area?.id ?? null,
+  areaSuggestions: draft.areaSuggestions,
   requiredAction: draft.requiredAction?.label ?? "",
   dueDate: draft.requiredActionDueDate ?? "",
   tags: draft.tags.map((tag) => tag.label).join(", "),
@@ -987,6 +1000,17 @@ const simpleCompanyInlineSuggestions = (
     label: item.label,
     selected: item.id === draft.companyId,
     onPress: () => onSelect({ label: item.label, companyId: item.id }),
+  }));
+
+const simpleAreaInlineSuggestions = (
+  draft: EditableDraft,
+  onSelect: (suggestion: { label: string; areaId: string }) => void,
+): InlineSuggestion[] =>
+  draft.areaSuggestions.map((item) => ({
+    id: item.id,
+    label: item.label,
+    selected: item.id === draft.areaId,
+    onPress: () => onSelect({ label: item.label, areaId: item.id }),
   }));
 
 const areaInlineSuggestions = (
@@ -1542,7 +1566,7 @@ const styles = StyleSheet.create({
   stepRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 6,
+    gap: 16,
   },
   stepItem: {
     flex: 1,
@@ -1571,6 +1595,7 @@ const styles = StyleSheet.create({
     color: C.textSubtle,
     fontSize: 10,
     fontWeight: "800",
+    textAlign: "center",
   },
   stepLabelActive: {
     color: C.text,
